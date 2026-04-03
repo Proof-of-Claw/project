@@ -12,6 +12,10 @@ pub struct AgentConfig {
     pub zero_g_compute_endpoint: String,
     pub dm3_delivery_service_url: String,
     pub ledger_origin_token: Option<String>,
+    pub eip8004_identity_registry: Option<String>,
+    pub eip8004_reputation_registry: Option<String>,
+    pub eip8004_validation_registry: Option<String>,
+    pub eip8004_integration_contract: Option<String>,
     pub policy: PolicyConfig,
 }
 
@@ -40,6 +44,10 @@ impl AgentConfig {
             dm3_delivery_service_url: env::var("DM3_DELIVERY_SERVICE_URL")
                 .unwrap_or_else(|_| "http://localhost:3001".to_string()),
             ledger_origin_token: env::var("LEDGER_ORIGIN_TOKEN").ok(),
+            eip8004_identity_registry: env::var("EIP8004_IDENTITY_REGISTRY").ok(),
+            eip8004_reputation_registry: env::var("EIP8004_REPUTATION_REGISTRY").ok(),
+            eip8004_validation_registry: env::var("EIP8004_VALIDATION_REGISTRY").ok(),
+            eip8004_integration_contract: env::var("EIP8004_INTEGRATION_CONTRACT").ok(),
             policy: PolicyConfig {
                 allowed_tools: env::var("ALLOWED_TOOLS")
                     .unwrap_or_else(|_| "swap,transfer,query".to_string())

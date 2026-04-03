@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Proof of Claw — Provable Private Agent Framework</title>
+<meta name="description" content="Autonomous AI agents with cryptographically provable behavior, end-to-end encrypted communication, and hardware-signed human approval. ETHGlobal Cannes 2026.">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -46,30 +47,12 @@ body::after {
   content: '';
   position: fixed;
   inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
-  );
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px);
   pointer-events: none;
   z-index: 9999;
 }
 
-/* Grid background */
-.grid-bg {
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* NAVIGATION */
+/* ========== NAVIGATION ========== */
 nav {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -91,13 +74,12 @@ nav {
 }
 
 .nav-logo .claw-icon {
-  width: 32px;
-  height: 32px;
+  width: 32px; height: 32px;
   position: relative;
 }
 
 .nav-logo .claw-icon::before {
-  content: '⟁';
+  content: '\29C1';
   font-size: 28px;
   color: var(--cyan);
   filter: drop-shadow(0 0 8px var(--cyan));
@@ -129,6 +111,12 @@ nav {
 
 .nav-links a:hover { color: var(--cyan); }
 
+.nav-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .nav-badge {
   padding: 0.35rem 0.9rem;
   border: 1px solid var(--border-cyan);
@@ -140,6 +128,7 @@ nav {
   background: var(--cyan-glow);
   text-decoration: none;
   transition: all 0.3s;
+  white-space: nowrap;
 }
 
 .nav-badge:hover {
@@ -147,7 +136,69 @@ nav {
   box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
 }
 
-/* HERO */
+.nav-badge.amber {
+  border-color: rgba(255, 179, 0, 0.3);
+  color: var(--amber);
+  background: var(--amber-glow);
+}
+
+.nav-badge.amber:hover {
+  background: rgba(255, 179, 0, 0.2);
+  box-shadow: 0 0 20px rgba(255, 179, 0, 0.15);
+}
+
+/* Hamburger */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--text-secondary);
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+/* Mobile menu */
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 60px; left: 0; right: 0; bottom: 0;
+  background: rgba(6, 8, 13, 0.97);
+  backdrop-filter: blur(20px);
+  z-index: 99;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.mobile-menu.active { display: flex; }
+
+.mobile-menu a {
+  text-decoration: none;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  transition: color 0.3s;
+}
+
+.mobile-menu a:hover { color: var(--cyan); }
+
+/* ========== HERO ========== */
 .hero {
   position: relative;
   min-height: 100vh;
@@ -156,16 +207,13 @@ nav {
   justify-content: center;
   padding: 8rem 2rem 4rem;
   z-index: 1;
+  overflow: hidden;
 }
 
-.hero-glow {
+#hero-canvas {
   position: absolute;
-  top: -200px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(ellipse, rgba(0, 229, 255, 0.06) 0%, transparent 70%);
+  inset: 0;
+  z-index: 0;
   pointer-events: none;
 }
 
@@ -174,45 +222,45 @@ nav {
   margin: 0 auto;
   text-align: center;
   position: relative;
+  z-index: 2;
 }
 
-.hero-eyebrow {
+.hero-problem {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 1rem;
-  border: 1px solid var(--border-cyan);
+  gap: 0.6rem;
+  padding: 0.5rem 1.2rem;
+  border: 1px solid rgba(255, 61, 90, 0.3);
   border-radius: 100px;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--cyan);
+  letter-spacing: 0.15em;
+  color: var(--red);
   margin-bottom: 2rem;
-  background: var(--cyan-glow);
-  animation: fadeInUp 0.8s ease both;
+  background: rgba(255, 61, 90, 0.08);
+  animation: fadeInUp 0.6s ease both;
 }
 
-.hero-eyebrow .dot {
-  width: 6px;
-  height: 6px;
+.hero-problem .pulse-dot {
+  width: 6px; height: 6px;
   border-radius: 50%;
-  background: var(--cyan);
+  background: var(--red);
   animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--cyan); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--red); }
   50% { opacity: 0.4; box-shadow: none; }
 }
 
 .hero h1 {
   font-family: var(--font-display);
-  font-size: clamp(3rem, 8vw, 6rem);
+  font-size: clamp(3rem, 8vw, 5.5rem);
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.04em;
   margin-bottom: 1.5rem;
-  animation: fadeInUp 0.8s ease 0.1s both;
+  animation: fadeInUp 0.6s ease 0.1s both;
 }
 
 .hero h1 .highlight {
@@ -222,14 +270,25 @@ nav {
   background-clip: text;
 }
 
+.hero-solution {
+  font-size: 1.15rem;
+  color: var(--text-primary);
+  max-width: 700px;
+  margin: 0 auto 1rem;
+  line-height: 1.6;
+  font-weight: 400;
+  animation: fadeInUp 0.6s ease 0.2s both;
+  font-family: var(--font-display);
+}
+
 .hero-sub {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  max-width: 600px;
+  max-width: 620px;
   margin: 0 auto 2.5rem;
   line-height: 1.8;
   font-weight: 300;
-  animation: fadeInUp 0.8s ease 0.2s both;
+  animation: fadeInUp 0.6s ease 0.25s both;
 }
 
 .hero-actions {
@@ -237,14 +296,14 @@ nav {
   gap: 1rem;
   justify-content: center;
   flex-wrap: wrap;
-  animation: fadeInUp 0.8s ease 0.3s both;
+  animation: fadeInUp 0.6s ease 0.3s both;
 }
 
 .btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.85rem 2rem;
+  padding: 0.9rem 2.2rem;
   background: var(--cyan);
   color: var(--bg-primary);
   font-family: var(--font-mono);
@@ -254,22 +313,34 @@ nav {
   letter-spacing: 0.1em;
   text-decoration: none;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
 }
 
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s;
+}
+
+.btn-primary:hover::after { transform: translateX(100%); }
+
 .btn-primary:hover {
-  background: #33ecff;
-  box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
-  transform: translateY(-1px);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.4), 0 4px 20px rgba(0, 229, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.85rem 2rem;
+  padding: 0.9rem 2.2rem;
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -279,7 +350,7 @@ nav {
   letter-spacing: 0.1em;
   text-decoration: none;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s;
 }
@@ -287,6 +358,33 @@ nav {
 .btn-secondary:hover {
   border-color: var(--text-secondary);
   background: rgba(255,255,255,0.03);
+  transform: translateY(-2px);
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin-top: 3.5rem;
+  animation: fadeInUp 0.6s ease 0.4s both;
+}
+
+.hero-stat { text-align: center; }
+
+.hero-stat-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--cyan);
+  line-height: 1.2;
+}
+
+.hero-stat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-top: 0.25rem;
 }
 
 @keyframes fadeInUp {
@@ -294,7 +392,65 @@ nav {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* SECTION COMMON */
+/* ========== SPONSOR BAR ========== */
+.sponsor-bar {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  padding: 2rem;
+}
+
+.sponsor-bar-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.sponsor-bar-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  margin-bottom: 1.5rem;
+}
+
+.sponsor-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+}
+
+.sponsor-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-dim);
+  transition: color 0.3s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sponsor-logo:hover { color: var(--text-secondary); }
+
+.sponsor-logo .sp-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+/* ========== SECTION COMMON ========== */
 section {
   position: relative;
   z-index: 1;
@@ -319,8 +475,7 @@ section {
 
 .section-label::before {
   content: '';
-  width: 24px;
-  height: 1px;
+  width: 24px; height: 1px;
   background: var(--cyan);
 }
 
@@ -341,7 +496,7 @@ section {
   margin-bottom: 3rem;
 }
 
-/* FEATURES GRID */
+/* ========== FEATURES GRID ========== */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -359,16 +514,13 @@ section {
   position: relative;
 }
 
-.feature-card:hover {
-  background: var(--bg-card-hover);
-}
+.feature-card:hover { background: var(--bg-card-hover); }
 
 .feature-card::before {
   content: '';
   position: absolute;
   top: 0; left: 0;
-  width: 100%;
-  height: 2px;
+  width: 100%; height: 2px;
   background: linear-gradient(90deg, transparent, var(--cyan), transparent);
   opacity: 0;
   transition: opacity 0.4s;
@@ -377,15 +529,14 @@ section {
 .feature-card:hover::before { opacity: 1; }
 
 .feature-icon {
-  width: 40px;
-  height: 40px;
+  width: 44px; height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-cyan);
-  border-radius: 8px;
+  border-radius: 10px;
   margin-bottom: 1.25rem;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   background: var(--cyan-glow);
   color: var(--cyan);
 }
@@ -424,15 +575,148 @@ section {
   border-color: rgba(255, 179, 0, 0.15);
 }
 
-/* ARCHITECTURE */
-.arch-section {
+/* ========== INTERACTIVE TERMINAL ========== */
+.terminal-section {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
 
-.arch-diagram {
+.terminal-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.terminal {
+  background: #0a0e15;
+  border: 1px solid var(--border-cyan);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 80px rgba(0, 229, 255, 0.08), 0 0 1px rgba(0, 229, 255, 0.3);
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.terminal-dots span {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+}
+
+.terminal-dots span:nth-child(1) { background: #ff5f57; }
+.terminal-dots span:nth-child(2) { background: #febc2e; }
+.terminal-dots span:nth-child(3) { background: #28c840; }
+
+.terminal-title {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.terminal-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.terminal-btn {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.6rem;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.terminal-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.terminal-btn.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-glow); }
+
+.terminal-body {
+  padding: 1.5rem;
+  min-height: 380px;
+  max-height: 450px;
+  overflow-y: auto;
+  font-size: 0.78rem;
+  line-height: 1.9;
+  position: relative;
+}
+
+.terminal-line {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.3s, transform 0.3s;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.terminal-line.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.terminal-line .prompt { color: var(--cyan); }
+.terminal-line .cmd { color: var(--text-primary); font-weight: 500; }
+.terminal-line .success { color: var(--green); }
+.terminal-line .warning { color: var(--amber); }
+.terminal-line .error { color: var(--red); }
+.terminal-line .dim { color: var(--text-dim); }
+.terminal-line .info { color: var(--cyan-dim); }
+.terminal-line .hash { color: #c792ea; }
+
+.terminal-progress {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.terminal-progress-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.terminal-progress-fill {
+  height: 100%;
+  background: var(--cyan);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.terminal-progress-text {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ========== ARCHITECTURE ========== */
+.arch-section {
   background: var(--bg-primary);
+}
+
+.arch-diagram {
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 3rem 2rem;
@@ -479,8 +763,7 @@ section {
 }
 
 .arch-layer-title .layer-dot {
-  width: 8px;
-  height: 8px;
+  width: 8px; height: 8px;
   border-radius: 50%;
   background: var(--cyan);
   box-shadow: 0 0 6px var(--cyan);
@@ -526,23 +809,108 @@ section {
 }
 
 .arch-connector-line {
-  width: 1px;
-  height: 20px;
+  width: 1px; height: 20px;
   background: linear-gradient(to bottom, var(--cyan-dim), transparent);
   position: relative;
 }
 
 .arch-connector-line::after {
-  content: '▼';
+  content: '\25BC';
   position: absolute;
-  bottom: -8px;
-  left: 50%;
+  bottom: -8px; left: 50%;
   transform: translateX(-50%);
   font-size: 8px;
   color: var(--cyan-dim);
 }
 
-/* BOUNTIES */
+/* Trust tier table */
+.tier-table {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.tier-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+}
+
+.tier-row:last-child { border-bottom: none; }
+.tier-row.header { background: var(--bg-card); }
+
+.tier-cell {
+  padding: 1rem;
+  font-size: 0.78rem;
+  border-right: 1px solid var(--border);
+}
+
+.tier-cell:last-child { border-right: none; }
+
+.tier-cell.header-cell {
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+}
+
+.tier-cell .tier-label { font-weight: 600; color: var(--cyan); }
+.tier-cell .tier-label.amber { color: var(--amber); }
+
+/* Code block */
+.code-block {
+  background: #0a0e15;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+
+.code-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.code-dots span {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+.code-dots span:nth-child(1) { background: #ff5f57; }
+.code-dots span:nth-child(2) { background: #febc2e; }
+.code-dots span:nth-child(3) { background: #28c840; }
+
+.code-filename {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.code-body {
+  padding: 1.25rem;
+  font-size: 0.78rem;
+  line-height: 1.8;
+  overflow-x: auto;
+}
+
+.code-body .kw { color: #c792ea; }
+.code-body .fn { color: #82aaff; }
+.code-body .str { color: #c3e88d; }
+.code-body .cm { color: #546e7a; }
+.code-body .ty { color: #ffcb6b; }
+.code-body .op { color: #89ddff; }
+
+/* ========== BOUNTIES ========== */
 .bounties-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -569,8 +937,7 @@ section {
   content: '';
   position: absolute;
   top: 0; right: 0;
-  width: 80px;
-  height: 80px;
+  width: 80px; height: 80px;
   background: radial-gradient(circle at top right, var(--cyan-glow), transparent);
 }
 
@@ -604,9 +971,7 @@ section {
   font-weight: 300;
 }
 
-/* FLOW */
-.flow-section { }
-
+/* ========== FLOW TIMELINE ========== */
 .flow-timeline {
   position: relative;
   padding-left: 3rem;
@@ -615,9 +980,7 @@ section {
 .flow-timeline::before {
   content: '';
   position: absolute;
-  left: 11px;
-  top: 0;
-  bottom: 0;
+  left: 11px; top: 0; bottom: 0;
   width: 1px;
   background: linear-gradient(to bottom, var(--cyan), var(--cyan-dim), transparent);
 }
@@ -625,24 +988,13 @@ section {
 .flow-step {
   position: relative;
   margin-bottom: 2.5rem;
-  animation: fadeInUp 0.5s ease both;
 }
-
-.flow-step:nth-child(1) { animation-delay: 0.1s; }
-.flow-step:nth-child(2) { animation-delay: 0.2s; }
-.flow-step:nth-child(3) { animation-delay: 0.3s; }
-.flow-step:nth-child(4) { animation-delay: 0.4s; }
-.flow-step:nth-child(5) { animation-delay: 0.5s; }
-.flow-step:nth-child(6) { animation-delay: 0.6s; }
-.flow-step:nth-child(7) { animation-delay: 0.7s; }
 
 .flow-step::before {
   content: '';
   position: absolute;
-  left: -3rem;
-  top: 6px;
-  width: 9px;
-  height: 9px;
+  left: -3rem; top: 6px;
+  width: 9px; height: 9px;
   border-radius: 50%;
   background: var(--bg-primary);
   border: 2px solid var(--cyan);
@@ -672,7 +1024,46 @@ section {
   line-height: 1.7;
 }
 
-/* TECH STACK */
+/* ========== SECURITY ========== */
+.security-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.security-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  background: var(--bg-card);
+  transition: background 0.3s;
+}
+
+.security-row:hover { background: var(--bg-card-hover); }
+
+.security-threat {
+  padding: 1.25rem 1.5rem;
+  border-right: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--red);
+}
+
+.security-mitigation {
+  padding: 1.25rem 1.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* ========== TECH STACK ========== */
 .stack-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -712,46 +1103,72 @@ section {
   font-weight: 300;
 }
 
-/* SECURITY TABLE */
-.security-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.security-row {
+/* ========== TEAM ========== */
+.team-grid {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  background: var(--bg-card);
-  transition: background 0.3s;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
 }
 
-.security-row:hover { background: var(--bg-card-hover); }
+.team-card {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  transition: all 0.3s;
+}
 
-.security-threat {
-  padding: 1.25rem 1.5rem;
-  border-right: 1px solid var(--border);
-  font-size: 0.82rem;
-  font-weight: 500;
+.team-card:hover {
+  border-color: var(--border-cyan);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.team-avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  background: linear-gradient(135deg, var(--cyan-glow), var(--amber-glow));
+  border: 2px solid var(--border-cyan);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: var(--red);
+  justify-content: center;
+  font-size: 1.8rem;
+  color: var(--cyan);
 }
 
-.security-mitigation {
-  padding: 1.25rem 1.5rem;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  font-weight: 300;
-  line-height: 1.6;
+.team-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
 }
 
-/* DEMO */
+.team-role {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.75rem;
+}
+
+.team-links {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.team-links a {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.team-links a:hover { color: var(--cyan); }
+
+/* ========== DEMO / CTA ========== */
 .demo-section {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
@@ -786,6 +1203,7 @@ section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
+  counter-reset: demo-counter;
 }
 
 .demo-step {
@@ -801,10 +1219,8 @@ section {
 .demo-step::before {
   content: counter(demo-counter);
   position: absolute;
-  left: 1.25rem;
-  top: 1.25rem;
-  width: 22px;
-  height: 22px;
+  left: 1.25rem; top: 1.25rem;
+  width: 22px; height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -816,8 +1232,6 @@ section {
   font-weight: 700;
 }
 
-.demo-steps { counter-reset: demo-counter; }
-
 .demo-step p {
   font-size: 0.82rem;
   color: var(--text-secondary);
@@ -825,7 +1239,6 @@ section {
   line-height: 1.6;
 }
 
-/* CHECKLIST */
 .checklist {
   margin-top: 2.5rem;
   display: grid;
@@ -844,8 +1257,7 @@ section {
 }
 
 .checklist-item .check {
-  width: 16px;
-  height: 16px;
+  width: 16px; height: 16px;
   border-radius: 3px;
   border: 1px solid var(--green);
   display: flex;
@@ -857,7 +1269,64 @@ section {
   background: rgba(0, 230, 118, 0.08);
 }
 
-/* FOOTER */
+/* ========== VIDEO EMBED ========== */
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-cyan);
+  background: var(--bg-card);
+  cursor: pointer;
+}
+
+.video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(0,229,255,0.05), rgba(255,179,0,0.05));
+}
+
+.video-play-btn {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.3);
+  transition: all 0.3s;
+}
+
+.video-wrapper:hover .video-play-btn {
+  transform: scale(1.1);
+  box-shadow: 0 0 60px rgba(0, 229, 255, 0.5);
+}
+
+.video-play-btn::after {
+  content: '';
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 12px 0 12px 22px;
+  border-color: transparent transparent transparent var(--bg-primary);
+  margin-left: 4px;
+}
+
+.video-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+}
+
+/* ========== FOOTER ========== */
 footer {
   position: relative;
   z-index: 1;
@@ -873,9 +1342,7 @@ footer {
   margin-bottom: 0.5rem;
 }
 
-.footer-logo .highlight {
-  color: var(--cyan);
-}
+.footer-logo .highlight { color: var(--cyan); }
 
 .footer-sub {
   font-size: 0.75rem;
@@ -907,120 +1374,7 @@ footer {
   color: var(--text-dim);
 }
 
-/* CODE SNIPPET */
-.code-block {
-  background: #0a0e15;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: 2rem;
-}
-
-.code-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: rgba(255,255,255,0.02);
-}
-
-.code-dots {
-  display: flex;
-  gap: 6px;
-}
-
-.code-dots span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.code-dots span:nth-child(1) { background: #ff5f57; }
-.code-dots span:nth-child(2) { background: #febc2e; }
-.code-dots span:nth-child(3) { background: #28c840; }
-
-.code-filename {
-  font-size: 0.7rem;
-  color: var(--text-dim);
-}
-
-.code-body {
-  padding: 1.25rem;
-  font-size: 0.78rem;
-  line-height: 1.8;
-  overflow-x: auto;
-}
-
-.code-body .kw { color: #c792ea; }
-.code-body .fn { color: #82aaff; }
-.code-body .str { color: #c3e88d; }
-.code-body .cm { color: #546e7a; }
-.code-body .ty { color: #ffcb6b; }
-.code-body .op { color: #89ddff; }
-
-/* TWO TIER TABLE */
-.tier-table {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: 2rem;
-}
-
-.tier-row {
-  display: grid;
-  grid-template-columns: 140px 1fr 1fr 1fr;
-  border-bottom: 1px solid var(--border);
-}
-
-.tier-row:last-child { border-bottom: none; }
-
-.tier-row.header {
-  background: var(--bg-card);
-}
-
-.tier-cell {
-  padding: 1rem;
-  font-size: 0.78rem;
-  border-right: 1px solid var(--border);
-}
-
-.tier-cell:last-child { border-right: none; }
-
-.tier-cell.header-cell {
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.65rem;
-}
-
-.tier-cell .tier-label {
-  font-weight: 600;
-  color: var(--cyan);
-}
-
-.tier-cell .tier-label.amber {
-  color: var(--amber);
-}
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  nav { padding: 0.75rem 1rem; }
-  .nav-links { display: none; }
-  section { padding: 4rem 1.25rem; }
-  .hero { padding: 7rem 1.25rem 3rem; }
-  .features-grid { grid-template-columns: 1fr; }
-  .bounties-grid { grid-template-columns: 1fr; }
-  .demo-steps { grid-template-columns: 1fr; }
-  .tier-row { grid-template-columns: 1fr; }
-  .tier-cell { border-right: none; border-bottom: 1px solid var(--border); }
-  .security-row { grid-template-columns: 1fr; }
-  .security-threat { border-right: none; border-bottom: 1px solid var(--border); }
-  .arch-modules { flex-direction: column; }
-}
-
-/* SUBTLE ANIMATIONS */
+/* ========== FADE IN ========== */
 .fade-in {
   opacity: 0;
   transform: translateY(16px);
@@ -1031,11 +1385,35 @@ footer {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  nav { padding: 0.75rem 1rem; }
+  .nav-links { display: none; }
+  .nav-actions .nav-badge:not(:first-child) { display: none; }
+  .hamburger { display: flex; }
+  section { padding: 4rem 1.25rem; }
+  .hero { padding: 7rem 1.25rem 3rem; }
+  .hero-stats { gap: 1.5rem; }
+  .hero-stat-value { font-size: 1.5rem; }
+  .features-grid { grid-template-columns: 1fr; }
+  .bounties-grid { grid-template-columns: 1fr; }
+  .demo-steps { grid-template-columns: 1fr; }
+  .tier-row { grid-template-columns: 1fr; }
+  .tier-cell { border-right: none; border-bottom: 1px solid var(--border); }
+  .security-row { grid-template-columns: 1fr; }
+  .security-threat { border-right: none; border-bottom: 1px solid var(--border); }
+  .arch-modules { flex-direction: column; }
+  .sponsor-logos { gap: 1.5rem; }
+  .team-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .team-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
-
-<div class="grid-bg"></div>
 
 <!-- NAVIGATION -->
 <nav>
@@ -1046,74 +1424,135 @@ footer {
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
     <li><a href="#architecture">Architecture</a></li>
-    <li><a href="#bounties">Bounties</a></li>
+    <li><a href="#demo">Live Demo</a></li>
     <li><a href="dashboard.html">Dashboard</a></li>
     <li><a href="agents.html">Agents</a></li>
   </ul>
-  <a href="deploy.html" class="nav-badge">Deploy Agent</a>
-  <a href="#" class="nav-badge">ETHGlobal Cannes 2026</a>
+  <div class="nav-actions">
+    <a href="deploy.html" class="nav-badge">Deploy Agent</a>
+    <a href="#" class="nav-badge amber">ETHGlobal Cannes 2026</a>
+  </div>
+  <button class="hamburger" onclick="this.classList.toggle('active'); document.querySelector('.mobile-menu').classList.toggle('active');">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
 
-<!-- HERO -->
+<!-- Mobile Menu -->
+<div class="mobile-menu">
+  <a href="#features" onclick="document.querySelector('.mobile-menu').classList.remove('active'); document.querySelector('.hamburger').classList.remove('active');">Features</a>
+  <a href="#architecture" onclick="document.querySelector('.mobile-menu').classList.remove('active'); document.querySelector('.hamburger').classList.remove('active');">Architecture</a>
+  <a href="#demo" onclick="document.querySelector('.mobile-menu').classList.remove('active'); document.querySelector('.hamburger').classList.remove('active');">Live Demo</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="agents.html">Agents</a>
+  <a href="deploy.html">Deploy Agent</a>
+</div>
+
+<!-- ========== HERO ========== -->
 <section class="hero">
-  <div class="hero-glow"></div>
+  <canvas id="hero-canvas"></canvas>
   <div class="hero-content">
-    <div class="hero-eyebrow">
-      <span class="dot"></span>
-      Provable Private Agent Framework
+    <div class="hero-problem">
+      <span class="pulse-dot"></span>
+      The problem: AI agents can't prove they followed the rules
     </div>
     <h1>Proof of <span class="highlight">Claw</span></h1>
+    <p class="hero-solution">
+      Cryptographic proof that your AI agent did exactly what it promised — nothing more, nothing less.
+    </p>
     <p class="hero-sub">
-      Autonomous AI agents with cryptographically provable behavior, end-to-end encrypted communication, and hardware-signed human approval.
+      Private inference via TEE. Encrypted inter-agent messaging. ZK proofs of policy compliance. Hardware-gated human approval for high-value actions.
     </p>
     <div class="hero-actions">
-      <a href="#" class="btn-primary">→ View on GitHub</a>
-      <a href="#demo" class="btn-secondary">Watch Demo</a>
+      <a href="#demo" class="btn-primary">Watch Demo</a>
+      <a href="#terminal" class="btn-secondary">See It Run</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value">5</div>
+        <div class="hero-stat-label">Protocol Integrations</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">$17k</div>
+        <div class="hero-stat-label">Target Bounties</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">7</div>
+        <div class="hero-stat-label">Security Layers</div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
+<!-- ========== SPONSOR BAR ========== -->
+<div class="sponsor-bar">
+  <div class="sponsor-bar-inner">
+    <div class="sponsor-bar-label">Built with</div>
+    <div class="sponsor-logos">
+      <a href="#" class="sponsor-logo">
+        <span class="sp-icon">0</span>
+        0G Network
+      </a>
+      <a href="#" class="sponsor-logo">
+        <span class="sp-icon">E</span>
+        ENS
+      </a>
+      <a href="#" class="sponsor-logo">
+        <span class="sp-icon">D</span>
+        DM3
+      </a>
+      <a href="#" class="sponsor-logo">
+        <span class="sp-icon">R</span>
+        RISC Zero
+      </a>
+      <a href="#" class="sponsor-logo">
+        <span class="sp-icon">L</span>
+        Ledger
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ========== FEATURES ========== -->
 <section id="features">
   <div class="section-inner fade-in">
     <div class="section-label">Capabilities</div>
-    <h2 class="section-title">What an agent can do</h2>
+    <h2 class="section-title">What makes agents trustworthy</h2>
     <p class="section-desc">
-      Built on IronClaw's Rust runtime with WASM-sandboxed tools, capability-based permissions, and defense-in-depth security.
+      Six layers of defense turning opaque AI agents into provably compliant, privacy-preserving autonomous systems.
     </p>
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon">🔒</div>
+        <div class="feature-icon">&#x1f512;</div>
         <h3>Private Inference</h3>
         <p>Reason privately using decentralized inference with hardware-isolated TEEs. Prompts enter encrypted; operators cannot inspect them.</p>
         <span class="feature-tag">0G Compute</span>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">💾</div>
+        <div class="feature-icon">&#x1f4be;</div>
         <h3>Persistent Memory</h3>
         <p>Store execution traces and agent memory on decentralized storage. Content-addressable root hashes anchor every provable trace.</p>
         <span class="feature-tag">0G Storage</span>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📡</div>
+        <div class="feature-icon">&#x1f4e1;</div>
         <h3>Encrypted Messaging</h3>
         <p>Discover and message other agents via ENS-resolved encrypted channels. End-to-end encrypted with DM3 protocol.</p>
         <span class="feature-tag">ENS + DM3</span>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🧮</div>
+        <div class="feature-icon">&#x1f9ee;</div>
         <h3>ZK Policy Proofs</h3>
         <p>Prove to any on-chain verifier that the agent followed its declared policy. Proofs generated via Boundless decentralized prover network.</p>
         <span class="feature-tag">RISC Zero</span>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔑</div>
+        <div class="feature-icon">&#x1f511;</div>
         <h3>Hardware Approval</h3>
         <p>High-value or out-of-policy actions require physical approval on the owner's Ledger device with Clear Signing metadata.</p>
         <span class="feature-tag amber">Ledger DMK</span>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
+        <div class="feature-icon">&#x1f6e1;</div>
         <h3>WASM Sandbox</h3>
         <p>Untrusted tools run in isolated Wasmtime containers with capability-based permissions, allowlist validation, and leak scanning.</p>
         <span class="feature-tag">IronClaw</span>
@@ -1122,7 +1561,36 @@ footer {
   </div>
 </section>
 
-<!-- ARCHITECTURE -->
+<!-- ========== INTERACTIVE TERMINAL ========== -->
+<section id="terminal" class="terminal-section">
+  <div class="section-inner fade-in">
+    <div class="section-label">Live Execution</div>
+    <h2 class="section-title">Watch an agent prove itself</h2>
+    <p class="section-desc">
+      A real-time simulation of the Proof of Claw pipeline — from task receipt to on-chain verified proof.
+    </p>
+    <div class="terminal-wrapper">
+      <div class="terminal">
+        <div class="terminal-header">
+          <div class="terminal-dots"><span></span><span></span><span></span></div>
+          <div class="terminal-title">proofclaw agent runtime</div>
+          <div class="terminal-controls">
+            <button class="terminal-btn active" onclick="restartTerminal()">Restart</button>
+          </div>
+        </div>
+        <div class="terminal-body" id="terminal-output"></div>
+        <div class="terminal-progress">
+          <div class="terminal-progress-bar">
+            <div class="terminal-progress-fill" id="terminal-progress" style="width: 0%"></div>
+          </div>
+          <div class="terminal-progress-text" id="terminal-stage">Initializing...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== ARCHITECTURE ========== -->
 <section id="architecture" class="arch-section">
   <div class="section-inner fade-in">
     <div class="section-label">System Design</div>
@@ -1133,11 +1601,10 @@ footer {
 
     <div class="arch-diagram">
       <div class="arch-layers">
-        <!-- Agent Core -->
         <div class="arch-layer">
           <div class="arch-layer-title">
             <span class="layer-dot"></span>
-            Agent Core — from IronClaw
+            Agent Core — IronClaw Runtime
           </div>
           <div class="arch-modules">
             <div class="arch-module">
@@ -1157,7 +1624,6 @@ footer {
 
         <div class="arch-connector"><div class="arch-connector-line"></div></div>
 
-        <!-- Integration Layer -->
         <div class="arch-layer">
           <div class="arch-layer-title">
             <span class="layer-dot" style="background: var(--amber); box-shadow: 0 0 6px var(--amber);"></span>
@@ -1189,7 +1655,6 @@ footer {
 
         <div class="arch-connector"><div class="arch-connector-line"></div></div>
 
-        <!-- On-Chain Layer -->
         <div class="arch-layer">
           <div class="arch-layer-title">
             <span class="layer-dot" style="background: var(--green); box-shadow: 0 0 6px var(--green);"></span>
@@ -1233,7 +1698,7 @@ footer {
       </div>
       <div class="tier-row">
         <div class="tier-cell"><span class="tier-label amber">Ledger-Gated</span></div>
-        <div class="tier-cell">Value ≥ threshold or escalation</div>
+        <div class="tier-cell">Value &ge; threshold or escalation</div>
         <div class="tier-cell">Owner's Ledger device</div>
         <div class="tier-cell">RISC Zero + Ledger approval</div>
       </div>
@@ -1270,7 +1735,106 @@ footer {
   </div>
 </section>
 
-<!-- BOUNTIES -->
+<!-- ========== SECURITY ========== -->
+<section id="security">
+  <div class="section-inner fade-in">
+    <div class="section-label">Threat Model</div>
+    <h2 class="section-title">Security</h2>
+    <p class="section-desc">
+      Defense-in-depth across every layer of the stack.
+    </p>
+    <div class="security-grid">
+      <div class="security-row">
+        <div class="security-threat">Agent acts outside policy</div>
+        <div class="security-mitigation">RISC Zero proof fails verification; action is blocked on-chain before execution.</div>
+      </div>
+      <div class="security-row">
+        <div class="security-threat">Inference tampering</div>
+        <div class="security-mitigation">0G Sealed Inference provides TEE attestation. Response signature is included in the provable trace.</div>
+      </div>
+      <div class="security-row">
+        <div class="security-threat">Message interception</div>
+        <div class="security-mitigation">DM3 end-to-end encryption with keys derived from ENS-published profiles.</div>
+      </div>
+      <div class="security-row">
+        <div class="security-threat">Agent identity spoofing</div>
+        <div class="security-mitigation">ENS ownership tied to Ledger-controlled EOA. Subname registration requires owner signature.</div>
+      </div>
+      <div class="security-row">
+        <div class="security-threat">High-value action without consent</div>
+        <div class="security-mitigation">Ledger physical approval required for all actions above the autonomous threshold.</div>
+      </div>
+      <div class="security-row">
+        <div class="security-threat">Prompt injection</div>
+        <div class="security-mitigation">IronClaw safety layer with pattern detection and content sanitization runs inside the proven trace.</div>
+      </div>
+      <div class="security-row">
+        <div class="security-threat">Server wallet compromise</div>
+        <div class="security-mitigation">Wallet can only execute actions with valid RISC Zero proofs. High-value actions still require Ledger.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== DEMO VIDEO + SCENARIO ========== -->
+<section id="demo" class="demo-section">
+  <div class="section-inner fade-in">
+    <div class="section-label">Hackathon Demo</div>
+    <h2 class="section-title">See it in action</h2>
+    <p class="section-desc">
+      Two agents negotiate and execute a token swap with full provability.
+    </p>
+
+    <!-- Video Embed Placeholder -->
+    <div class="video-wrapper" style="margin-bottom: 3rem;">
+      <div class="video-placeholder">
+        <div class="video-play-btn"></div>
+        <div class="video-label">Demo Video — Coming Soon</div>
+      </div>
+    </div>
+
+    <div class="demo-card">
+      <h3>Multi-Agent Token Swap</h3>
+      <div class="demo-steps">
+        <div class="demo-step">
+          <p>Alice deploys <strong>alice.proofclaw.eth</strong> with a policy: swap up to 100 USDC autonomously, above requires Ledger.</p>
+        </div>
+        <div class="demo-step">
+          <p>Bob deploys <strong>bob.proofclaw.eth</strong> with a similar policy configuration.</p>
+        </div>
+        <div class="demo-step">
+          <p>Alice's agent discovers Bob via ENS, initiates DM3 encrypted negotiation.</p>
+        </div>
+        <div class="demo-step">
+          <p>They agree on a 500 USDC swap — above both autonomous thresholds.</p>
+        </div>
+        <div class="demo-step">
+          <p>Both agents submit proof requests to Boundless. Provers generate RISC Zero proofs.</p>
+        </div>
+        <div class="demo-step">
+          <p>Both owners see pending approval on Ledger with Clear Signing. Both press approve.</p>
+        </div>
+        <div class="demo-step">
+          <p>Swap executes on-chain with verified proofs. Full provability end-to-end.</p>
+        </div>
+      </div>
+      <div class="checklist">
+        <div class="checklist-item"><span class="check">&#10003;</span> Public GitHub repo with README</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> Smart contracts on testnet</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> Demo video (&lt; 3 min)</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> Live demo link</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> ERC-7730 Clear Signing metadata</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> Architecture diagram</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> ENS subname registrations</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> RISC Zero proof verified on-chain</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> DM3 encrypted message exchange</div>
+        <div class="checklist-item"><span class="check">&#10003;</span> Ledger-approved transaction</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== BOUNTIES ========== -->
 <section id="bounties">
   <div class="section-inner fade-in">
     <div class="section-label">Target Prizes</div>
@@ -1293,7 +1857,7 @@ footer {
       </div>
       <div class="bounty-card">
         <div class="bounty-sponsor">Ledger</div>
-        <div class="bounty-name">AI Agents × Ledger</div>
+        <div class="bounty-name">AI Agents x Ledger</div>
         <div class="bounty-prize">$6,000</div>
         <p class="bounty-desc">Ledger DMK/DSK for human-in-the-loop approval with ERC-7730 Clear Signing metadata.</p>
       </div>
@@ -1301,97 +1865,7 @@ footer {
   </div>
 </section>
 
-<!-- USER FLOWS -->
-<section class="flow-section">
-  <div class="section-inner fade-in">
-    <div class="section-label">User Flows</div>
-    <h2 class="section-title">How it works</h2>
-    <p class="section-desc">
-      From agent setup to autonomous execution and Ledger-gated approvals.
-    </p>
-
-    <div class="flow-timeline">
-      <div class="flow-step">
-        <div class="flow-step-num">Step 01</div>
-        <h4>Connect Ledger & Deploy Agent</h4>
-        <p>Owner connects their Ledger device, picks an ENS subname, and sets policy parameters including allowed tools and spending limits.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-step-num">Step 02</div>
-        <h4>Agent Receives Task</h4>
-        <p>Via user instruction or encrypted DM3 message from another agent. Intent is classified and routed to the appropriate tool chain.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-step-num">Step 03</div>
-        <h4>Private Reasoning</h4>
-        <p>Agent reasons via 0G Compute Sealed Inference inside a hardware-isolated TEE. Prompts stay encrypted throughout.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-step-num">Step 04</div>
-        <h4>Sandboxed Execution</h4>
-        <p>Tools execute in WASM sandbox. Safety layer checks each invocation. Full execution trace is stored on 0G Storage.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-step-num">Step 05</div>
-        <h4>Generate ZK Proof</h4>
-        <p>Proof request submitted to Boundless. Decentralized provers generate a RISC Zero proof of policy compliance.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-step-num">Step 06</div>
-        <h4>On-Chain Verification</h4>
-        <p>Proof is verified on-chain. If within autonomous threshold, action executes immediately.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-step-num">Step 07</div>
-        <h4>Ledger Approval (if needed)</h4>
-        <p>Actions above threshold require physical approval on the owner's Ledger device with human-readable Clear Signing display.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SECURITY -->
-<section id="security">
-  <div class="section-inner fade-in">
-    <div class="section-label">Threat Model</div>
-    <h2 class="section-title">Security</h2>
-    <p class="section-desc">
-      Defense-in-depth across every layer of the stack.
-    </p>
-    <div class="security-grid">
-      <div class="security-row">
-        <div class="security-threat">⚠ Agent acts outside policy</div>
-        <div class="security-mitigation">RISC Zero proof fails verification; action is blocked on-chain before execution.</div>
-      </div>
-      <div class="security-row">
-        <div class="security-threat">⚠ Inference tampering</div>
-        <div class="security-mitigation">0G Sealed Inference provides TEE attestation. Response signature is included in the provable trace.</div>
-      </div>
-      <div class="security-row">
-        <div class="security-threat">⚠ Message interception</div>
-        <div class="security-mitigation">DM3 end-to-end encryption with keys derived from ENS-published profiles.</div>
-      </div>
-      <div class="security-row">
-        <div class="security-threat">⚠ Agent identity spoofing</div>
-        <div class="security-mitigation">ENS ownership tied to Ledger-controlled EOA. Subname registration requires owner signature.</div>
-      </div>
-      <div class="security-row">
-        <div class="security-threat">⚠ High-value action without consent</div>
-        <div class="security-mitigation">Ledger physical approval required for all actions above the autonomous threshold.</div>
-      </div>
-      <div class="security-row">
-        <div class="security-threat">⚠ Prompt injection</div>
-        <div class="security-mitigation">IronClaw safety layer with pattern detection and content sanitization runs inside the proven trace.</div>
-      </div>
-      <div class="security-row">
-        <div class="security-threat">⚠ Server wallet compromise</div>
-        <div class="security-mitigation">Wallet can only execute actions with valid RISC Zero proofs. High-value actions still require Ledger.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TECH STACK -->
+<!-- ========== TECH STACK ========== -->
 <section>
   <div class="section-inner fade-in">
     <div class="section-label">Stack</div>
@@ -1442,88 +1916,289 @@ footer {
       </div>
       <div class="stack-item">
         <div class="stack-layer">Web UI</div>
-        <div class="stack-tech">Next.js + TypeScript</div>
+        <div class="stack-tech">HTML + JS</div>
         <div class="stack-purpose">Dashboard, approval UI, message viewer</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- DEMO -->
-<section id="demo" class="demo-section">
+<!-- ========== TEAM ========== -->
+<section id="team">
   <div class="section-inner fade-in">
-    <div class="section-label">Hackathon Demo</div>
-    <h2 class="section-title">Demo Scenario</h2>
+    <div class="section-label">Team</div>
+    <h2 class="section-title">Built by</h2>
     <p class="section-desc">
-      Two agents negotiate and execute a token swap with full provability.
+      Hackers building at the intersection of AI, cryptography, and decentralized infrastructure.
     </p>
-    <div class="demo-card">
-      <h3>Multi-Agent Token Swap</h3>
-      <div class="demo-steps">
-        <div class="demo-step">
-          <p>Alice deploys <strong>alice.proofclaw.eth</strong> with a policy: swap up to 100 USDC autonomously, above requires Ledger.</p>
-        </div>
-        <div class="demo-step">
-          <p>Bob deploys <strong>bob.proofclaw.eth</strong> with a similar policy configuration.</p>
-        </div>
-        <div class="demo-step">
-          <p>Alice's agent discovers Bob via ENS, initiates DM3 encrypted negotiation.</p>
-        </div>
-        <div class="demo-step">
-          <p>They agree on a 500 USDC swap — above both autonomous thresholds.</p>
-        </div>
-        <div class="demo-step">
-          <p>Both agents submit proof requests to Boundless. Provers generate RISC Zero proofs.</p>
-        </div>
-        <div class="demo-step">
-          <p>Both owners see pending approval on Ledger with Clear Signing. Both press approve.</p>
-        </div>
-        <div class="demo-step">
-          <p>Swap executes on-chain with verified proofs. Full provability end-to-end.</p>
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="team-avatar">&#x1f9d1;&#x200d;&#x1f4bb;</div>
+        <div class="team-name">Team Member</div>
+        <div class="team-role">Full Stack / Rust</div>
+        <div class="team-links">
+          <a href="#">GitHub</a>
+          <a href="#">Twitter</a>
         </div>
       </div>
-
-      <div class="checklist">
-        <div class="checklist-item"><span class="check">✓</span> Public GitHub repo with README</div>
-        <div class="checklist-item"><span class="check">✓</span> Smart contracts on testnet</div>
-        <div class="checklist-item"><span class="check">✓</span> Demo video (< 3 min)</div>
-        <div class="checklist-item"><span class="check">✓</span> Live demo link</div>
-        <div class="checklist-item"><span class="check">✓</span> ERC-7730 Clear Signing metadata</div>
-        <div class="checklist-item"><span class="check">✓</span> Architecture diagram</div>
-        <div class="checklist-item"><span class="check">✓</span> ENS subname registrations</div>
-        <div class="checklist-item"><span class="check">✓</span> RISC Zero proof verified on-chain</div>
-        <div class="checklist-item"><span class="check">✓</span> DM3 encrypted message exchange</div>
-        <div class="checklist-item"><span class="check">✓</span> Ledger-approved transaction</div>
+      <div class="team-card">
+        <div class="team-avatar">&#x1f9d1;&#x200d;&#x1f4bb;</div>
+        <div class="team-name">Team Member</div>
+        <div class="team-role">ZK / Smart Contracts</div>
+        <div class="team-links">
+          <a href="#">GitHub</a>
+          <a href="#">Twitter</a>
+        </div>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">&#x1f9d1;&#x200d;&#x1f4bb;</div>
+        <div class="team-name">Team Member</div>
+        <div class="team-role">Infra / Integrations</div>
+        <div class="team-links">
+          <a href="#">GitHub</a>
+          <a href="#">Twitter</a>
+        </div>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">&#x1f9d1;&#x200d;&#x1f4bb;</div>
+        <div class="team-name">Team Member</div>
+        <div class="team-role">Frontend / Design</div>
+        <div class="team-links">
+          <a href="#">GitHub</a>
+          <a href="#">Twitter</a>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- ========== FOOTER ========== -->
 <footer>
   <div class="footer-logo">Proof of <span class="highlight">Claw</span></div>
   <p class="footer-sub">Provable Private Agent Framework — ETHGlobal Cannes 2026</p>
   <div class="footer-links">
     <a href="#">GitHub</a>
     <a href="#">Documentation</a>
-    <a href="#">Demo</a>
-    <a href="#">Smart Contracts</a>
-    <a href="#">ENS</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="deploy.html">Deploy</a>
+    <a href="#bounties">Bounties</a>
   </div>
-  <p class="footer-copy">Built with IronClaw · 0G · ENS · DM3 · RISC Zero · Ledger</p>
+  <p class="footer-copy">Built with IronClaw &middot; 0G &middot; ENS &middot; DM3 &middot; RISC Zero &middot; Ledger</p>
 </footer>
 
+<!-- ========== SCRIPTS ========== -->
 <script>
-// Intersection Observer for fade-in animations
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
+// ===== HERO PARTICLE CANVAS =====
+(function() {
+  const canvas = document.getElementById('hero-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, nodes = [], mouse = { x: -1000, y: -1000 };
+
+  function resize() {
+    w = canvas.width = canvas.parentElement.offsetWidth;
+    h = canvas.height = canvas.parentElement.offsetHeight;
+  }
+
+  function init() {
+    resize();
+    nodes = [];
+    const count = Math.min(60, Math.floor((w * h) / 18000));
+    for (let i = 0; i < count; i++) {
+      nodes.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        r: Math.random() * 2 + 1,
+        type: Math.random() > 0.7 ? 'amber' : 'cyan'
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw edges
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 180) {
+          const alpha = (1 - dist / 180) * 0.15;
+          ctx.strokeStyle = nodes[i].type === 'amber' || nodes[j].type === 'amber'
+            ? 'rgba(255, 179, 0, ' + alpha + ')'
+            : 'rgba(0, 229, 255, ' + alpha + ')';
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw nodes
+    nodes.forEach(function(n) {
+      var dx = mouse.x - n.x;
+      var dy = mouse.y - n.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      var glow = dist < 200 ? (1 - dist / 200) * 0.5 : 0;
+
+      var color = n.type === 'amber' ? [255, 179, 0] : [0, 229, 255];
+      var baseAlpha = 0.6 + glow;
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r + glow * 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + color[0] + ', ' + color[1] + ', ' + color[2] + ', ' + baseAlpha + ')';
+      ctx.fill();
+
+      if (glow > 0.1) {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r + glow * 8, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + color[0] + ', ' + color[1] + ', ' + color[2] + ', ' + (glow * 0.15) + ')';
+        ctx.fill();
+      }
+
+      // Move
+      n.x += n.vx;
+      n.y += n.vy;
+      if (n.x < 0 || n.x > w) n.vx *= -1;
+      if (n.y < 0 || n.y > h) n.vy *= -1;
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', function() { resize(); });
+  canvas.parentElement.addEventListener('mousemove', function(e) {
+    var rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+  });
+  canvas.parentElement.addEventListener('mouseleave', function() {
+    mouse.x = -1000;
+    mouse.y = -1000;
+  });
+
+  init();
+  draw();
+})();
+
+// ===== INTERACTIVE TERMINAL =====
+var terminalLines = [
+  { text: '<span class="prompt">$</span> <span class="cmd">proofclaw agent start --name alice.proofclaw.eth</span>', delay: 0 },
+  { text: '<span class="dim">[runtime]</span> Loading IronClaw agent core...', delay: 600 },
+  { text: '<span class="dim">[runtime]</span> WASM sandbox initialized (4 tools registered)', delay: 400 },
+  { text: '<span class="dim">[policy]</span>  Loaded policy: max_autonomous=100 USDC, tools=[swap,transfer,query]', delay: 500 },
+  { text: '<span class="success">\u2713 Agent alice.proofclaw.eth online</span>', delay: 300, stage: 'Agent Online', progress: 10 },
+  { text: '', delay: 400 },
+  { text: '<span class="dim">[dm3]</span>    Incoming encrypted message from bob.proofclaw.eth...', delay: 800 },
+  { text: '<span class="dim">[dm3]</span>    Decrypted: "Requesting 500 USDC swap at 1:1 rate"', delay: 600 },
+  { text: '<span class="warning">! Action value 500 USDC exceeds autonomous threshold (100 USDC)</span>', delay: 500, stage: 'Task Received', progress: 25 },
+  { text: '', delay: 300 },
+  { text: '<span class="dim">[0g]</span>     Sending sealed inference request to 0G Compute TEE...', delay: 700 },
+  { text: '<span class="dim">[0g]</span>     TEE attestation: <span class="hash">0x7f3a...c891</span>', delay: 500 },
+  { text: '<span class="dim">[0g]</span>     Reasoning complete. Action plan: execute_swap(500 USDC)', delay: 600 },
+  { text: '<span class="success">\u2713 Private reasoning verified</span>', delay: 300, stage: 'Reasoning Complete', progress: 40 },
+  { text: '', delay: 300 },
+  { text: '<span class="dim">[wasm]</span>   Executing swap tool in sandbox...', delay: 600 },
+  { text: '<span class="dim">[wasm]</span>   Safety checks: <span class="success">PASS</span> (no injection, no leak, within capabilities)', delay: 500 },
+  { text: '<span class="dim">[0g]</span>     Execution trace stored: <span class="hash">bafyrei...x4qm</span>', delay: 400 },
+  { text: '<span class="success">\u2713 Execution trace anchored to 0G Storage</span>', delay: 300, stage: 'Trace Stored', progress: 55 },
+  { text: '', delay: 300 },
+  { text: '<span class="dim">[risc0]</span>  Submitting proof request to Boundless network...', delay: 800 },
+  { text: '<span class="dim">[risc0]</span>  Prover assigned. Generating STARK proof...', delay: 1200 },
+  { text: '<span class="dim">[risc0]</span>  Proof generated: <span class="hash">0xaa91...fe02</span> (2.3s)', delay: 600 },
+  { text: '<span class="dim">[risc0]</span>  Policy compliance: <span class="success">VERIFIED</span>', delay: 400 },
+  { text: '<span class="success">\u2713 ZK proof of policy compliance ready</span>', delay: 300, stage: 'Proof Generated', progress: 75 },
+  { text: '', delay: 300 },
+  { text: '<span class="warning">! Ledger approval required (value \u2265 threshold)</span>', delay: 600 },
+  { text: '<span class="dim">[ledger]</span> Clear Signing request sent to owner device...', delay: 800 },
+  { text: '<span class="dim">[ledger]</span> Display: "Approve swap: 500 USDC \u2192 bob.proofclaw.eth"', delay: 700 },
+  { text: '<span class="dim">[ledger]</span> Owner pressed <span class="success">APPROVE</span> on Ledger device', delay: 1000 },
+  { text: '<span class="success">\u2713 Ledger signature received</span>', delay: 300, stage: 'Ledger Approved', progress: 90 },
+  { text: '', delay: 300 },
+  { text: '<span class="dim">[chain]</span>  Submitting proof + signature to ProofOfClawVerifier...', delay: 700 },
+  { text: '<span class="dim">[chain]</span>  Tx: <span class="hash">0x3e8f...b712</span> confirmed (block #18,291,044)', delay: 600 },
+  { text: '', delay: 200 },
+  { text: '<span class="success">\u2713 SWAP EXECUTED \u2014 500 USDC transferred with full provability</span>', delay: 400, stage: 'Complete', progress: 100 },
+  { text: '<span class="info">  Proof: on-chain \u2713  Policy: compliant \u2713  Ledger: approved \u2713</span>', delay: 300 },
+];
+
+var terminalTimeout = null;
+var currentLine = 0;
+
+function runTerminal() {
+  var output = document.getElementById('terminal-output');
+  output.innerHTML = '';
+  currentLine = 0;
+
+  function addLine() {
+    if (currentLine >= terminalLines.length) return;
+
+    var line = terminalLines[currentLine];
+    var div = document.createElement('div');
+    div.className = 'terminal-line';
+    div.innerHTML = line.text || '&nbsp;';
+    output.appendChild(div);
+
+    // Trigger animation
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        div.classList.add('visible');
+      });
+    });
+
+    // Update progress
+    if (line.stage) {
+      document.getElementById('terminal-stage').textContent = line.stage;
+    }
+    if (line.progress !== undefined) {
+      document.getElementById('terminal-progress').style.width = line.progress + '%';
+    }
+
+    // Auto-scroll
+    output.scrollTop = output.scrollHeight;
+
+    currentLine++;
+    if (currentLine < terminalLines.length) {
+      terminalTimeout = setTimeout(addLine, terminalLines[currentLine].delay);
+    }
+  }
+
+  terminalTimeout = setTimeout(addLine, 500);
+}
+
+function restartTerminal() {
+  if (terminalTimeout) clearTimeout(terminalTimeout);
+  document.getElementById('terminal-progress').style.width = '0%';
+  document.getElementById('terminal-stage').textContent = 'Initializing...';
+  runTerminal();
+}
+
+// Start terminal when visible
+var termObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      runTerminal();
+      termObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+termObserver.observe(document.querySelector('.terminal'));
+
+// ===== FADE IN OBSERVER =====
+var fadeObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
     if (entry.isIntersecting) {
       entry.target.classList.add('visible');
     }
   });
 }, { threshold: 0.1 });
 
-document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+document.querySelectorAll('.fade-in').forEach(function(el) { fadeObserver.observe(el); });
 </script>
 
 </body>

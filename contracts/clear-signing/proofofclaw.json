@@ -84,6 +84,51 @@
             }
           }
         ]
+      },
+      "registerAgentIdentity(bytes32,string,bytes32,bytes32)": {
+        "intent": "Register agent in EIP-8004",
+        "fields": [
+          {
+            "path": "agentId",
+            "label": "Agent ID",
+            "format": "raw"
+          },
+          {
+            "path": "agentURI",
+            "label": "Registration file",
+            "format": "raw"
+          },
+          {
+            "path": "policyHash",
+            "label": "Policy fingerprint",
+            "format": "raw"
+          },
+          {
+            "path": "riscZeroImageId",
+            "label": "ZK Image ID",
+            "format": "raw"
+          }
+        ]
+      },
+      "submitReputation(bytes32,int128,uint8,string,string,string,string,bytes32)": {
+        "intent": "Submit agent reputation feedback",
+        "fields": [
+          {
+            "path": "agentId",
+            "label": "Agent",
+            "format": "raw"
+          },
+          {
+            "path": "value",
+            "label": "Score",
+            "format": "raw"
+          },
+          {
+            "path": "tag1",
+            "label": "Category",
+            "format": "raw"
+          }
+        ]
       }
     }
   }

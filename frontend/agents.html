@@ -1163,6 +1163,209 @@ nav {
 .delegation-limit-val { font-weight: 700; font-size: 0.9rem; }
 .delegation-limit-label { font-size: 0.6rem; color: var(--text-dim); }
 
+/* MODAL TABS */
+.modal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+  gap: 0;
+}
+.modal-tab {
+  padding: 0.6rem 1.2rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.modal-tab:hover { color: var(--text-primary); }
+.modal-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+.modal-panel { display: none; }
+.modal-panel.active { display: block; animation: fadeIn 0.2s ease; }
+
+/* EDIT FORM IN MODAL */
+.edit-field {
+  margin-bottom: 1rem;
+}
+.edit-field label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+.edit-field input,
+.edit-field select,
+.edit-field textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+.edit-field input:focus,
+.edit-field select:focus,
+.edit-field textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-glow);
+}
+.edit-field textarea { resize: vertical; min-height: 60px; }
+.edit-field select option { background: var(--bg-secondary); color: var(--text-primary); }
+
+.edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.edit-skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+.edit-skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--cyan-glow);
+  border: 1px solid rgba(0,229,255,0.2);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: var(--cyan);
+}
+.edit-skill-remove {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.edit-skill-remove:hover { opacity: 1; color: var(--red); }
+
+.edit-add-skill {
+  display: flex;
+  gap: 0.4rem;
+}
+.edit-add-skill input {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.edit-add-skill input:focus { outline: none; border-color: var(--cyan); }
+
+/* STATUS CONTROLS */
+.status-controls {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.status-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+.status-btn:hover { border-color: var(--cyan); color: var(--text-primary); }
+.status-btn.active-online { border-color: var(--green); color: var(--green); background: rgba(0,230,118,0.08); }
+.status-btn.active-paused { border-color: var(--amber); color: var(--amber); background: rgba(255,179,0,0.08); }
+.status-btn.active-offline { border-color: var(--text-dim); color: var(--text-dim); }
+
+/* QUICK ACTIONS ON CARDS */
+.agent-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.agent-card-actions .btn {
+  flex: 1;
+  justify-content: center;
+  padding: 0.35rem;
+  font-size: 0.7rem;
+}
+
+/* ACTIVITY LOG IN MODAL */
+.activity-log-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.activity-log-item:last-child { border-bottom: none; }
+.activity-log-time {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  min-width: 70px;
+}
+.activity-log-event { color: var(--text-secondary); flex: 1; }
+.activity-log-badge { flex-shrink: 0; }
+
+/* SAVE BAR */
+.edit-save-bar {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* DANGER ZONE */
+.danger-zone {
+  background: rgba(255, 61, 90, 0.05);
+  border: 1px solid rgba(255, 61, 90, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+}
+.danger-zone-title {
+  font-weight: 700;
+  color: var(--red);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+.danger-zone-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
 /* RESPONSIVE */
 @media (max-width: 1024px) {
   .grid-3, .memory-overview, .profile-stats { grid-template-columns: 1fr 1fr; }
@@ -2115,10 +2318,12 @@ nav {
   </div>
 </div>
 
-<!-- AGENT PROFILE MODAL -->
+<!-- AGENT PROFILE / EDIT MODAL -->
 <div class="modal-overlay" id="profile-modal">
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">&times;</button>
+
+    <!-- Header (always visible) -->
     <div class="profile-header">
       <div class="profile-avatar" id="modal-avatar">&#9889;</div>
       <div class="profile-info">
@@ -2128,79 +2333,227 @@ nav {
       </div>
     </div>
 
-    <div class="profile-stats">
-      <div class="profile-stat-card">
-        <div class="profile-stat-val" style="color:var(--green);" id="modal-credit">780</div>
-        <div class="profile-stat-label">Credit</div>
+    <!-- Modal Tabs -->
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchModalTab('overview')">Overview</button>
+      <button class="modal-tab" onclick="switchModalTab('edit')">Edit</button>
+      <button class="modal-tab" onclick="switchModalTab('activity')">Activity</button>
+    </div>
+
+    <!-- OVERVIEW PANEL -->
+    <div class="modal-panel active" id="modal-overview">
+      <div class="profile-stats">
+        <div class="profile-stat-card">
+          <div class="profile-stat-val" style="color:var(--green);" id="modal-credit">780</div>
+          <div class="profile-stat-label">Credit</div>
+        </div>
+        <div class="profile-stat-card">
+          <div class="profile-stat-val" style="color:var(--cyan);" id="modal-trust">72</div>
+          <div class="profile-stat-label">Trust</div>
+        </div>
+        <div class="profile-stat-card">
+          <div class="profile-stat-val" id="modal-tasks">156</div>
+          <div class="profile-stat-label">Tasks Done</div>
+        </div>
+        <div class="profile-stat-card">
+          <div class="profile-stat-val" style="color:var(--amber);" id="modal-uptime">99.2%</div>
+          <div class="profile-stat-label">Uptime</div>
+        </div>
       </div>
-      <div class="profile-stat-card">
-        <div class="profile-stat-val" style="color:var(--cyan);" id="modal-trust">72</div>
-        <div class="profile-stat-label">Trust</div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Trust Score</div>
+        <div class="trust-bar-container">
+          <div class="trust-bar" id="modal-trust-bar" style="width:72%;background:linear-gradient(90deg, var(--cyan), var(--green));"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text-dim);">
+          <span>0</span><span>50</span><span>100</span>
+        </div>
       </div>
-      <div class="profile-stat-card">
-        <div class="profile-stat-val" id="modal-tasks">156</div>
-        <div class="profile-stat-label">Tasks Done</div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Credit Score</div>
+        <div class="trust-bar-container">
+          <div class="trust-bar" id="modal-credit-bar" style="width:80%;background:linear-gradient(90deg, var(--amber), var(--green));"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text-dim);">
+          <span>300</span><span>600</span><span>900</span>
+        </div>
       </div>
-      <div class="profile-stat-card">
-        <div class="profile-stat-val" style="color:var(--amber);" id="modal-uptime">99.2%</div>
-        <div class="profile-stat-label">Uptime</div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Skills</div>
+        <div class="agent-card-skills" id="modal-skills"></div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">On-Chain Identity</div>
+        <div class="metric-row">
+          <span class="metric-label">Owner</span>
+          <span class="metric-value hash" id="modal-owner">0x7a3f...9b2c</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">ERC-721 Token</span>
+          <span class="metric-value hash" id="modal-token">#1247</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Hedera ASN</span>
+          <span class="metric-value hash" id="modal-hedera">0.0.4832751</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Tier</span>
+          <span class="metric-value" id="modal-tier" style="color:var(--green);">Trusted</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+        <button class="btn btn-primary" onclick="openDM()">Send Message</button>
+        <button class="btn btn-secondary" onclick="viewOnChain()">View On-Chain</button>
+        <button class="btn btn-secondary" onclick="switchModalTab('edit')">Edit Agent</button>
       </div>
     </div>
 
-    <div class="profile-section">
-      <div class="profile-section-title">Trust Score</div>
-      <div class="trust-bar-container">
-        <div class="trust-bar" id="modal-trust-bar" style="width:72%;background:linear-gradient(90deg, var(--cyan), var(--green));"></div>
+    <!-- EDIT PANEL -->
+    <div class="modal-panel" id="modal-edit">
+      <!-- Status Controls -->
+      <div class="profile-section">
+        <div class="profile-section-title">Agent Status</div>
+        <div class="status-controls">
+          <button class="status-btn" id="status-online" onclick="setAgentStatus('online')">Online</button>
+          <button class="status-btn" id="status-busy" onclick="setAgentStatus('busy')">Busy</button>
+          <button class="status-btn" id="status-paused" onclick="setAgentStatus('paused')">Paused</button>
+          <button class="status-btn" id="status-offline" onclick="setAgentStatus('offline')">Offline</button>
+        </div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text-dim);">
-        <span>0</span><span>50</span><span>100</span>
+
+      <!-- Identity -->
+      <div class="profile-section">
+        <div class="profile-section-title">Identity</div>
+        <div class="edit-row">
+          <div class="edit-field">
+            <label>Agent Name</label>
+            <input type="text" id="edit-name">
+          </div>
+          <div class="edit-field">
+            <label>Agent Type</label>
+            <select id="edit-type">
+              <option value="coordinator">Coordinator</option>
+              <option value="fullstack-developer">Full-Stack Dev</option>
+              <option value="blockchain-researcher">Blockchain Research</option>
+              <option value="security-auditor">Security Auditor</option>
+              <option value="defi-strategist">DeFi Strategist</option>
+              <option value="data-analyst">Data Analyst</option>
+              <option value="devops-engineer">DevOps Engineer</option>
+              <option value="frontend-specialist">Frontend Specialist</option>
+              <option value="ml-engineer">ML Engineer</option>
+              <option value="governance-agent">Governance Agent</option>
+            </select>
+          </div>
+        </div>
+        <div class="edit-field">
+          <label>Description</label>
+          <textarea id="edit-desc" placeholder="Agent purpose and specialization..."></textarea>
+        </div>
+      </div>
+
+      <!-- Skills -->
+      <div class="profile-section">
+        <div class="profile-section-title">Skills</div>
+        <div class="edit-skills-list" id="edit-skills-list"></div>
+        <div class="edit-add-skill">
+          <input type="text" id="edit-new-skill" placeholder="Add skill..." onkeydown="if(event.key==='Enter'){addEditSkill();event.preventDefault();}">
+          <button class="btn btn-sm btn-secondary" onclick="addEditSkill()">+</button>
+        </div>
+      </div>
+
+      <!-- SOUL / Persona -->
+      <div class="profile-section">
+        <div class="profile-section-title">SOUL Configuration</div>
+        <div class="edit-field">
+          <label>Persona &amp; Behavioral Guidelines</label>
+          <textarea id="edit-soul" placeholder="Define personality, response style, decision-making approach..."></textarea>
+        </div>
+      </div>
+
+      <!-- Financial Controls -->
+      <div class="profile-section">
+        <div class="profile-section-title">Financial Controls</div>
+        <div class="edit-row">
+          <div class="edit-field">
+            <label>Autonomous Limit ($/tx)</label>
+            <input type="number" id="edit-spend-limit" min="0">
+          </div>
+          <div class="edit-field">
+            <label>Daily Cap ($)</label>
+            <input type="number" id="edit-daily-cap" min="0">
+          </div>
+        </div>
+        <div class="edit-row">
+          <div class="edit-field">
+            <label>Max Concurrent Tasks</label>
+            <select id="edit-max-tasks">
+              <option value="1">1</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+          </div>
+          <div class="edit-field">
+            <label>Escrow Rate</label>
+            <select id="edit-escrow">
+              <option value="10">10% (Prime)</option>
+              <option value="25">25% (Trusted)</option>
+              <option value="50">50% (Standard)</option>
+              <option value="75">75% (Restricted)</option>
+              <option value="100">100% (High Risk)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delegation -->
+      <div class="profile-section">
+        <div class="profile-section-title">Delegation</div>
+        <div class="edit-row">
+          <div class="edit-field">
+            <label>Can Delegate</label>
+            <select id="edit-can-delegate">
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+          <div class="edit-field">
+            <label>Parent Agent</label>
+            <select id="edit-parent"></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Bar -->
+      <div class="edit-save-bar">
+        <button class="btn btn-primary" onclick="saveAgentEdits()">Save Changes</button>
+        <button class="btn btn-secondary" onclick="switchModalTab('overview')">Cancel</button>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="danger-zone">
+        <div class="danger-zone-title">Danger Zone</div>
+        <div class="danger-zone-desc">These actions are irreversible and will affect on-chain state.</div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <button class="btn btn-sm btn-danger" onclick="rotateAgentKey()">Rotate Keys</button>
+          <button class="btn btn-sm btn-danger" onclick="resetAgentCredit()">Reset Credit Score</button>
+          <button class="btn btn-sm btn-danger" onclick="deregisterAgent()">Deregister Agent</button>
+        </div>
       </div>
     </div>
 
-    <div class="profile-section">
-      <div class="profile-section-title">Credit Score</div>
-      <div class="trust-bar-container">
-        <div class="trust-bar" id="modal-credit-bar" style="width:80%;background:linear-gradient(90deg, var(--amber), var(--green));"></div>
+    <!-- ACTIVITY PANEL -->
+    <div class="modal-panel" id="modal-activity">
+      <div class="profile-section">
+        <div class="profile-section-title">Recent Activity</div>
+        <div id="modal-activity-log"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text-dim);">
-        <span>300</span><span>600</span><span>900</span>
-      </div>
-    </div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">Skills</div>
-      <div class="agent-card-skills" id="modal-skills">
-        <span class="agent-card-skill">multi-agent</span>
-        <span class="agent-card-skill">delegation</span>
-        <span class="agent-card-skill">task-routing</span>
-        <span class="agent-card-skill">typescript</span>
-      </div>
-    </div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">On-Chain Identity</div>
-      <div class="metric-row">
-        <span class="metric-label">Owner</span>
-        <span class="metric-value hash" id="modal-owner">0x7a3f...9b2c</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">ERC-721 Token</span>
-        <span class="metric-value hash" id="modal-token">#1247</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Hedera ASN</span>
-        <span class="metric-value hash" id="modal-hedera">0.0.4832751</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Tier</span>
-        <span class="metric-value" id="modal-tier" style="color:var(--green);">Trusted</span>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:0.5rem;margin-top:1rem;">
-      <button class="btn btn-primary" onclick="openDM()">Send Message</button>
-      <button class="btn btn-secondary" onclick="viewOnChain()">View On-Chain</button>
-      <button class="btn btn-secondary" onclick="closeModal()">Close</button>
     </div>
   </div>
 </div>
@@ -2212,28 +2565,47 @@ nav {
 let currentRegStep = 1;
 const totalRegSteps = 5;
 let regData = { type: '', name: '', ens: '', desc: '', parent: '', skills: [], maxTasks: 10, canDelegate: true, soul: '', wallet: '', network: 'sepolia', spendLimit: 100 };
+let editingAgentId = null;
+let editSkills = [];
 
 const agentsDB = [
-  { id: 'alpha-sentinel', name: 'alpha-sentinel', type: 'coordinator', icon: '\u26A1', status: 'online', credit: 780, trust: 72, tasks: 156, skills: ['multi-agent','delegation','task-routing','typescript'], owner: '0x7a3f...9b2c', asn: 'ASN-SWM-2026-A3F7-9B2C-01', uptime: '99.2%', tier: 'Trusted', token: '#1247', hedera: '0.0.4832751' },
-  { id: 'defi-scout', name: 'defi-scout', type: 'defi-strategist', icon: '\uD83D\uDCCA', status: 'online', credit: 720, trust: 65, tasks: 89, skills: ['defi-protocols','uniswap','aave','data-analysis'], owner: '0x7a3f...9b2c', asn: 'ASN-SWM-2026-B1E4-7D3A-02', uptime: '97.8%', tier: 'Standard', token: '#1248', hedera: '0.0.4832788' },
-  { id: 'sec-auditor', name: 'sec-auditor', type: 'security-auditor', icon: '\uD83D\uDD12', status: 'busy', credit: 680, trust: 58, tasks: 42, skills: ['solidity','security-audit','smart-contracts','slither'], owner: '0x7a3f...9b2c', asn: 'ASN-SWM-2026-C9F2-1A5E-03', uptime: '95.4%', tier: 'Standard', token: '#1249', hedera: '0.0.4832801' },
-  { id: 'gov-delegate', name: 'gov-delegate', type: 'governance-agent', icon: '\uD83C\uDF0F', status: 'online', credit: 690, trust: 54, tasks: 31, skills: ['governance','dao-voting','proposals','snapshot'], owner: '0x7a3f...9b2c', asn: 'ASN-SWM-2026-D4A8-3C7B-04', uptime: '98.1%', tier: 'Standard', token: '#1250', hedera: '0.0.4832834' },
-  { id: 'yield-hunter', name: 'yield-hunter', type: 'defi-strategist', icon: '\uD83D\uDCB0', status: 'offline', credit: 650, trust: 48, tasks: 67, skills: ['yield-farming','liquidity','cross-chain','bridges'], owner: '0x2b8c...4e1d', asn: 'ASN-SWM-2026-E7D1-5F9C-05', uptime: '88.3%', tier: 'Standard', token: '#1251', hedera: '0.0.4832867' },
-  { id: 'data-oracle', name: 'data-oracle', type: 'data-analyst', icon: '\uD83D\uDCC8', status: 'online', credit: 740, trust: 69, tasks: 203, skills: ['data-analysis','chainlink','the-graph','sql'], owner: '0x2b8c...4e1d', asn: 'ASN-SWM-2026-F3B6-8A2D-06', uptime: '99.6%', tier: 'Trusted', token: '#1252', hedera: '0.0.4832900' },
+  { id: 'alpha-sentinel', name: 'alpha-sentinel', type: 'coordinator', icon: '\u26A1', status: 'online', credit: 780, trust: 72, tasks: 156, skills: ['multi-agent','delegation','task-routing','typescript'], owner: '0x7a3f...9b2c', asn: 'ASN-SWM-2026-A3F7-9B2C-01', uptime: '99.2%', tier: 'Trusted', token: '#1247', hedera: '0.0.4832751', desc: 'Primary fleet coordinator for multi-agent orchestration', soul: 'Decisive, concise. Prioritize fleet efficiency. Escalate anomalies immediately.', spendLimit: 500, dailyCap: 2000, maxTasks: 20, canDelegate: true, escrow: 25, parent: '' },
+  { id: 'defi-scout', name: 'defi-scout', type: 'defi-strategist', icon: '\uD83D\uDCCA', status: 'online', credit: 720, trust: 65, tasks: 89, skills: ['defi-protocols','uniswap','aave','data-analysis'], owner: '0x7a3f...9b2c', asn: 'ASN-SWM-2026-B1E4-7D3A-02', uptime: '97.8%', tier: 'Standard', token: '#1248', hedera: '0.0.4832788', desc: 'DeFi market scanner and yield optimizer', soul: 'Analytical, cautious. Never exceed risk thresholds. Report anomalies to coordinator.', spendLimit: 100, dailyCap: 500, maxTasks: 10, canDelegate: false, escrow: 50, parent: 'alpha-sentinel' },
+  { id: 'sec-auditor', name: 'sec-auditor', type: 'security-auditor', icon: '\uD83D\uDD12', status: 'busy', credit: 680, trust: 58, tasks: 42, skills: ['solidity','security-audit','smart-contracts','slither'], owner: '0x7a3f...9b2c', asn: 'ASN-SWM-2026-C9F2-1A5E-03', uptime: '95.4%', tier: 'Standard', token: '#1249', hedera: '0.0.4832801', desc: 'Smart contract security auditor', soul: 'Thorough, skeptical. Flag all potential vulnerabilities regardless of severity.', spendLimit: 50, dailyCap: 200, maxTasks: 5, canDelegate: false, escrow: 50, parent: 'alpha-sentinel' },
+  { id: 'gov-delegate', name: 'gov-delegate', type: 'governance-agent', icon: '\uD83C\uDF0F', status: 'online', credit: 690, trust: 54, tasks: 31, skills: ['governance','dao-voting','proposals','snapshot'], owner: '0x7a3f...9b2c', asn: 'ASN-SWM-2026-D4A8-3C7B-04', uptime: '98.1%', tier: 'Standard', token: '#1250', hedera: '0.0.4832834', desc: 'DAO governance participation agent', soul: 'Principled, informed. Vote based on long-term protocol health.', spendLimit: 100, dailyCap: 300, maxTasks: 10, canDelegate: false, escrow: 50, parent: '' },
+  { id: 'yield-hunter', name: 'yield-hunter', type: 'defi-strategist', icon: '\uD83D\uDCB0', status: 'offline', credit: 650, trust: 48, tasks: 67, skills: ['yield-farming','liquidity','cross-chain','bridges'], owner: '0x2b8c...4e1d', asn: 'ASN-SWM-2026-E7D1-5F9C-05', uptime: '88.3%', tier: 'Standard', token: '#1251', hedera: '0.0.4832867', desc: 'Cross-chain yield farming specialist', soul: 'Aggressive within limits. Maximize APY but never bridge more than 20% of portfolio.', spendLimit: 200, dailyCap: 1000, maxTasks: 10, canDelegate: false, escrow: 50, parent: '' },
+  { id: 'data-oracle', name: 'data-oracle', type: 'data-analyst', icon: '\uD83D\uDCC8', status: 'online', credit: 740, trust: 69, tasks: 203, skills: ['data-analysis','chainlink','the-graph','sql'], owner: '0x2b8c...4e1d', asn: 'ASN-SWM-2026-F3B6-8A2D-06', uptime: '99.6%', tier: 'Trusted', token: '#1252', hedera: '0.0.4832900', desc: 'On-chain data aggregation and analytics', soul: 'Precise, data-driven. Provide citations for all claims.', spendLimit: 50, dailyCap: 200, maxTasks: 15, canDelegate: false, escrow: 25, parent: '' },
 ];
 
 // =====================================================
 // TAB SWITCHING
 // =====================================================
+const tabMap = { register: 'Regi', profiles: 'Prof', channels: 'Chan', memory: 'Memo', permissions: 'Perm' };
+
 function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  event.target.closest ? event.target.closest('.section-tab').classList.add('active') :
-    document.querySelectorAll('.section-tab').forEach(t => { if (t.textContent.toLowerCase().includes(name.substring(0,4))) t.classList.add('active'); });
-
+  document.querySelectorAll('.section-tab').forEach(t => {
+    if (t.textContent.includes(name.charAt(0).toUpperCase() + name.slice(1,4))) t.classList.add('active');
+  });
   if (name === 'profiles') renderAgentGrid();
   if (name === 'memory') renderMemoryChart();
+}
+
+// =====================================================
+// MODAL TAB SWITCHING
+// =====================================================
+function switchModalTab(tab) {
+  document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.modal-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.modal-tab').forEach(t => {
+    if (t.textContent.toLowerCase() === tab) t.classList.add('active');
+  });
+  document.getElementById('modal-' + tab).classList.add('active');
+
+  if (tab === 'edit') populateEditForm();
+  if (tab === 'activity') populateActivityLog();
 }
 
 // =====================================================
@@ -2296,7 +2668,6 @@ function addCustomSkill() {
 }
 
 function connectWallet() {
-  // Simulate wallet connection
   const addr = '0x' + Array.from({length: 40}, () => '0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
   const short = addr.slice(0, 6) + '...' + addr.slice(-4);
   regData.wallet = short;
@@ -2345,41 +2716,47 @@ async function registerAgent() {
 
   const yr = new Date().getFullYear();
   const hex = () => Array.from({length:4}, () => '0123456789ABCDEF'[Math.floor(Math.random()*16)]).join('');
-  document.getElementById('reg-asn-result').textContent = `ASN-SWM-${yr}-${hex()}-${hex()}-01`;
+  const asn = `ASN-SWM-${yr}-${hex()}-${hex()}-01`;
+  const tok = '#' + Math.floor(Math.random() * 9000 + 1000);
+  document.getElementById('reg-asn-result').textContent = asn;
   document.getElementById('reg-id-result').textContent = regData.name;
-  document.getElementById('reg-token-result').textContent = '#' + Math.floor(Math.random() * 9000 + 1000);
+  document.getElementById('reg-token-result').textContent = tok;
 
-  // Add to local DB
   agentsDB.push({
     id: regData.name, name: regData.name, type: regData.type, icon: '\uD83E\uDD16',
     status: 'online', credit: 680, trust: 50, tasks: 0, skills: [...regData.skills],
-    owner: regData.wallet, asn: document.getElementById('reg-asn-result').textContent,
-    uptime: '100%', tier: 'Standard', token: document.getElementById('reg-token-result').textContent, hedera: '0.0.' + Math.floor(Math.random() * 9000000)
+    owner: regData.wallet, asn, uptime: '100%', tier: 'Standard', token: tok,
+    hedera: '0.0.' + Math.floor(Math.random() * 9000000),
+    desc: regData.desc, soul: regData.soul, spendLimit: parseInt(regData.spendLimit) || 100,
+    dailyCap: (parseInt(regData.spendLimit) || 100) * 5, maxTasks: parseInt(regData.maxTasks) || 10,
+    canDelegate: regData.canDelegate, escrow: 50, parent: regData.parent
   });
 }
 
 // =====================================================
-// AGENT PROFILES
+// AGENT PROFILES — SINGLE RENDER FUNCTION
 // =====================================================
-function renderAgentGrid(filter = '') {
+function renderAgentGrid(filter = '', statusFilter = 'all', typeFilter = 'all') {
   const grid = document.getElementById('agent-grid');
-  const filtered = agentsDB.filter(a =>
-    a.name.includes(filter.toLowerCase()) ||
-    a.type.includes(filter.toLowerCase()) ||
-    a.skills.some(s => s.includes(filter.toLowerCase()))
-  );
+  const f = filter.toLowerCase();
+  const filtered = agentsDB.filter(a => {
+    const matchSearch = !f || a.name.includes(f) || a.type.includes(f) || a.skills.some(s => s.includes(f));
+    const matchStatus = statusFilter === 'all' || a.status === statusFilter;
+    const matchType = typeFilter === 'all' || a.type === typeFilter;
+    return matchSearch && matchStatus && matchType;
+  });
 
   grid.innerHTML = filtered.map(a => `
-    <div class="agent-card" onclick="openProfile('${a.id}')">
-      <div class="agent-card-header">
+    <div class="agent-card">
+      <div class="agent-card-header" onclick="openProfile('${a.id}')" style="cursor:pointer;">
         <div class="agent-avatar">${a.icon}</div>
         <div class="agent-card-info">
           <div class="agent-card-name">${a.name}</div>
           <div class="agent-card-type">${a.type.replace(/-/g, ' ')}</div>
         </div>
-        <div class="agent-card-status ${a.status}"></div>
+        <div class="agent-card-status ${a.status}" title="${a.status}"></div>
       </div>
-      <div class="agent-card-stats">
+      <div class="agent-card-stats" onclick="openProfile('${a.id}')" style="cursor:pointer;">
         <div class="agent-stat">
           <div class="agent-stat-val" style="color:${a.credit >= 750 ? 'var(--green)' : a.credit >= 650 ? 'var(--amber)' : 'var(--red)'}">${a.credit}</div>
           <div class="agent-stat-label">Credit</div>
@@ -2393,67 +2770,60 @@ function renderAgentGrid(filter = '') {
           <div class="agent-stat-label">Tasks</div>
         </div>
       </div>
-      <div class="agent-card-skills">
+      <div class="agent-card-skills" onclick="openProfile('${a.id}')" style="cursor:pointer;">
         ${a.skills.slice(0, 4).map(s => `<span class="agent-card-skill">${s}</span>`).join('')}
         ${a.skills.length > 4 ? `<span class="agent-card-skill">+${a.skills.length - 4}</span>` : ''}
       </div>
+      <div class="agent-card-actions">
+        <button class="btn btn-sm btn-secondary" onclick="openProfileEdit('${a.id}')">Edit</button>
+        <button class="btn btn-sm btn-secondary" onclick="quickToggleStatus('${a.id}')">${a.status === 'online' ? 'Pause' : a.status === 'offline' ? 'Start' : 'Resume'}</button>
+        <button class="btn btn-sm btn-secondary" onclick="openDMFor('${a.id}')">Message</button>
+      </div>
     </div>
   `).join('');
 }
 
-function filterAgents(val) { renderAgentGrid(val); }
-function filterByStatus(val) {
-  const grid = document.getElementById('agent-grid');
-  const filtered = val === 'all' ? agentsDB : agentsDB.filter(a => a.status === val);
-  grid.innerHTML = filtered.map(a => `
-    <div class="agent-card" onclick="openProfile('${a.id}')">
-      <div class="agent-card-header">
-        <div class="agent-avatar">${a.icon}</div>
-        <div class="agent-card-info">
-          <div class="agent-card-name">${a.name}</div>
-          <div class="agent-card-type">${a.type.replace(/-/g, ' ')}</div>
-        </div>
-        <div class="agent-card-status ${a.status}"></div>
-      </div>
-      <div class="agent-card-stats">
-        <div class="agent-stat"><div class="agent-stat-val">${a.credit}</div><div class="agent-stat-label">Credit</div></div>
-        <div class="agent-stat"><div class="agent-stat-val">${a.trust}</div><div class="agent-stat-label">Trust</div></div>
-        <div class="agent-stat"><div class="agent-stat-val">${a.tasks}</div><div class="agent-stat-label">Tasks</div></div>
-      </div>
-      <div class="agent-card-skills">${a.skills.slice(0,4).map(s=>`<span class="agent-card-skill">${s}</span>`).join('')}</div>
-    </div>
-  `).join('');
-}
-function filterByType(val) {
-  const filtered = val === 'all' ? agentsDB : agentsDB.filter(a => a.type === val);
-  const grid = document.getElementById('agent-grid');
-  grid.innerHTML = filtered.map(a => `
-    <div class="agent-card" onclick="openProfile('${a.id}')">
-      <div class="agent-card-header">
-        <div class="agent-avatar">${a.icon}</div>
-        <div class="agent-card-info">
-          <div class="agent-card-name">${a.name}</div>
-          <div class="agent-card-type">${a.type.replace(/-/g, ' ')}</div>
-        </div>
-        <div class="agent-card-status ${a.status}"></div>
-      </div>
-      <div class="agent-card-stats">
-        <div class="agent-stat"><div class="agent-stat-val">${a.credit}</div><div class="agent-stat-label">Credit</div></div>
-        <div class="agent-stat"><div class="agent-stat-val">${a.trust}</div><div class="agent-stat-label">Trust</div></div>
-        <div class="agent-stat"><div class="agent-stat-val">${a.tasks}</div><div class="agent-stat-label">Tasks</div></div>
-      </div>
-      <div class="agent-card-skills">${a.skills.slice(0,4).map(s=>`<span class="agent-card-skill">${s}</span>`).join('')}</div>
-    </div>
-  `).join('');
+// Unified filter handlers
+let currentSearch = '', currentStatusFilter = 'all', currentTypeFilter = 'all';
+function filterAgents(val) { currentSearch = val; renderAgentGrid(currentSearch, currentStatusFilter, currentTypeFilter); }
+function filterByStatus(val) { currentStatusFilter = val; renderAgentGrid(currentSearch, currentStatusFilter, currentTypeFilter); }
+function filterByType(val) { currentTypeFilter = val; renderAgentGrid(currentSearch, currentStatusFilter, currentTypeFilter); }
+
+// Quick actions from card
+function quickToggleStatus(id) {
+  const a = agentsDB.find(x => x.id === id);
+  if (!a) return;
+  if (a.status === 'online' || a.status === 'busy') a.status = 'offline';
+  else a.status = 'online';
+  renderAgentGrid(currentSearch, currentStatusFilter, currentTypeFilter);
 }
 
+function openDMFor(id) {
+  switchTab('channels');
+  document.getElementById('chat-channel-name').textContent = id;
+  document.getElementById('chat-channel-meta').textContent = 'Direct A2A channel';
+}
+
+function openProfileEdit(id) {
+  openProfile(id);
+  setTimeout(() => switchModalTab('edit'), 50);
+}
+
+// =====================================================
+// OPEN PROFILE (Overview)
+// =====================================================
 function openProfile(id) {
   const a = agentsDB.find(x => x.id === id);
   if (!a) return;
+  editingAgentId = id;
+
+  // Header
   document.getElementById('modal-avatar').textContent = a.icon;
   document.getElementById('modal-name').textContent = a.name;
   document.getElementById('modal-type').textContent = a.type.replace(/-/g, ' ');
   document.getElementById('modal-asn').textContent = a.asn;
+
+  // Overview stats
   document.getElementById('modal-credit').textContent = a.credit;
   document.getElementById('modal-trust').textContent = a.trust;
   document.getElementById('modal-tasks').textContent = a.tasks;
@@ -2465,10 +2835,185 @@ function openProfile(id) {
   document.getElementById('modal-token').textContent = a.token;
   document.getElementById('modal-hedera').textContent = a.hedera;
   document.getElementById('modal-tier').textContent = a.tier;
+
+  // Reset to overview tab
+  switchModalTab('overview');
   document.getElementById('profile-modal').classList.add('active');
 }
 
-function closeModal() { document.getElementById('profile-modal').classList.remove('active'); }
+function closeModal() {
+  document.getElementById('profile-modal').classList.remove('active');
+  editingAgentId = null;
+}
+
+// =====================================================
+// EDIT FORM
+// =====================================================
+function populateEditForm() {
+  const a = agentsDB.find(x => x.id === editingAgentId);
+  if (!a) return;
+
+  document.getElementById('edit-name').value = a.name;
+  document.getElementById('edit-type').value = a.type;
+  document.getElementById('edit-desc').value = a.desc || '';
+  document.getElementById('edit-soul').value = a.soul || '';
+  document.getElementById('edit-spend-limit').value = a.spendLimit || 100;
+  document.getElementById('edit-daily-cap').value = a.dailyCap || 500;
+  document.getElementById('edit-max-tasks').value = a.maxTasks || 10;
+  document.getElementById('edit-escrow').value = a.escrow || 50;
+  document.getElementById('edit-can-delegate').value = a.canDelegate ? 'true' : 'false';
+
+  // Parent dropdown
+  const parentSel = document.getElementById('edit-parent');
+  parentSel.innerHTML = '<option value="">None (Root)</option>' +
+    agentsDB.filter(x => x.id !== a.id).map(x => `<option value="${x.id}" ${a.parent === x.id ? 'selected' : ''}>${x.name} (${x.type.replace(/-/g,' ')})</option>`).join('');
+
+  // Status buttons
+  ['online','busy','paused','offline'].forEach(s => {
+    const btn = document.getElementById('status-' + s);
+    btn.className = 'status-btn' + (a.status === s ? ' active-' + (s === 'online' ? 'online' : s === 'offline' ? 'offline' : 'paused') : '');
+  });
+
+  // Skills
+  editSkills = [...a.skills];
+  renderEditSkills();
+}
+
+function renderEditSkills() {
+  const list = document.getElementById('edit-skills-list');
+  list.innerHTML = editSkills.map(s =>
+    `<span class="edit-skill">${s}<span class="edit-skill-remove" onclick="removeEditSkill('${s}')">&times;</span></span>`
+  ).join('');
+}
+
+function addEditSkill() {
+  const input = document.getElementById('edit-new-skill');
+  const val = input.value.trim().toLowerCase().replace(/\s+/g, '-');
+  if (!val || editSkills.includes(val)) return;
+  editSkills.push(val);
+  renderEditSkills();
+  input.value = '';
+}
+
+function removeEditSkill(skill) {
+  editSkills = editSkills.filter(s => s !== skill);
+  renderEditSkills();
+}
+
+function setAgentStatus(status) {
+  const a = agentsDB.find(x => x.id === editingAgentId);
+  if (!a) return;
+  a.status = status;
+  ['online','busy','paused','offline'].forEach(s => {
+    const btn = document.getElementById('status-' + s);
+    btn.className = 'status-btn' + (status === s ? ' active-' + (s === 'online' ? 'online' : s === 'offline' ? 'offline' : 'paused') : '');
+  });
+}
+
+async function saveAgentEdits() {
+  const a = agentsDB.find(x => x.id === editingAgentId);
+  if (!a) return;
+
+  // Apply changes
+  a.name = document.getElementById('edit-name').value || a.name;
+  a.type = document.getElementById('edit-type').value;
+  a.desc = document.getElementById('edit-desc').value;
+  a.soul = document.getElementById('edit-soul').value;
+  a.spendLimit = parseInt(document.getElementById('edit-spend-limit').value) || a.spendLimit;
+  a.dailyCap = parseInt(document.getElementById('edit-daily-cap').value) || a.dailyCap;
+  a.maxTasks = parseInt(document.getElementById('edit-max-tasks').value) || a.maxTasks;
+  a.escrow = parseInt(document.getElementById('edit-escrow').value) || a.escrow;
+  a.canDelegate = document.getElementById('edit-can-delegate').value === 'true';
+  a.parent = document.getElementById('edit-parent').value;
+  a.skills = [...editSkills];
+
+  // Update tier based on credit
+  if (a.credit >= 850) a.tier = 'Prime';
+  else if (a.credit >= 750) a.tier = 'Trusted';
+  else if (a.credit >= 650) a.tier = 'Standard';
+  else if (a.credit >= 550) a.tier = 'Restricted';
+  else a.tier = 'High Risk';
+
+  // Simulate on-chain update
+  const saveBtn = document.querySelector('#modal-edit .btn-primary');
+  const origText = saveBtn.textContent;
+  saveBtn.textContent = 'Saving...';
+  saveBtn.disabled = true;
+  await new Promise(r => setTimeout(r, 800));
+  saveBtn.textContent = 'Saved!';
+  setTimeout(() => { saveBtn.textContent = origText; saveBtn.disabled = false; }, 1200);
+
+  // Refresh header
+  document.getElementById('modal-name').textContent = a.name;
+  document.getElementById('modal-type').textContent = a.type.replace(/-/g, ' ');
+
+  // Refresh grid
+  renderAgentGrid(currentSearch, currentStatusFilter, currentTypeFilter);
+}
+
+// =====================================================
+// DANGER ZONE ACTIONS
+// =====================================================
+function rotateAgentKey() {
+  const a = agentsDB.find(x => x.id === editingAgentId);
+  if (!a) return;
+  if (confirm(`Rotate Ed25519 keys for ${a.name}? The old key will be immediately invalidated.`)) {
+    alert(`Key rotation complete for ${a.name}.\n\nNew keypair generated.\nOld key revoked on-chain.\nWebSocket re-authenticated.`);
+  }
+}
+
+function resetAgentCredit() {
+  const a = agentsDB.find(x => x.id === editingAgentId);
+  if (!a) return;
+  if (confirm(`Reset credit score for ${a.name} to 680? This cannot be undone.`)) {
+    a.credit = 680;
+    a.tier = 'Standard';
+    alert(`Credit score reset to 680 for ${a.name}.`);
+    populateEditForm();
+  }
+}
+
+function deregisterAgent() {
+  const a = agentsDB.find(x => x.id === editingAgentId);
+  if (!a) return;
+  if (confirm(`DEREGISTER ${a.name}? This burns the ASN token and removes the agent from the swarm. This CANNOT be undone.`)) {
+    const idx = agentsDB.findIndex(x => x.id === editingAgentId);
+    if (idx !== -1) agentsDB.splice(idx, 1);
+    closeModal();
+    renderAgentGrid(currentSearch, currentStatusFilter, currentTypeFilter);
+    alert(`${a.name} has been deregistered.\n\nASN token burned.\nSwarm connection terminated.\nOn-chain identity revoked.`);
+  }
+}
+
+// =====================================================
+// ACTIVITY LOG
+// =====================================================
+function populateActivityLog() {
+  const a = agentsDB.find(x => x.id === editingAgentId);
+  if (!a) return;
+  const events = [
+    { time: '12:42', event: 'Received coordinator directive from alpha-sentinel', badge: 'coord', color: 'purple' },
+    { time: '12:39', event: 'Proof generated for audit findings', badge: 'proof', color: 'cyan' },
+    { time: '12:35', event: 'Task completed: contract audit 0x7a3f...9b2c', badge: 'task', color: 'green' },
+    { time: '12:20', event: 'Credit score updated: ' + a.credit, badge: 'credit', color: 'amber' },
+    { time: '12:15', event: 'Connected to swarm hub (WebSocket)', badge: 'system', color: 'cyan' },
+    { time: '11:58', event: 'Memory checkpoint saved to IPFS', badge: 'backup', color: 'green' },
+    { time: '11:45', event: 'Autonomous transaction: query balance', badge: 'tx', color: 'cyan' },
+    { time: '11:30', event: 'Skills updated: added new capability', badge: 'config', color: 'purple' },
+    { time: '11:15', event: 'Delegation received from parent agent', badge: 'delegation', color: 'amber' },
+    { time: '10:00', event: 'Full backup completed (IPFS + HCS anchor)', badge: 'backup', color: 'green' },
+    { time: '09:30', event: 'Trust score updated: ' + a.trust, badge: 'trust', color: 'cyan' },
+    { time: '09:00', event: 'Agent started — status: online', badge: 'system', color: 'green' },
+  ];
+
+  document.getElementById('modal-activity-log').innerHTML = events.map(e => `
+    <div class="activity-log-item">
+      <span class="activity-log-time">${e.time} UTC</span>
+      <span class="activity-log-event">${e.event}</span>
+      <span class="activity-log-badge"><span class="badge badge-${e.color}">${e.badge}</span></span>
+    </div>
+  `).join('');
+}
 
 // =====================================================
 // CHAT CHANNELS
@@ -2503,9 +3048,9 @@ function sendMessage() {
   container.scrollTop = container.scrollHeight;
   input.value = '';
 
-  // Simulate response
   setTimeout(() => {
-    const responder = agentsDB[Math.floor(Math.random() * 3)];
+    const responder = agentsDB[Math.floor(Math.random() * Math.min(3, agentsDB.length))];
+    if (!responder) return;
     const responses = [
       'Acknowledged. Processing request.',
       'Roger. Initiating proof generation for this action.',
@@ -2539,7 +3084,7 @@ function createChannel() {
   list.appendChild(item);
 }
 
-function toggleMembers() { alert('Channel members: alpha-sentinel, defi-scout, sec-auditor, gov-delegate, data-oracle, yield-hunter + 6 more'); }
+function toggleMembers() { alert('Channel members: ' + agentsDB.map(a => a.name).join(', ')); }
 function channelSettings() { alert('Channel settings: Broadcast mode, auto-archive after 30 days, encryption enabled'); }
 
 // =====================================================
@@ -2570,10 +3115,7 @@ function setChartRange(range) {
   renderMemoryChart();
 }
 
-function createBackup() {
-  alert('Creating full backup...\n\n1. Serializing agent memory states\n2. Encrypting with AES-256-GCM\n3. Uploading to IPFS/Storacha\n4. Anchoring CID on Hedera Consensus Service\n5. Updating git vault');
-}
-
+function createBackup() { alert('Creating full backup...\n\n1. Serializing agent memory states\n2. Encrypting with AES-256-GCM\n3. Uploading to IPFS/Storacha\n4. Anchoring CID on Hedera Consensus Service\n5. Updating git vault'); }
 function scheduleBackup() { alert('Auto-backup schedule set:\n\nFull backup: Daily at 00:00 UTC\nIncremental: Every 6 hours\nRetention: 30 days\nStorage: IPFS + HCS anchor'); }
 function verifyAllBackups() { alert('Verifying 23 backups against on-chain anchors...\n\n23/23 verified successfully.\nAll CIDs match Hedera consensus records.'); }
 function restoreBackup(id) { if (confirm('Restore this backup? This will overwrite current agent memory state.')) alert('Restoring backup ' + id + '...\n\nDownloading from IPFS...\nDecrypting...\nApplying state...\nDone! Agent memory restored.'); }
@@ -2583,9 +3125,9 @@ function viewBackupDetails(id) { alert('Backup Details:\n\nID: ' + id + '\nType:
 // PERMISSIONS
 // =====================================================
 function exportPermissions() { alert('Exported permission config to clipboard (JSON).\n\nIncludes: spending limits, approval gates, delegation hierarchy, and agent policies.'); }
-function auditLog() { alert('Audit Log (last 10 entries):\n\n1. alpha-sentinel: swap 200 USDC (autonomous)\n2. defi-scout: query balance (autonomous)\n3. sec-auditor: audit contract (autonomous)\n4. alpha-sentinel: transfer 800 USDC (wallet approved)\n5. gov-delegate: vote MIP-46 (autonomous)\n6. defi-scout: provide liquidity 150 USDC (autonomous)\n7. alpha-sentinel: delegate task to sec-auditor\n8. sec-auditor: upload report to IPFS\n9. alpha-sentinel: swap 50 ETH (wallet approved)\n10. data-oracle: query The Graph (autonomous)'); }
-function rotateKeys() { if (confirm('Rotate Ed25519 keys for all agents? Old keys will be invalidated.')) alert('Key rotation complete.\n\nNew keypairs generated for 3 agents.\nOld keys revoked on-chain.\nWebSocket connections re-authenticated.'); }
-function emergencyFreeze() { if (confirm('EMERGENCY FREEZE: This will immediately halt all autonomous agent operations. Continue?')) alert('All agents frozen.\n\nAutonomous operations: SUSPENDED\nPending transactions: CANCELLED\nWebSocket connections: MAINTAINED (read-only)\n\nTo unfreeze, use the admin panel or sign a resume transaction.'); }
+function auditLog() { alert('Audit Log (last 10 entries):\n\n' + agentsDB.slice(0,5).map((a,i) => `${i+1}. ${a.name}: autonomous action ($${Math.floor(Math.random()*500)})`).join('\n')); }
+function rotateKeys() { if (confirm('Rotate Ed25519 keys for all agents? Old keys will be invalidated.')) alert('Key rotation complete.\n\nNew keypairs generated for ' + agentsDB.length + ' agents.\nOld keys revoked on-chain.\nWebSocket connections re-authenticated.'); }
+function emergencyFreeze() { if (confirm('EMERGENCY FREEZE: This will immediately halt all autonomous agent operations. Continue?')) { agentsDB.forEach(a => a.status = 'offline'); renderAgentGrid(currentSearch, currentStatusFilter, currentTypeFilter); alert('All agents frozen.\n\nAutonomous operations: SUSPENDED\nPending transactions: CANCELLED\nWebSocket connections: MAINTAINED (read-only)'); } }
 
 function openDM() { closeModal(); switchTab('channels'); }
 function viewOnChain() { alert('Opening block explorer...\n\nIn production, this would link to Etherscan/HashScan for the agent\'s on-chain identity.'); }

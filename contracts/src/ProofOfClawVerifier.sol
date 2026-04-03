@@ -3,9 +3,22 @@ pragma solidity ^0.8.20;
 
 import {IRiscZeroVerifier} from "./interfaces/IRiscZeroVerifier.sol";
 
+interface IEIP8004Integration {
+    function recordValidation(
+        bytes32 agentId,
+        bytes32 requestHash,
+        bool passed,
+        string calldata proofReceiptURI,
+        bytes32 responseHash
+    ) external;
+}
+
 contract ProofOfClawVerifier {
     IRiscZeroVerifier public immutable verifier;
     bytes32 public immutable imageId;
+
+    /// @notice EIP-8004 integration contract for recording validation results
+    IEIP8004Integration public eip8004;
 
     mapping(bytes32 => AgentPolicy) public agents;
     mapping(bytes32 => PendingAction) public pendingActions;
@@ -52,6 +65,13 @@ contract ProofOfClawVerifier {
         imageId = _imageId;
     }
 
+    /// @notice Set the EIP-8004 integration contract address
+    /// @dev Called once after deployment. Only callable when not yet set.
+    function setEIP8004Integration(address _eip8004) external {
+        require(address(eip8004) == address(0), "Already set");
+        eip8004 = IEIP8004Integration(_eip8004);
+    }
+
     function registerAgent(
         bytes32 agentId,
         bytes32 policyHash,
@@ -85,6 +105,20 @@ contract ProofOfClawVerifier {
         if (!policy.active) revert AgentNotActive();
         if (policy.policyHash != output.policyHash) revert PolicyMismatch();
         if (!output.allChecksPassed) revert PolicyChecksFailed();
+
+        // Record successful verification in EIP-8004 Validation Registry
+        if (address(eip8004) != address(0)) {
+            bytes32 requestHash = keccak256(abi.encodePacked(agentId, output.outputCommitment, block.timestamp));
+            try eip8004.recordValidation(
+                agentId,
+                requestHash,
+                true,
+                "", // proofReceiptURI populated off-chain
+                journalHash
+            ) {} catch {
+                // Non-critical: validation recording failure should not block execution
+            }
+        }
 
         if (output.requiresLedgerApproval) {
             bytes32 actionId = keccak256(abi.encodePacked(agentId, output.outputCommitment));

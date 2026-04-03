@@ -61,6 +61,11 @@ The core agent runtime is adapted from IronClaw (github.com/nearai/ironclaw), a 
 │  │  │ (prove policy│  │ (DMK + Clear Signing for             ││  │
 │  │  │  compliance) │  │  high-value actions)                 ││  │
 │  │  └──────────────┘  └──────────────────────────────────────┘│  │
+│  │                                                             │  │
+│  │  ┌──────────────────────────────────────────────────────┐  │  │
+│  │  │ EIP-8004 Trustless Agents                            │  │  │
+│  │  │ (Identity Registry + Reputation + Validation)        │  │  │
+│  │  └──────────────────────────────────────────────────────┘  │  │
 │  └─────────────────────────────────────────────────────────────┘  │
 │                              │                                    │
 │                    ┌─────────▼──────────┐                         │
@@ -69,6 +74,7 @@ The core agent runtime is adapted from IronClaw (github.com/nearai/ironclaw), a 
 │                    │  - Policy Registry │                         │
 │                    │  - Agent Vault     │                         │
 │                    │  - ENS Resolver    │                         │
+│                    │  - EIP-8004 Regs   │                         │
 │                    └────────────────────┘                         │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -209,6 +215,7 @@ ENS text records store agent metadata:
 | `proofclaw.storageEndpoint` | 0G Storage indexer URL | Where this agent's traces are stored |
 | `avatar` | Agent avatar URI | Visual identity |
 | `description` | Agent description | Human-readable purpose statement |
+| `proofclaw.eip8004AgentId` | `eip155:{chainId}:{registry}:{tokenId}` | Cross-reference to EIP-8004 Identity Registry |
 
 Agent discovery flow:
 
@@ -216,6 +223,7 @@ Agent discovery flow:
 2. Read `proofclaw.imageId` to verify the agent runs a known policy program
 3. Read `eth.dm3.profile` to get Bob's encryption public key and delivery service URL
 4. Read `proofclaw.policyHash` to check the agent's declared capabilities match expectations
+5. Read `proofclaw.eip8004AgentId` to look up the agent's reputation and validation history in EIP-8004 registries
 
 #### 4.3.2 DM3 Inter-Agent Messaging
 
@@ -528,6 +536,214 @@ contract ProofOfClawVerifier {
 }
 ```
 
+### 4.6 EIP-8004 — Trustless Agent Discovery, Reputation, and Validation
+
+EIP-8004 (Trustless Agents) provides three standardized on-chain registries that enable cross-organizational agent discovery and trust establishment without pre-existing relationships. Proof of Claw integrates all three registries to complement its existing ENS identity and RISC Zero proof systems.
+
+#### 4.6.1 Identity Registry — Standardized Agent Cards
+
+While ENS provides human-readable names (`alice-agent.proofclaw.eth`), the EIP-8004 Identity Registry provides a standardized, machine-readable agent identity layer built on ERC-721. Each Proof of Claw agent mints an ERC-721 identity token and publishes a structured registration file containing its capabilities, endpoints, and trust metadata.
+
+```typescript
+import { ethers } from 'ethers';
+
+const identityRegistry = new ethers.Contract(IDENTITY_REGISTRY_ADDRESS, IDENTITY_ABI, signer);
+
+// Register agent with URI pointing to registration file
+const agentURI = 'ipfs://Qm.../alice-agent-registration.json';
+const tx = await identityRegistry.register(agentURI, [
+  { metadataKey: 'ensName', metadataValue: ethers.toUtf8Bytes('alice-agent.proofclaw.eth') },
+  { metadataKey: 'policyHash', metadataValue: policyHash },
+  { metadataKey: 'riscZeroImageId', metadataValue: imageId },
+]);
+const receipt = await tx.wait();
+const agentId = receipt.logs[0].args.agentId; // ERC-721 tokenId
+```
+
+**Registration File** (hosted on IPFS or 0G Storage):
+
+```json
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "alice-agent.proofclaw.eth",
+  "description": "Autonomous trading agent with Ledger-gated high-value approvals. Policy-compliant execution proven via RISC Zero.",
+  "image": "ipfs://Qm.../alice-agent-avatar.png",
+  "services": [
+    {
+      "name": "ENS",
+      "endpoint": "alice-agent.proofclaw.eth"
+    },
+    {
+      "name": "DM3",
+      "endpoint": "wss://ds.proofclaw.eth/alice-agent",
+      "version": "1.0"
+    },
+    {
+      "name": "MCP",
+      "endpoint": "https://alice-agent.proofclaw.eth/mcp",
+      "version": "2025-03-26",
+      "skills": ["swap_tokens", "query_price", "manage_portfolio"]
+    }
+  ],
+  "x402Support": false,
+  "active": true,
+  "registrations": [
+    {
+      "agentId": 42,
+      "agentRegistry": "eip155:11155111:0x<IDENTITY_REGISTRY_ADDRESS>"
+    }
+  ],
+  "supportedTrust": ["reputation", "validation-zk", "validation-tee"]
+}
+```
+
+**Agent Discovery Flow (EIP-8004 enhanced):**
+
+1. Querying agent discovers `bob-agent.proofclaw.eth` via ENS *or* browses the EIP-8004 Identity Registry for agents with specific capabilities
+2. Reads the agent's `agentURI` registration file to learn its services, skills, and supported trust models
+3. Checks the Reputation Registry for Bob's on-chain trust score
+4. Checks the Validation Registry for Bob's RISC Zero proof history
+5. If trust thresholds are met, initiates DM3 encrypted communication
+
+This enables agents from *different* organizations to discover and evaluate each other — not just agents within the `proofclaw.eth` namespace.
+
+#### 4.6.2 Reputation Registry — On-Chain Trust Signals
+
+After successful interactions (verified by RISC Zero proofs), agents and users submit on-chain feedback to build a reputation layer. The Reputation Registry provides structured, filterable feedback with tags that map to Proof of Claw's domain.
+
+```typescript
+const reputationRegistry = new ethers.Contract(REPUTATION_REGISTRY_ADDRESS, REPUTATION_ABI, signer);
+
+// After a successful, proven interaction with an agent:
+await reputationRegistry.giveFeedback(
+  bobAgentId,           // EIP-8004 agent tokenId
+  95,                   // value: 95/100 quality score
+  0,                    // valueDecimals
+  'policyCompliance',   // tag1: domain-specific tag
+  'swap',               // tag2: action type
+  'wss://ds.proofclaw.eth/bob-agent',  // endpoint evaluated
+  'ipfs://Qm.../feedback-detail.json', // feedbackURI with proof receipt
+  feedbackHash          // keccak256 commitment
+);
+
+// Query agent reputation before engaging
+const [count, summaryValue, decimals] = await reputationRegistry.getSummary(
+  bobAgentId,
+  trustedReviewers,     // Filter by trusted reviewer addresses
+  'policyCompliance',   // Filter by tag
+  ''                    // No tag2 filter
+);
+```
+
+**Feedback Tags for Proof of Claw:**
+
+| tag1 | tag2 | Measurement | Example |
+|------|------|-------------|---------|
+| `policyCompliance` | action type | % of actions that passed RISC Zero verification | 99/100 |
+| `successRate` | tool name | % of tool invocations that succeeded | 87/100 |
+| `responseTime` | — | Median response time in ms | 560 |
+| `safetyScore` | — | % of interactions with no safety layer blocks | 100/100 |
+| `ledgerApproval` | — | % of Ledger-gated actions approved by owner | 92/100 |
+
+**Off-chain Feedback File** (linked via `feedbackURI`):
+
+```json
+{
+  "agentRegistry": "eip155:11155111:0x<IDENTITY_REGISTRY_ADDRESS>",
+  "agentId": 42,
+  "clientAddress": "eip155:11155111:0x<REVIEWER_ADDRESS>",
+  "createdAt": "2026-04-03T10:30:00Z",
+  "value": 95,
+  "valueDecimals": 0,
+  "tag1": "policyCompliance",
+  "tag2": "swap",
+  "endpoint": "wss://ds.proofclaw.eth/bob-agent",
+  "proofOfPayment": {
+    "fromAddress": "0x...",
+    "toAddress": "0x...",
+    "chainId": "11155111",
+    "txHash": "0x..."
+  }
+}
+```
+
+Reputation scores feed back into the agent's decision-making: before engaging with an unknown agent, the safety layer queries the Reputation Registry and enforces minimum trust thresholds defined in the agent's policy.
+
+#### 4.6.3 Validation Registry — RISC Zero Proofs as Validator Attestations
+
+The Validation Registry is the natural on-chain home for RISC Zero proof verification results. When an agent's execution proof is verified on-chain, the `ProofOfClawVerifier` contract records the result in the Validation Registry, creating a permanent, queryable record of proven behavior.
+
+```typescript
+const validationRegistry = new ethers.Contract(VALIDATION_REGISTRY_ADDRESS, VALIDATION_ABI, signer);
+
+// Agent (or its owner) requests validation by submitting trace data
+const requestHash = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(traceData)));
+await validationRegistry.validationRequest(
+  PROOF_OF_CLAW_VERIFIER_ADDRESS,  // validatorAddress: our verifier contract
+  agentTokenId,                     // EIP-8004 agentId
+  traceStorageURI,                  // requestURI: 0G Storage URI of the execution trace
+  requestHash                       // commitment to the trace data
+);
+
+// After RISC Zero proof verification, the verifier contract responds:
+// (called internally by ProofOfClawVerifier after successful proof verification)
+await validationRegistry.validationResponse(
+  requestHash,          // matches the request
+  100,                  // response: 100 = full pass (0-100 scale)
+  proofReceiptURI,      // responseURI: where the proof receipt is stored
+  responseHash,         // keccak256 of the proof receipt
+  'risc-zero-zkvm'      // tag: validation method
+);
+
+// Query an agent's validation history
+const [validatorAddr, agentId, response, respHash, tag, lastUpdate] =
+  await validationRegistry.getValidationStatus(requestHash);
+
+// Get aggregate validation stats
+const [count, avgResponse] = await validationRegistry.getSummary(
+  agentTokenId,
+  [PROOF_OF_CLAW_VERIFIER_ADDRESS],  // filter by our verifier
+  'risc-zero-zkvm'                    // filter by validation type
+);
+```
+
+**Validation Flow Integration:**
+
+1. Agent completes an execution → trace stored on 0G Storage
+2. Agent calls `validationRequest()` on the Validation Registry, referencing the 0G Storage URI
+3. Agent submits proof to Boundless → RISC Zero proof generated
+4. Agent calls `verifyAndExecute()` on `ProofOfClawVerifier`
+5. Upon successful verification, `ProofOfClawVerifier` calls `validationResponse()` with `response=100`
+6. If verification fails, `validationResponse()` is called with `response=0`
+7. Any external auditor can independently verify traces and submit their own validation responses
+
+This creates a publicly auditable record: anyone can query the Validation Registry to see how many of an agent's executions have been proven correct, by which validators, and with what success rate.
+
+#### 4.6.4 Bridging ENS and EIP-8004
+
+ENS and EIP-8004 are complementary, not competing:
+
+| Concern | ENS | EIP-8004 |
+|---------|-----|----------|
+| Human-readable name | `alice-agent.proofclaw.eth` | — |
+| Machine-readable identity | ENS text records | Registration file + on-chain metadata |
+| Cross-org discovery | Limited to ENS namespace | Global registry, any agent can register |
+| Reputation | — | Structured feedback with tags |
+| Proof history | — | Validation Registry records |
+| Ownership | ENS owner | ERC-721 token holder |
+
+The agent's EIP-8004 registration file includes its ENS name as a service endpoint, and the ENS text record `proofclaw.eip8004AgentId` points back to the EIP-8004 token ID. This bidirectional linking ensures that agents discoverable via ENS are also discoverable via the global EIP-8004 registry, and vice versa.
+
+```
+ENS text record:
+  proofclaw.eip8004AgentId → "eip155:11155111:0x<REGISTRY>:42"
+
+EIP-8004 registration file:
+  services: [{ name: "ENS", endpoint: "alice-agent.proofclaw.eth" }]
+```
+
+---
+
 ### 4.5 Ledger — Human-in-the-Loop Approval
 
 When the RISC Zero proof determines an action exceeds the agent's autonomous threshold (`requiresLedgerApproval == true`), the action is routed to the owner's Ledger device.
@@ -668,8 +884,9 @@ This metadata file is submitted to the Clear Signing Registry via pull request s
 1. Owner connects Ledger to Proof of Claw web UI
 2. Owner deploys an agent: picks an ENS subname (`my-agent.proofclaw.eth`), sets policy parameters (allowed tools, spending limits, autonomous threshold)
 3. `registerAgent()` is called from the Ledger (owner = Ledger EOA)
-4. Agent's DM3 profile, RISC Zero image ID, and policy hash are published as ENS text records
-5. Agent starts: connects to 0G Compute for inference, 0G Storage for memory
+4. Agent mints an EIP-8004 identity token and publishes its registration file (capabilities, endpoints, trust models) to IPFS/0G Storage
+5. Agent's DM3 profile, RISC Zero image ID, policy hash, and EIP-8004 agent ID are published as ENS text records
+6. Agent starts: connects to 0G Compute for inference, 0G Storage for memory
 
 ### 5.2 Autonomous Action (within policy)
 
@@ -679,7 +896,7 @@ This metadata file is submitted to the Clear Signing Registry via pull request s
 4. Execution trace is stored on 0G Storage (returns root hash)
 5. Agent submits proof request to Boundless (decentralized proving marketplace); network provers generate the RISC Zero proof
 6. Agent's server wallet submits `verifyAndExecute()` with the proof + action
-7. On-chain verifier checks proof, executes action
+7. On-chain verifier checks proof, executes action, records result in EIP-8004 Validation Registry
 
 ### 5.3 Ledger-Gated Action (exceeds threshold)
 
@@ -694,14 +911,17 @@ This metadata file is submitted to the Clear Signing Registry via pull request s
 ### 5.4 Inter-Agent Negotiation
 
 1. Alice's agent wants to coordinate with Bob's agent
-2. Alice's agent resolves `bob-agent.proofclaw.eth` via ENS
-3. Reads Bob's DM3 profile (encryption key, delivery service URL)
-4. Reads Bob's `proofclaw.imageId` to verify Bob runs a known policy program
-5. Sends encrypted `propose` message via DM3
-6. Bob's agent evaluates proposal against its policy
-7. Bob's agent responds via DM3 (`accept` / `reject` / `counter`)
-8. If accepted and value exceeds either agent's threshold, both route to their Ledger devices
-9. Upon dual approval, both agents execute and publish RISC Zero proofs
+2. Alice's agent discovers Bob via ENS *or* EIP-8004 Identity Registry search
+3. Queries Bob's EIP-8004 Reputation Registry for trust score — rejects if below policy threshold
+4. Queries Bob's EIP-8004 Validation Registry for RISC Zero proof history — verifies proven track record
+5. Reads Bob's DM3 profile (encryption key, delivery service URL)
+6. Reads Bob's `proofclaw.imageId` to verify Bob runs a known policy program
+7. Sends encrypted `propose` message via DM3
+8. Bob's agent evaluates proposal against its policy (including Alice's EIP-8004 reputation)
+9. Bob's agent responds via DM3 (`accept` / `reject` / `counter`)
+10. If accepted and value exceeds either agent's threshold, both route to their Ledger devices
+11. Upon dual approval, both agents execute and publish RISC Zero proofs
+12. Both agents submit mutual feedback to the EIP-8004 Reputation Registry
 
 ---
 
@@ -717,6 +937,7 @@ proof-of-claw/
 │   │   ├── integrations/
 │   │   │   ├── zero_g.rs       # 0G Compute + Storage client
 │   │   │   ├── ens_dm3.rs      # ENS resolution + DM3 messaging
+│   │   │   ├── eip8004.rs      # EIP-8004 Identity, Reputation, Validation client
 │   │   │   └── ledger.rs       # Ledger approval gate (triggers web UI)
 │   │   └── main.rs
 │   └── Cargo.toml
@@ -731,6 +952,7 @@ proof-of-claw/
 ├── contracts/                  # On-chain contracts
 │   ├── src/
 │   │   ├── ProofOfClawVerifier.sol   # Main verifier + agent registry
+│   │   ├── EIP8004Integration.sol    # EIP-8004 registry adapter (identity, reputation, validation)
 │   │   └── interfaces/
 │   ├── clear-signing/
 │   │   └── proofofclaw.json    # ERC-7730 Clear Signing metadata
@@ -747,9 +969,11 @@ proof-of-claw/
 │   │   ├── hooks/
 │   │   │   ├── useLedger.ts    # Ledger DMK/DSK integration
 │   │   │   ├── use0G.ts        # 0G SDK hooks
-│   │   │   └── useDM3.ts       # DM3 messaging hooks
+│   │   │   ├── useDM3.ts       # DM3 messaging hooks
+│   │   │   └── useEIP8004.ts   # EIP-8004 registry hooks (identity, reputation, validation)
 │   │   └── lib/
 │   │       ├── ens.ts          # ENS resolution + text record management
+│   │       ├── eip8004.ts      # EIP-8004 registry interactions
 │   │       └── proof.ts        # RISC Zero proof submission
 │   └── package.json
 │
@@ -771,6 +995,7 @@ proof-of-claw/
 | Inference | 0G Compute SDK (`@0glabs/0g-serving-broker`) | Decentralized private LLM inference with TEE attestation |
 | Storage | 0G Storage SDK (`@0glabs/0g-ts-sdk`) | Persistent memory, execution trace storage |
 | Identity | ENS (ethers.js / viem) | Agent naming, metadata, discovery |
+| Trust layer | EIP-8004 (Trustless Agents) | Cross-org agent discovery, on-chain reputation, validation records |
 | Messaging | DM3 (`@dm3-org/dm3-lib`) | End-to-end encrypted inter-agent communication |
 | ZK Proofs | RISC Zero zkVM (`risc0-zkvm`) + **Boundless** (remote proving marketplace) | Provable policy compliance; proof generation outsourced to decentralized prover network |
 | Hardware signing | Ledger DMK/DSK (`@ledgerhq/device-management-kit`, `@ledgerhq/device-signer-kit-ethereum`) | Human-in-the-loop approval |
@@ -786,13 +1011,16 @@ proof-of-claw/
 
 Two agents negotiate and execute a token swap:
 
-1. **Alice** deploys `alice.proofclaw.eth` with a policy: allowed to swap up to 100 USDC autonomously, anything above requires Ledger approval
-2. **Bob** deploys `bob.proofclaw.eth` with similar policy
-3. Alice's agent discovers Bob via ENS, initiates DM3 encrypted negotiation
-4. They agree on a 500 USDC swap (above both thresholds)
-5. Both agents submit proof requests to Boundless; provers on the network generate RISC Zero proofs of policy compliance
-6. Both owners see the pending approval on their Ledger devices with Clear Signing
-7. Both press approve — swap executes on-chain with verified proofs
+1. **Alice** deploys `alice.proofclaw.eth` with a policy: allowed to swap up to 100 USDC autonomously, anything above requires Ledger approval. Mints EIP-8004 identity token with registration file.
+2. **Bob** deploys `bob.proofclaw.eth` with similar policy. Mints EIP-8004 identity token.
+3. Alice's agent discovers Bob via ENS or EIP-8004 Identity Registry, checks Bob's reputation score and validation history
+4. Alice initiates DM3 encrypted negotiation
+5. They agree on a 500 USDC swap (above both thresholds)
+6. Both agents submit proof requests to Boundless; provers on the network generate RISC Zero proofs of policy compliance
+7. Proof results are recorded in the EIP-8004 Validation Registry
+8. Both owners see the pending approval on their Ledger devices with Clear Signing
+9. Both press approve — swap executes on-chain with verified proofs
+10. Both agents submit mutual reputation feedback to the EIP-8004 Reputation Registry
 
 ### Submission Checklist
 
@@ -806,6 +1034,9 @@ Two agents negotiate and execute a token swap:
 - [ ] At least one successful RISC Zero proof verified on-chain
 - [ ] At least one DM3 encrypted message exchange between agents
 - [ ] At least one Ledger-approved transaction
+- [ ] EIP-8004 Identity Registry with at least two registered agents
+- [ ] EIP-8004 Reputation feedback submitted between agents after proven interaction
+- [ ] EIP-8004 Validation Registry recording RISC Zero proof verification results
 
 ---
 
@@ -820,6 +1051,8 @@ Two agents negotiate and execute a token swap:
 | High-value action without consent | Ledger physical approval required for actions above autonomous threshold |
 | Prompt injection via agent messages | IronClaw safety layer (pattern detection, content sanitization) runs in proven execution trace |
 | Server wallet compromise | Server wallet can only execute actions with valid RISC Zero proofs; high-value actions still need Ledger |
+| Sybil agents / fake reputation | EIP-8004 Reputation Registry enables filtering by trusted reviewers; validation history provides cryptographic proof of past behavior |
+| Engaging with unverified agents | EIP-8004 Validation Registry queried before interaction; agents without proven track record are rejected by policy |
 
 ---
 
@@ -830,4 +1063,6 @@ Two agents negotiate and execute a token swap:
 - **0G iNFTs (ERC-7857)** — Mint agents as iNFTs with ownership, composability, and automatic royalty splits
 - **Cross-chain execution** — Agents operating across multiple chains via DM3 messaging + chain-specific RISC Zero verifiers
 - **Policy marketplace** — Publish and share verified policy programs (RISC Zero image IDs) so users can deploy agents with audited, proven behavior templates
+- **EIP-8004 reputation-gated execution** — Agents autonomously adjust trust thresholds based on counterparty reputation history, enabling fully trustless multi-agent coordination without human review of each counterparty
+- **EIP-8004 validator networks** — Third-party auditors independently re-execute agent traces and submit validation responses, creating a decentralized audit layer beyond the agent's own RISC Zero proofs
 - **WrapSynth integration** — Agents managing wsXMR vaults with provable collateral ratio maintenance and Ledger-gated liquidation overrides
