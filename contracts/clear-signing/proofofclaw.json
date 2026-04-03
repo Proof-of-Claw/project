@@ -1,0 +1,90 @@
+{
+  "$schema": "https://erc7730.org/schema.json",
+  "context": {
+    "eip155": {
+      "deployments": [
+        {
+          "chainId": 11155111,
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "owner": "Proof of Claw",
+    "info": {
+      "url": "https://proofclaw.eth",
+      "legalName": "Proof of Claw"
+    }
+  },
+  "display": {
+    "formats": {
+      "approveAction(bytes32,bytes32,bytes)": {
+        "intent": "Approve agent action",
+        "fields": [
+          {
+            "path": "agentId",
+            "label": "Agent",
+            "format": "raw"
+          },
+          {
+            "path": "outputCommitment",
+            "label": "Action hash",
+            "format": "raw"
+          }
+        ]
+      },
+      "registerAgent(bytes32,bytes32,uint256,address)": {
+        "intent": "Register agent policy",
+        "fields": [
+          {
+            "path": "agentId",
+            "label": "Agent ID",
+            "format": "raw"
+          },
+          {
+            "path": "policyHash",
+            "label": "Policy fingerprint",
+            "format": "raw"
+          },
+          {
+            "path": "maxValueAutonomous",
+            "label": "Auto-approve up to",
+            "format": "amount",
+            "params": {
+              "tokenPath": null
+            }
+          },
+          {
+            "path": "agentWallet",
+            "label": "Agent wallet",
+            "format": "addressName"
+          }
+        ]
+      },
+      "updateAgentPolicy(bytes32,bytes32,uint256)": {
+        "intent": "Update agent policy",
+        "fields": [
+          {
+            "path": "agentId",
+            "label": "Agent ID",
+            "format": "raw"
+          },
+          {
+            "path": "newPolicyHash",
+            "label": "New policy hash",
+            "format": "raw"
+          },
+          {
+            "path": "newMaxValueAutonomous",
+            "label": "New auto-approve limit",
+            "format": "amount",
+            "params": {
+              "tokenPath": null
+            }
+          }
+        ]
+      }
+    }
+  }
+}

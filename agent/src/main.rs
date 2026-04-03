@@ -1,0 +1,46 @@
+mod core;
+mod tools;
+mod safety;
+mod integrations;
+mod ironclaw_adapter;
+mod proof_agent;
+mod proof_generator;
+
+use anyhow::Result;
+use tracing::{info, error};
+use tracing_subscriber;
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
+    
+    info!("Starting Proof of Claw Agent");
+    
+    let config = core::config::AgentConfig::from_env()?;
+    
+    #[cfg(feature = "ironclaw-integration")]
+    {
+        info!("Running with IronClaw integration");
+        let agent = proof_agent::ProofOfClawAgent::new(config).await?;
+        info!("Agent initialized: {}", agent.id());
+        
+        if let Err(e) = agent.run_with_ironclaw().await {
+            error!("Agent error: {}", e);
+            return Err(e);
+        }
+    }
+    
+    #[cfg(not(feature = "ironclaw-integration"))]
+    {
+        info!("Running in standalone mode");
+        let mut agent = proof_agent::ProofOfClawAgent::new(config).await?;
+        info!("Agent initialized: {}", agent.id());
+        
+        if let Err(e) = agent.run_standalone().await {
+            error!("Agent error: {}", e);
+            return Err(e);
+        }
+    }
+    
+    Ok(())
+}
