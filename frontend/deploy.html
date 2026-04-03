@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deploy Your Agent — Proof of Claw</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-primary: #06080d;
+  --bg-secondary: #0c1018;
+  --bg-card: #0f1520;
+  --bg-card-hover: #141c2a;
+  --cyan: #00e5ff;
+  --cyan-dim: #00a3b5;
+  --cyan-glow: rgba(0, 229, 255, 0.15);
+  --amber: #ffb300;
+  --green: #00e676;
+  --red: #ff3d5a;
+  --text-primary: #e8ecf4;
+  --text-secondary: #8892a4;
+  --text-dim: #4a5568;
+  --border: rgba(255, 255, 255, 0.06);
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--font-mono);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--cyan);
+  text-decoration: none;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--cyan), var(--amber));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-desc {
+  color: var(--text-secondary);
+  margin-bottom: 3rem;
+  font-size: 1.1rem;
+}
+
+.wizard-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2.5rem;
+}
+
+.step-indicator {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.step-indicator::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.step.active .step-number {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: var(--bg-primary);
+  box-shadow: 0 0 20px var(--cyan-glow);
+}
+
+.step.completed .step-number {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--bg-primary);
+}
+
+.step-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.step.active .step-label {
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+.wizard-content {
+  min-height: 400px;
+}
+
+.wizard-step {
+  display: none;
+}
+
+.wizard-step.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--cyan);
+}
+
+.step-description {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.8;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-glow);
+}
+
+.form-input.secure {
+  font-family: monospace;
+  letter-spacing: 0.1em;
+}
+
+.security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 230, 118, 0.12);
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--green);
+  margin-top: 0.5rem;
+}
+
+.warning-box {
+  background: rgba(255, 179, 0, 0.08);
+  border: 1px solid var(--amber);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.warning-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--amber);
+  margin-bottom: 0.5rem;
+}
+
+.warning-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.info-box {
+  background: var(--cyan-glow);
+  border: 1px solid var(--cyan);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--cyan);
+  margin-bottom: 0.5rem;
+}
+
+.info-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+  margin-top: 0.25rem;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.wizard-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.btn {
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--cyan);
+  color: var(--bg-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--cyan-dim);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--cyan-glow);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--cyan);
+}
+
+.deployment-status {
+  text-align: center;
+  padding: 2rem;
+}
+
+.status-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.status-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.status-message {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.deployment-details {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.5rem;
+  text-align: left;
+  margin-top: 2rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: var(--text-secondary);
+}
+
+.detail-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.hash {
+  color: var(--cyan);
+  word-break: break-all;
+}
+
+.spinner {
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--cyan);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <a href="index.html" class="logo">Proof of Claw</a>
+  </header>
+
+  <h1 class="page-title">Deploy Your Agent</h1>
+  <p class="page-desc">Launch your own provable private AI agent in minutes — no server required</p>
+
+  <div class="wizard-container">
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+      <div class="step active" data-step="1">
+        <div class="step-number">1</div>
+        <div class="step-label">Configure</div>
+      </div>
+      <div class="step" data-step="2">
+        <div class="step-number">2</div>
+        <div class="step-label">Secrets</div>
+      </div>
+      <div class="step" data-step="3">
+        <div class="step-number">3</div>
+        <div class="step-label">Policy</div>
+      </div>
+      <div class="step" data-step="4">
+        <div class="step-number">4</div>
+        <div class="step-label">Deploy</div>
+      </div>
+    </div>
+
+    <!-- Wizard Content -->
+    <div class="wizard-content">
+      <!-- Step 1: Configuration -->
+      <div class="wizard-step active" data-step="1">
+        <h2 class="step-title">Agent Configuration</h2>
+        <p class="step-description">
+          Set up your agent's basic identity and configuration. This information will be used to register your agent on-chain.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Agent ID</label>
+          <input type="text" class="form-input" id="agent-id" placeholder="my-agent" value="my-agent">
+          <span class="form-hint">A unique identifier for your agent (lowercase, no spaces)</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ENS Name</label>
+          <input type="text" class="form-input" id="ens-name" placeholder="myagent.proofclaw.eth" value="myagent.proofclaw.eth">
+          <span class="form-hint">Your agent's ENS subdomain (we'll register it for you)</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Network</label>
+          <select class="form-input" id="network">
+            <option value="sepolia">Sepolia Testnet (Recommended)</option>
+            <option value="mainnet">Ethereum Mainnet</option>
+          </select>
+          <span class="form-hint">Choose the network for deployment</span>
+        </div>
+      </div>
+
+      <!-- Step 2: Secrets -->
+      <div class="wizard-step" data-step="2">
+        <h2 class="step-title">Secure Secrets</h2>
+        <p class="step-description">
+          Your secrets are encrypted client-side and never sent to our servers. They're stored securely in your browser's encrypted storage.
+        </p>
+
+        <div class="info-box">
+          <div class="info-title">🔒 Client-Side Encryption</div>
+          <div class="info-text">
+            All secrets are encrypted using AES-256-GCM in your browser before storage. Your encryption key never leaves your device. We use the Web Crypto API for maximum security.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Private Key</label>
+          <input type="password" class="form-input secure" id="private-key" placeholder="0x...">
+          <span class="form-hint">Your agent's Ethereum private key (will be encrypted)</span>
+          <div class="security-badge">
+            ✓ Encrypted with AES-256-GCM
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">0G Compute API Key (Optional)</label>
+          <input type="password" class="form-input secure" id="zerog-key" placeholder="Enter API key">
+          <span class="form-hint">For private LLM inference via 0G Compute</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ledger Origin Token (Optional)</label>
+          <input type="password" class="form-input secure" id="ledger-token" placeholder="Enter origin token">
+          <span class="form-hint">For hardware approval integration</span>
+        </div>
+
+        <div class="warning-box">
+          <div class="warning-title">⚠️ Important Security Notice</div>
+          <div class="warning-text">
+            Your private key gives full control over your agent's wallet. Never share it with anyone. We recommend using a dedicated wallet for your agent with limited funds.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Policy -->
+      <div class="wizard-step" data-step="3">
+        <h2 class="step-title">Agent Policy</h2>
+        <p class="step-description">
+          Define what your agent can do autonomously and what requires your approval via Ledger.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Allowed Tools</label>
+          <div class="checkbox-group">
+            <input type="checkbox" id="tool-swap" checked>
+            <label class="checkbox-label" for="tool-swap">swap_tokens - Execute token swaps</label>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="tool-transfer" checked>
+            <label class="checkbox-label" for="tool-transfer">transfer - Send tokens</label>
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="tool-query" checked>
+            <label class="checkbox-label" for="tool-query">query - Read blockchain data</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Autonomous Value Limit</label>
+          <input type="number" class="form-input" id="value-limit" placeholder="100" value="100">
+          <span class="form-hint">Maximum USD value for autonomous actions (above requires Ledger approval)</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Endpoint Allowlist</label>
+          <input type="text" class="form-input" id="endpoints" placeholder="api.uniswap.org, api.0x.org" value="api.uniswap.org, api.0x.org">
+          <span class="form-hint">Comma-separated list of allowed API endpoints</span>
+        </div>
+
+        <div class="info-box">
+          <div class="info-title">ℹ️ Policy Enforcement</div>
+          <div class="info-text">
+            Your policy is enforced via RISC Zero zkVM proofs. Every action generates a cryptographic proof that it complied with your policy. Actions violating policy are blocked on-chain.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Deploy -->
+      <div class="wizard-step" data-step="4">
+        <h2 class="step-title">Review & Deploy</h2>
+        <p class="step-description">
+          Review your configuration and deploy your agent to our managed infrastructure.
+        </p>
+
+        <div class="deployment-details">
+          <div class="detail-row">
+            <span class="detail-label">Agent ID</span>
+            <span class="detail-value" id="review-agent-id">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">ENS Name</span>
+            <span class="detail-value" id="review-ens">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Network</span>
+            <span class="detail-value" id="review-network">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Autonomous Limit</span>
+            <span class="detail-value" id="review-limit">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Allowed Tools</span>
+            <span class="detail-value" id="review-tools">-</span>
+          </div>
+        </div>
+
+        <div class="warning-box" style="margin-top: 1.5rem;">
+          <div class="warning-title">📋 What Happens Next</div>
+          <div class="warning-text">
+            1. Your agent will be deployed to our managed infrastructure<br>
+            2. ENS subdomain will be registered<br>
+            3. Smart contract will be deployed with your policy<br>
+            4. Agent will start running with IronClaw + 0G + RISC Zero<br>
+            5. You'll receive a dashboard link to monitor your agent
+          </div>
+        </div>
+
+        <div id="deployment-progress" style="display: none;">
+          <div class="deployment-status">
+            <div class="spinner"></div>
+            <div class="status-title">Deploying Your Agent...</div>
+            <div class="status-message" id="deploy-status">Initializing deployment...</div>
+          </div>
+        </div>
+
+        <div id="deployment-success" style="display: none;">
+          <div class="deployment-status">
+            <div class="status-icon">🎉</div>
+            <div class="status-title" style="color: var(--green);">Agent Deployed!</div>
+            <div class="status-message">Your agent is now running and ready to use.</div>
+            
+            <div class="deployment-details">
+              <div class="detail-row">
+                <span class="detail-label">Agent URL</span>
+                <span class="detail-value hash" id="agent-url">-</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Dashboard</span>
+                <span class="detail-value"><a href="dashboard.html" style="color: var(--cyan);">Open Dashboard →</a></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Contract Address</span>
+                <span class="detail-value hash" id="contract-address">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wizard Actions -->
+    <div class="wizard-actions">
+      <button class="btn btn-secondary" id="prev-btn" onclick="previousStep()" style="display: none;">← Previous</button>
+      <button class="btn btn-primary" id="next-btn" onclick="nextStep()">Next →</button>
+      <button class="btn btn-primary" id="deploy-btn" onclick="deployAgent()" style="display: none;">Deploy Agent</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentStep = 1;
+const totalSteps = 4;
+
+function updateStepIndicator() {
+  document.querySelectorAll('.step').forEach((step, index) => {
+    const stepNum = index + 1;
+    if (stepNum < currentStep) {
+      step.classList.add('completed');
+      step.classList.remove('active');
+    } else if (stepNum === currentStep) {
+      step.classList.add('active');
+      step.classList.remove('completed');
+    } else {
+      step.classList.remove('active', 'completed');
+    }
+  });
+
+  document.querySelectorAll('.wizard-step').forEach((step, index) => {
+    step.classList.toggle('active', index + 1 === currentStep);
+  });
+
+  document.getElementById('prev-btn').style.display = currentStep > 1 ? 'block' : 'none';
+  document.getElementById('next-btn').style.display = currentStep < totalSteps ? 'block' : 'none';
+  document.getElementById('deploy-btn').style.display = currentStep === totalSteps ? 'block' : 'none';
+}
+
+function nextStep() {
+  if (currentStep < totalSteps) {
+    if (currentStep === 3) {
+      updateReview();
+    }
+    currentStep++;
+    updateStepIndicator();
+  }
+}
+
+function previousStep() {
+  if (currentStep > 1) {
+    currentStep--;
+    updateStepIndicator();
+  }
+}
+
+function updateReview() {
+  document.getElementById('review-agent-id').textContent = document.getElementById('agent-id').value;
+  document.getElementById('review-ens').textContent = document.getElementById('ens-name').value;
+  document.getElementById('review-network').textContent = document.getElementById('network').selectedOptions[0].text;
+  document.getElementById('review-limit').textContent = '$' + document.getElementById('value-limit').value;
+  
+  const tools = [];
+  if (document.getElementById('tool-swap').checked) tools.push('swap_tokens');
+  if (document.getElementById('tool-transfer').checked) tools.push('transfer');
+  if (document.getElementById('tool-query').checked) tools.push('query');
+  document.getElementById('review-tools').textContent = tools.join(', ');
+}
+
+async function encryptSecret(secret) {
+  // In production, this would use Web Crypto API for real encryption
+  // For demo, we'll simulate it
+  const encoder = new TextEncoder();
+  const data = encoder.encode(secret);
+  return btoa(String.fromCharCode(...data));
+}
+
+async function deployAgent() {
+  const progressDiv = document.getElementById('deployment-progress');
+  const successDiv = document.getElementById('deployment-success');
+  const deployBtn = document.getElementById('deploy-btn');
+  
+  deployBtn.disabled = true;
+  progressDiv.style.display = 'block';
+  
+  const steps = [
+    'Encrypting secrets...',
+    'Registering ENS subdomain...',
+    'Deploying smart contract...',
+    'Initializing agent runtime...',
+    'Configuring 0G integrations...',
+    'Starting agent...'
+  ];
+  
+  for (let i = 0; i < steps.length; i++) {
+    document.getElementById('deploy-status').textContent = steps[i];
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
+  
+  progressDiv.style.display = 'none';
+  successDiv.style.display = 'block';
+  
+  // Simulate deployment results
+  const agentId = document.getElementById('agent-id').value;
+  const ensName = document.getElementById('ens-name').value;
+  document.getElementById('agent-url').textContent = `https://agent.proofclaw.ai/${agentId}`;
+  document.getElementById('contract-address').textContent = '0x' + Math.random().toString(16).substr(2, 40);
+  
+  // Store config in localStorage for dashboard
+  localStorage.setItem('agentConfig', JSON.stringify({
+    agentId,
+    ensName,
+    network: document.getElementById('network').value,
+    deployedAt: new Date().toISOString()
+  }));
+}
+
+updateStepIndicator();
+</script>
+
+</body>
+</html>
