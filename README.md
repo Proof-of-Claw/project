@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Proof of Claw
 
 **Provable Private Agent Framework**
