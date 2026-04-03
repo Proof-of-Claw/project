@@ -10,7 +10,7 @@ Proof of Claw is a framework for running autonomous AI agents whose behavior is 
 
 ### Key Features
 
-- 🔒 **Private Inference** — Decentralized LLM reasoning via 0G Compute with TEE attestation
+- 🔒 **Private Inference** — Decentralized LLM reasoning via 0G Compute
 - 📦 **Decentralized Storage** — Persistent memory and execution traces on 0G Storage
 - 🔐 **Encrypted Messaging** — Inter-agent communication via DM3 with ENS identity
 - ✅ **Provable Compliance** — RISC Zero zkVM proofs of policy adherence
@@ -138,7 +138,7 @@ cargo run
 ## Tech Stack
 
 - **Agent Runtime**: Rust, Tokio, Wasmtime
-- **Inference**: 0G Compute SDK with TEE attestation
+- **Inference**: 0G Compute SDK
 - **Storage**: 0G Storage SDK
 - **Identity**: ENS (ethers.js)
 - **Messaging**: DM3 protocol
@@ -151,7 +151,7 @@ cargo run
 | Threat | Mitigation |
 |--------|-----------|
 | Agent acts outside policy | RISC Zero proof fails; action blocked on-chain |
-| Inference tampering | 0G TEE attestation; signature in proof |
+| Inference tampering | 0G Compute attestation; signature in proof |
 | Message interception | DM3 end-to-end encryption |
 | Identity spoofing | ENS ownership tied to Ledger EOA |
 | High-value action without consent | Ledger physical approval required |

@@ -23,7 +23,7 @@ Proof of Claw now integrates with IronClaw as the base runtime, adding provable 
 │  │                                                             │  │
 │  │  • Intercepts IronClaw execution traces                    │  │
 │  │  • Converts to Proof of Claw format                        │  │
-│  │  • Routes LLM calls to 0G Compute (TEE)                    │  │
+│  │  • Routes LLM calls to 0G Compute                           │  │
 │  │  • Stores traces on 0G Storage                             │  │
 │  │  • Generates RISC Zero proofs                              │  │
 │  │  • Handles DM3 encrypted messaging                         │  │
@@ -69,7 +69,7 @@ IronClawExecutionTrace {
 ExecutionTrace {
     agent_id,
     session_id,
-    inference_commitment,  // From 0G TEE attestation
+    inference_commitment,  // From 0G Compute attestation
     tool_invocations,      // Hashed tool calls
     policy_check_results,  // IronClaw safety checks
     output_commitment,     // For RISC Zero proof
@@ -78,7 +78,7 @@ ExecutionTrace {
 
 ### 2. LLM Provider Interception
 
-All LLM calls are routed through 0G Compute for TEE attestation:
+All LLM calls are routed through 0G Compute:
 
 ```rust
 impl ProofOfClawHooks {
@@ -143,7 +143,7 @@ impl ProofOfClawHooks {
 ## What We Add to IronClaw
 
 🔐 **Provable Execution** - RISC Zero zkVM proofs of policy compliance  
-🔒 **Private Inference** - 0G Compute with TEE attestation  
+🔒 **Private Inference** - 0G Compute  
 📦 **Decentralized Storage** - 0G Storage for execution traces  
 💬 **Encrypted Messaging** - DM3 protocol for inter-agent communication  
 🔑 **Hardware Approval** - Ledger device integration for high-value actions  

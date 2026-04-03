@@ -12,7 +12,7 @@ Proof of Claw is a framework for running autonomous AI agents whose behavior is 
 
 An agent built with Proof of Claw can:
 
-- Reason privately using decentralized inference (0G Compute with Sealed Inference / TEE)
+- Reason privately using decentralized inference (0G Compute)
 - Store persistent memory and execution traces on decentralized storage (0G Storage)
 - Discover and message other agents via ENS-resolved encrypted channels (DM3)
 - Prove to any on-chain verifier that it followed its declared policy (RISC Zero zkVM)
@@ -98,7 +98,7 @@ The runtime is a stripped-down fork of IronClaw's agent loop, retaining:
 
 #### 4.2.1 0G Compute — Private Inference
 
-All LLM reasoning runs through 0G's Sealed Inference infrastructure. Every inference call executes inside a hardware-isolated TEE (Intel TDX + NVIDIA H100/H200 in TEE mode). Prompts enter encrypted; the hardware operator cannot inspect them. Every response is cryptographically signed by an enclave-born key.
+All LLM reasoning runs through 0G's Sealed Inference infrastructure. Prompts enter encrypted; the operator cannot inspect them. Every response is cryptographically signed.
 
 ```typescript
 import { createZGServingNetworkBroker } from '@0glabs/0g-serving-broker';
@@ -107,16 +107,16 @@ import { createZGServingNetworkBroker } from '@0glabs/0g-serving-broker';
 const broker = await createZGServingNetworkBroker(wallet);
 await broker.initialize();
 
-// Discover TEE-verified inference providers
+// Discover verified inference providers
 const services = await broker.inference.listService();
-const teeProvider = services.find(s => s.verifiability === 'TeeML');
+const provider = services.find(s => s.verifiability === 'verified');
 
 // Acknowledge provider on-chain (one-time)
-await broker.inference.acknowledgeProviderSigner(teeProvider.provider);
+await broker.inference.acknowledgeProviderSigner(provider.provider);
 
 // Get service metadata and auth headers
-const { endpoint, model } = await broker.inference.getServiceMetadata(teeProvider.provider);
-const headers = await broker.inference.getRequestHeaders(teeProvider.provider, prompt);
+const { endpoint, model } = await broker.inference.getServiceMetadata(provider.provider);
+const headers = await broker.inference.getRequestHeaders(provider.provider, prompt);
 
 // OpenAI-compatible inference call
 const response = await fetch(`${endpoint}/chat/completions`, {
@@ -128,11 +128,11 @@ const response = await fetch(`${endpoint}/chat/completions`, {
   }),
 });
 
-// Verify TEE attestation on the signed response
+// Verify attestation on the signed response
 const verified = await broker.inference.verifyResponse(response);
 ```
 
-The TEE attestation signature on each inference response serves as a commitment that can later be referenced in the RISC Zero proof — proving the agent acted on a genuinely attested LLM output, not a tampered one.
+The attestation signature on each inference response serves as a commitment that can later be referenced in the RISC Zero proof — proving the agent acted on a genuinely attested LLM output, not a tampered one.
 
 #### 4.2.2 0G Storage — Persistent Memory and Execution Traces
 
@@ -170,7 +170,7 @@ interface ExecutionTrace {
   agentId: string;                    // ENS name
   sessionId: string;                  // Unique session identifier
   timestamp: number;                  // Unix timestamp
-  inferenceCommitment: string;        // Hash of 0G Compute TEE-signed response
+  inferenceCommitment: string;        // Hash of 0G Compute signed response
   toolInvocations: ToolInvocation[];  // Ordered list of tool calls
   policyCheckResults: PolicyResult[]; // Safety layer outputs
   outputCommitment: string;           // Hash of final agent output / action
@@ -306,7 +306,7 @@ The core innovation: the agent's tool execution pipeline runs inside a RISC Zero
 
 The zkVM guest program encodes a deterministic state machine that verifies:
 
-1. **Inference commitment** — The LLM response the agent acted on matches a TEE-attested hash from 0G Compute
+1. **Inference commitment** — The LLM response the agent acted on matches an attested hash from 0G Compute
 2. **Policy compliance** — Every tool invocation was within the agent's declared capabilities (endpoint allowlist, rate limits, permission bounds)
 3. **Safety layer execution** — The prompt injection defense and content sanitization rules actually ran
 4. **Output integrity** — The final action the agent proposes matches the deterministic output of the policy-checked execution
@@ -593,7 +593,7 @@ const agentId = receipt.logs[0].args.agentId; // ERC-721 tokenId
       "agentRegistry": "eip155:11155111:0x<IDENTITY_REGISTRY_ADDRESS>"
     }
   ],
-  "supportedTrust": ["reputation", "validation-zk", "validation-tee"]
+  "supportedTrust": ["reputation", "validation-zk"]
 }
 ```
 
@@ -891,7 +891,7 @@ This metadata file is submitted to the Clear Signing Registry via pull request s
 ### 5.2 Autonomous Action (within policy)
 
 1. Agent receives task (user instruction or DM3 message from another agent)
-2. Agent reasons via 0G Compute (Sealed Inference, TEE-attested)
+2. Agent reasons via 0G Compute (Sealed Inference)
 3. Agent executes tools in WASM sandbox, safety layer checks each invocation
 4. Execution trace is stored on 0G Storage (returns root hash)
 5. Agent submits proof request to Boundless (decentralized proving marketplace); network provers generate the RISC Zero proof
@@ -992,7 +992,7 @@ proof-of-claw/
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | Agent runtime | Rust (from IronClaw) | Core agent loop, WASM sandbox, safety layer |
-| Inference | 0G Compute SDK (`@0glabs/0g-serving-broker`) | Decentralized private LLM inference with TEE attestation |
+| Inference | 0G Compute SDK (`@0glabs/0g-serving-broker`) | Decentralized private LLM inference |
 | Storage | 0G Storage SDK (`@0glabs/0g-ts-sdk`) | Persistent memory, execution trace storage |
 | Identity | ENS (ethers.js / viem) | Agent naming, metadata, discovery |
 | Trust layer | EIP-8004 (Trustless Agents) | Cross-org agent discovery, on-chain reputation, validation records |
@@ -1045,7 +1045,7 @@ Two agents negotiate and execute a token swap:
 | Threat | Mitigation |
 |--------|-----------|
 | Agent acts outside declared policy | RISC Zero proof fails verification; action blocked on-chain |
-| Inference tampering | 0G Sealed Inference provides TEE attestation; response signature included in proof |
+| Inference tampering | 0G Sealed Inference provides attestation; response signature included in proof |
 | Inter-agent message interception | DM3 end-to-end encryption; keys derived from ENS-published profiles |
 | Agent identity spoofing | ENS ownership tied to Ledger-controlled EOA; subname registration requires owner signature |
 | High-value action without consent | Ledger physical approval required for actions above autonomous threshold |

@@ -23,7 +23,7 @@ The core agent is written in Rust and consists of:
 - **Injection Detector** (`agent/src/safety/injection_detector.rs`) - Detects prompt injection attempts
 
 #### Integrations
-- **0G Compute** (`agent/src/integrations/zero_g.rs`) - Private inference via TEE
+- **0G Compute** (`agent/src/integrations/zero_g.rs`) - Private inference
 - **0G Storage** (`agent/src/integrations/zero_g.rs`) - Decentralized trace storage
 - **ENS/DM3** (`agent/src/integrations/ens_dm3.rs`) - Identity and encrypted messaging
 - **Ledger** (`agent/src/integrations/ledger.rs`) - Hardware approval gateway
@@ -94,12 +94,12 @@ ERC-7730 metadata for human-readable Ledger display
 ## Security Boundaries
 
 ### Trust Assumptions
-- **Trusted**: Ledger device, RISC Zero verifier, 0G TEE hardware
+- **Trusted**: Ledger device, RISC Zero verifier, 0G infrastructure
 - **Untrusted**: Agent server, tool code, LLM responses, inter-agent messages
 
 ### Isolation Layers
 1. **WASM Sandbox** - Tools run in isolated Wasmtime environment
-2. **TEE Attestation** - Inference responses cryptographically signed
+2. **Inference Attestation** - Inference responses cryptographically signed
 3. **ZK Proof** - Agent behavior proven without revealing private data
 4. **Ledger Approval** - Physical confirmation for high-value actions
 
