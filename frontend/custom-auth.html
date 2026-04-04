@@ -325,6 +325,14 @@ const VAULT_ID = '358ff77c-4c0d-4d1a-85a1-b25bde541cd8';
 let oneClawToken = null;
 let isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
+function showToast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:20px;right:20px;padding:12px 20px;background:${type === 'success' ? '#0e6' : '#f36'};color:#000;border-radius:8px;z-index:10000;font-family:var(--font-mono);font-size:0.85rem;`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
 async function authenticateWithOneClaw() {
   // Skip 1claw auth on localhost due to CORS
   if (isLocalhost) {
