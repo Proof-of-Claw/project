@@ -7,14 +7,22 @@ import {SoulVaultSwarm} from "../src/SoulVaultSwarm.sol";
 import {ISoulVaultSwarm} from "../src/interfaces/ISoulVaultSwarm.sol";
 import {SoulVaultERC8004RegistryAdapter} from "../src/SoulVaultERC8004RegistryAdapter.sol";
 import {ProofOfClawVerifier} from "../src/ProofOfClawVerifier.sol";
+import {RiscZeroGroth16Verifier} from "../src/RiscZeroGroth16Verifier.sol";
 import {IRiscZeroVerifier} from "../src/interfaces/IRiscZeroVerifier.sol";
 
 // ---------------------------------------------------------------------------
-// Mock
+// Mocks
 // ---------------------------------------------------------------------------
 
 contract MockRiscZeroVerifier is IRiscZeroVerifier {
     function verify(bytes calldata, bytes32, bytes32) external pure {}
+}
+
+/// @dev Mock verifier that always reverts — used to test rejection path
+contract RejectingVerifier is IRiscZeroVerifier {
+    function verify(bytes calldata, bytes32, bytes32) external pure {
+        revert("Invalid proof");
+    }
 }
 
 // ===========================================================================
@@ -295,5 +303,204 @@ contract ProofOfClawVerifierTest is Test {
 
         (, , , , bool active) = verifierContract.agents(agentId);
         assertFalse(active);
+    }
+
+    // --- Update verifier (onlyOwner) --------------------------------------
+
+    function test_updateVerifier() public {
+        MockRiscZeroVerifier newVerifier = new MockRiscZeroVerifier();
+
+        verifierContract.updateVerifier(address(newVerifier));
+        assertEq(address(verifierContract.verifier()), address(newVerifier));
+    }
+
+    function test_updateVerifier_rejectsNonOwner() public {
+        MockRiscZeroVerifier newVerifier = new MockRiscZeroVerifier();
+
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(ProofOfClawVerifier.Unauthorized.selector);
+        verifierContract.updateVerifier(address(newVerifier));
+    }
+
+    function test_updateVerifier_rejectsZeroAddress() public {
+        vm.expectRevert("Zero address");
+        verifierContract.updateVerifier(address(0));
+    }
+
+    // --- Update image ID (onlyOwner) --------------------------------------
+
+    function test_updateImageId() public {
+        bytes32 newImageId = bytes32(uint256(42));
+
+        verifierContract.updateImageId(newImageId);
+        assertEq(verifierContract.imageId(), newImageId);
+    }
+
+    function test_updateImageId_rejectsNonOwner() public {
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(ProofOfClawVerifier.Unauthorized.selector);
+        verifierContract.updateImageId(bytes32(uint256(42)));
+    }
+
+    // --- Verifier switch rejects bad proofs --------------------------------
+
+    function test_rejectingVerifier_blocksExecution() public {
+        // Register agent
+        bytes32 agentId = keccak256("agent-reject");
+        bytes32 policyHash = keccak256("policy-reject");
+        verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
+
+        // Switch to rejecting verifier
+        RejectingVerifier rejecter = new RejectingVerifier();
+        verifierContract.updateVerifier(address(rejecter));
+
+        // Attempt to verify — should revert
+        ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
+            agentId: "agent-reject",
+            policyHash: policyHash,
+            outputCommitment: keccak256("output"),
+            allChecksPassed: true,
+            requiresLedgerApproval: false,
+            actionValue: 0
+        });
+
+        bytes memory journalData = abi.encode(output);
+        bytes memory seal = hex"00";
+        bytes memory action = abi.encode(address(0), uint256(0), bytes(""));
+
+        vm.prank(agentWallet);
+        vm.expectRevert("Invalid proof");
+        verifierContract.verifyAndExecute(seal, journalData, action);
+    }
+
+    // --- Full verifyAndExecute with mock (autonomous path) -----------------
+
+    function test_verifyAndExecute_autonomous() public {
+        // Deploy a dummy target contract that accepts calls
+        DummyTarget target = new DummyTarget();
+
+        bytes32 agentId = keccak256("agent-auto");
+        bytes32 policyHash = keccak256("policy-auto");
+        verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
+
+        ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
+            agentId: "agent-auto",
+            policyHash: policyHash,
+            outputCommitment: keccak256("output"),
+            allChecksPassed: true,
+            requiresLedgerApproval: false,
+            actionValue: 0
+        });
+
+        bytes memory journalData = abi.encode(output);
+        bytes memory seal = hex"00";
+        bytes memory action = abi.encode(
+            address(target),
+            uint256(0),
+            abi.encodeCall(DummyTarget.ping, ())
+        );
+
+        vm.prank(agentWallet);
+        verifierContract.verifyAndExecute(seal, journalData, action);
+
+        assertTrue(target.pinged());
+    }
+}
+
+// ===========================================================================
+// Groth16 Verifier Tests
+// ===========================================================================
+
+contract RiscZeroGroth16VerifierTest is Test {
+    RiscZeroGroth16Verifier groth16Verifier;
+
+    // BN256 generator points for testing
+    uint256 constant G1_X = 1;
+    uint256 constant G1_Y = 2;
+    uint256 constant G2_X1 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
+    uint256 constant G2_X2 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
+    uint256 constant G2_Y1 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
+    uint256 constant G2_Y2 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
+
+    bytes4 constant SELECTOR = bytes4(0x310fe598);
+
+    function setUp() public {
+        uint256[2] memory alpha = [G1_X, G1_Y];
+        uint256[4] memory beta = [G2_X1, G2_X2, G2_Y1, G2_Y2];
+        uint256[4] memory gamma = [G2_X1, G2_X2, G2_Y1, G2_Y2];
+        uint256[4] memory delta = [G2_X1, G2_X2, G2_Y1, G2_Y2];
+        uint256[6] memory ic = [G1_X, G1_Y, G1_X, G1_Y, G1_X, G1_Y];
+
+        groth16Verifier = new RiscZeroGroth16Verifier(alpha, beta, gamma, delta, ic, SELECTOR);
+    }
+
+    // --- Seal too short ---------------------------------------------------
+
+    function test_rejectShortSeal() public {
+        bytes memory shortSeal = hex"310fe59800";
+
+        vm.expectRevert(RiscZeroGroth16Verifier.InvalidSealLength.selector);
+        groth16Verifier.verify(shortSeal, bytes32(0), bytes32(0));
+    }
+
+    // --- Wrong selector ---------------------------------------------------
+
+    function test_rejectWrongSelector() public {
+        bytes memory seal = new bytes(260);
+        seal[0] = 0xDE;
+        seal[1] = 0xAD;
+        seal[2] = 0xBE;
+        seal[3] = 0xEF;
+
+        vm.expectRevert(RiscZeroGroth16Verifier.InvalidProofSelector.selector);
+        groth16Verifier.verify(seal, bytes32(0), bytes32(0));
+    }
+
+    // --- Invalid proof fails pairing check --------------------------------
+
+    function test_rejectInvalidProof() public {
+        bytes memory seal = _buildSeal(
+            SELECTOR,
+            uint256(1), uint256(2),
+            G2_X1, G2_X2, G2_Y1, G2_Y2,
+            uint256(1), uint256(2)
+        );
+
+        vm.expectRevert(RiscZeroGroth16Verifier.PairingFailed.selector);
+        groth16Verifier.verify(seal, bytes32(uint256(1)), bytes32(uint256(2)));
+    }
+
+    // --- Proof selector is stored correctly --------------------------------
+
+    function test_proofSelectorStored() public view {
+        assertEq(groth16Verifier.PROOF_SELECTOR(), SELECTOR);
+    }
+
+    // --- Helper to build seal bytes ----------------------------------------
+
+    function _buildSeal(
+        bytes4 sel,
+        uint256 aX, uint256 aY,
+        uint256 bX1, uint256 bX2, uint256 bY1, uint256 bY2,
+        uint256 cX, uint256 cY
+    ) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            sel,
+            bytes32(aX), bytes32(aY),
+            bytes32(bX1), bytes32(bX2), bytes32(bY1), bytes32(bY2),
+            bytes32(cX), bytes32(cY)
+        );
+    }
+}
+
+// ===========================================================================
+// Helpers
+// ===========================================================================
+
+contract DummyTarget {
+    bool public pinged;
+
+    function ping() external {
+        pinged = true;
     }
 }
