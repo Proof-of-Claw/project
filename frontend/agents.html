@@ -136,6 +136,37 @@
   box-shadow: 0 4px 20px rgba(0,229,255,0.3);
 }
 
+/* ─── REGISTER DROPDOWN ─── */
+.register-dropdown { display: inline-block; }
+.register-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 280px;
+  background: #0f1520;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  z-index: 200;
+  padding: 6px;
+}
+.register-menu.open { display: block; }
+.register-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+  color: inherit;
+}
+.register-menu-item:hover { background: rgba(255,255,255,0.04); }
+.register-menu-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
+.register-menu-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.register-menu-desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
 /* ─── AGENT GRID ─── */
 .agent-grid {
   display: grid;
@@ -429,37 +460,6 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-}
-
-/* Skill Tags */
-.skill-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.skill-tag {
-  padding: 6px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
-}
-
-.skill-tag:hover {
-  border-color: var(--border-cyan);
-  color: var(--text-primary);
-}
-
-.skill-tag.selected {
-  background: rgba(0,229,255,0.1);
-  border-color: var(--cyan);
-  color: var(--cyan);
 }
 
 /* Checkboxes */
@@ -1386,9 +1386,32 @@
     <button class="filter-btn" data-filter="busy" onclick="setFilter('busy', this)">Busy</button>
     <button class="filter-btn" data-filter="offline" onclick="setFilter('offline', this)">Offline</button>
     <button class="btn-new-agent-top" onclick="lookupENS()" style="background:transparent;border:1px solid var(--border-cyan);color:var(--cyan);">Lookup ENS</button>
-    <button class="btn-new-agent-top" onclick="openConnectModal()" style="background:transparent;border:1px solid rgba(0,230,118,0.4);color:var(--green);">Connect Agent</button>
-    <a href="soul-vault.html" class="btn-new-agent-top" style="background:transparent;border:1px solid rgba(187,134,252,0.4);color:#bb86fc;">Register</a>
-    <a href="soul-vault.html?mode=deploy" class="btn-new-agent-top">Deploy</a>
+    <div class="register-dropdown" style="position:relative;">
+      <a href="soul-vault.html" class="btn-new-agent-top" style="background:linear-gradient(135deg,var(--cyan),#00b8d4);color:#000;font-weight:700;" onmouseenter="showRegisterMenu()" onclick="event.preventDefault();showRegisterMenu();">Register Agent &#x25BE;</a>
+      <div id="register-menu" class="register-menu" onmouseleave="hideRegisterMenu()">
+        <a href="soul-vault.html" class="register-menu-item">
+          <span class="register-menu-icon" style="color:#bb86fc;">&#x2B23;</span>
+          <div>
+            <div class="register-menu-title">Register Identity</div>
+            <div class="register-menu-desc">Claim on-chain identity (ENS, policy, iNFT)</div>
+          </div>
+        </a>
+        <div class="register-menu-item" onclick="hideRegisterMenu();openConnectModal();" style="cursor:pointer;">
+          <span class="register-menu-icon" style="color:var(--green);">&#x1F50C;</span>
+          <div>
+            <div class="register-menu-title">Connect Existing Agent</div>
+            <div class="register-menu-desc">Link a running agent (any framework)</div>
+          </div>
+        </div>
+        <a href="soul-vault.html?mode=deploy" class="register-menu-item">
+          <span class="register-menu-icon" style="color:var(--cyan);">&#x2699;</span>
+          <div>
+            <div class="register-menu-title">Deploy IronClaw</div>
+            <div class="register-menu-desc">Full Rust/IronClaw agent deployment</div>
+          </div>
+        </a>
+      </div>
+    </div>
   </div>
 
   <!-- Agent Grid -->
@@ -1398,11 +1421,11 @@
   <div class="empty-state" id="empty-state" style="display:none;">
     <div class="empty-icon">&#x27C1;</div>
     <h2>No agents yet</h2>
-    <p>Get started by registering, deploying, or connecting an agent.</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;">
-      <a href="soul-vault.html" class="btn-deploy-first" style="display:inline-block;text-decoration:none;background:rgba(187,134,252,0.15);border:1px solid rgba(187,134,252,0.4);color:#bb86fc;">Register Identity</a>
-      <a href="soul-vault.html?mode=deploy" class="btn-deploy-first" style="display:inline-block;text-decoration:none;">Deploy IronClaw</a>
-      <button class="btn-deploy-first" onclick="openConnectModal()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.4);color:var(--green);">Connect Agent</button>
+    <p>Register an agent to get started, then connect or deploy it.</p>
+    <a href="soul-vault.html" class="btn-deploy-first" style="display:inline-block;text-decoration:none;margin-top:20px;">Register Agent</a>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+      <button class="btn-deploy-first" onclick="openConnectModal()" style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.3);color:var(--green);font-size:12px;padding:8px 20px;">Connect Existing Agent</button>
+      <a href="soul-vault.html?mode=deploy" class="btn-deploy-first" style="display:inline-block;text-decoration:none;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.3);color:var(--cyan);font-size:12px;padding:8px 20px;">Deploy IronClaw</a>
     </div>
   </div>
 
@@ -1424,7 +1447,6 @@
         <div class="wizard-step-dot" data-step="3"></div>
         <div class="wizard-step-dot" data-step="4"></div>
         <div class="wizard-step-dot" data-step="5"></div>
-        <div class="wizard-step-dot" data-step="6"></div>
       </div>
 
       <!-- Step 1: Agent Type -->
@@ -1462,33 +1484,8 @@
         </div>
       </div>
 
-      <!-- Step 3: Skills -->
+      <!-- Step 3: Policy -->
       <div class="wizard-panel" id="step-3">
-        <div class="wizard-step-title">Skills &amp; Capabilities</div>
-        <div class="wizard-step-subtitle">Choose capabilities and define the agent's persona</div>
-        <div class="form-group">
-          <label>Skill Tags</label>
-          <div class="skill-tags" id="skill-tags"></div>
-        </div>
-        <div class="form-group">
-          <label>Custom Skill</label>
-          <div style="display:flex;gap:8px;">
-            <input type="text" id="custom-skill" placeholder="Add a custom skill...">
-            <button class="btn-wizard btn-wizard-next" style="padding:10px 16px;font-size:12px;" onclick="addCustomSkill()">Add</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Max Concurrent Tasks</label>
-          <input type="number" id="max-tasks" value="5" min="1" max="50">
-        </div>
-        <div class="form-group">
-          <label>SOUL Persona</label>
-          <textarea id="soul-persona" placeholder="Define the agent's personality, decision-making style, and behavioral guidelines..."></textarea>
-        </div>
-      </div>
-
-      <!-- Step 4: Policy -->
-      <div class="wizard-panel" id="step-4">
         <div class="wizard-step-title">Policy &amp; Security</div>
         <div class="wizard-step-subtitle">Define what your agent can and cannot do</div>
         <div class="form-group">
@@ -1515,8 +1512,8 @@
         </div>
       </div>
 
-      <!-- Step 5: Secrets -->
-      <div class="wizard-panel" id="step-5">
+      <!-- Step 4: Secrets -->
+      <div class="wizard-panel" id="step-4">
         <div class="wizard-step-title">Secrets &amp; Keys</div>
         <div class="wizard-step-subtitle">Provide credentials for your agent (encrypted at rest)</div>
         <div class="form-group">
@@ -1542,14 +1539,13 @@
         </div>
       </div>
 
-      <!-- Step 6: Review -->
-      <div class="wizard-panel" id="step-6">
+      <!-- Step 5: Review -->
+      <div class="wizard-panel" id="step-5">
         <div class="wizard-step-title">Review &amp; Deploy</div>
         <div class="wizard-step-subtitle">Confirm your agent configuration</div>
 
         <div id="review-content">
           <div class="review-section" id="review-identity"></div>
-          <div class="review-section" id="review-capabilities"></div>
           <div class="review-section" id="review-policy"></div>
 
           <div class="review-section">
@@ -1693,12 +1689,6 @@ const AGENT_TYPES = [
   { id: 'governance-agent', icon: '&#x1F3DB;', emoji: '\uD83C\uDFDB\uFE0F', name: 'Governance Agent', desc: 'Participate in DAO governance and voting' },
 ];
 
-const SKILLS = [
-  'solidity', 'rust', 'typescript', 'python', 'smart-contracts',
-  'defi-protocols', 'zk-proofs', 'data-analysis', 'web3', 'security-audit',
-  'governance', 'frontend', 'devops', 'ml-ops', 'mev'
-];
-
 // No hardcoded agent data — agents are loaded from localStorage (persisted after
 // deployment via the wizard) or discovered dynamically via ENS resolution.
 // Connect a live agent via the "Connect OpenClaw" button, or resolve ENS names
@@ -1718,7 +1708,6 @@ let wizardData = {};
 function init() {
   loadAgents();
   renderTypeGrid();
-  renderSkillTags();
   renderAgents();
   bindSearch();
   bindNameField();
@@ -2004,7 +1993,7 @@ function deleteAgent(agentId) {
 
 function openWizard() {
   wizardStep = 1;
-  wizardData = { type: null, skills: [], allowedTools: ['swap_tokens', 'transfer', 'query'] };
+  wizardData = { type: null, allowedTools: ['swap_tokens', 'transfer', 'query'] };
   resetWizardUI();
   document.getElementById('wizard-modal').classList.add('active');
   updateWizardUI();
@@ -2020,9 +2009,6 @@ function resetWizardUI() {
   document.getElementById('agent-ens').value = '';
   document.getElementById('agent-desc').value = '';
   document.getElementById('agent-network').value = 'sepolia';
-  document.getElementById('custom-skill').value = '';
-  document.getElementById('max-tasks').value = '5';
-  document.getElementById('soul-persona').value = '';
   document.getElementById('value-limit').value = '100';
   document.getElementById('endpoints').value = '';
   document.getElementById('private-key').value = '';
@@ -2032,11 +2018,8 @@ function resetWizardUI() {
   // Reset type selection
   document.querySelectorAll('.type-option').forEach(t => t.classList.remove('selected'));
 
-  // Reset skill tags
-  document.querySelectorAll('.skill-tag').forEach(t => t.classList.remove('selected'));
-
   // Reset checkboxes
-  document.querySelectorAll('#step-4 input[type="checkbox"]').forEach(cb => cb.checked = true);
+  document.querySelectorAll('#step-3 input[type="checkbox"]').forEach(cb => cb.checked = true);
 
   // Reset deploy states
   document.getElementById('deploy-progress').classList.remove('active');
@@ -2054,7 +2037,7 @@ function resetWizardUI() {
 
 function updateWizardUI() {
   // Update panels
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 5; i++) {
     const panel = document.getElementById('step-' + i);
     panel.classList.toggle('active', i === wizardStep);
   }
@@ -2073,7 +2056,7 @@ function updateWizardUI() {
 
   btnBack.style.visibility = wizardStep > 1 ? 'visible' : 'hidden';
 
-  if (wizardStep === 6) {
+  if (wizardStep === 5) {
     btnNext.textContent = 'Deploy Agent';
     btnNext.className = 'btn-wizard btn-wizard-deploy';
   } else {
@@ -2084,8 +2067,8 @@ function updateWizardUI() {
   // Validate current step
   validateStep();
 
-  // Build review if on step 6
-  if (wizardStep === 6) buildReview();
+  // Build review if on step 5
+  if (wizardStep === 5) buildReview();
 }
 
 function validateStep() {
@@ -2099,7 +2082,7 @@ function validateStep() {
     case 2:
       valid = document.getElementById('agent-name').value.trim().length > 0;
       break;
-    case 5:
+    case 4:
       valid = true; // Private key is optional — a demo keypair will be generated if omitted
       break;
   }
@@ -2113,7 +2096,7 @@ function wizardNext() {
   // Gather data from current step
   gatherStepData();
 
-  if (wizardStep === 6) {
+  if (wizardStep === 5) {
     startDeploy();
     return;
   }
@@ -2140,16 +2123,8 @@ function gatherStepData() {
       wizardData.network = document.getElementById('agent-network').value;
       break;
     case 3:
-      wizardData.skills = [];
-      document.querySelectorAll('.skill-tag.selected').forEach(t => {
-        wizardData.skills.push(t.dataset.skill);
-      });
-      wizardData.maxTasks = parseInt(document.getElementById('max-tasks').value) || 5;
-      wizardData.soulPersona = document.getElementById('soul-persona').value.trim();
-      break;
-    case 4:
       wizardData.allowedTools = [];
-      document.querySelectorAll('#step-4 input[type="checkbox"]:checked').forEach(cb => {
+      document.querySelectorAll('#step-3 input[type="checkbox"]:checked').forEach(cb => {
         wizardData.allowedTools.push(cb.value);
       });
       wizardData.valueLimit = parseInt(document.getElementById('value-limit').value) || 0;
@@ -2205,39 +2180,6 @@ function bindNameField() {
   });
 }
 
-// ─── Skill Tags ───
-
-function renderSkillTags() {
-  const container = document.getElementById('skill-tags');
-  container.innerHTML = SKILLS.map(s => `
-    <span class="skill-tag" data-skill="${s}" onclick="toggleSkill(this)">${s}</span>
-  `).join('');
-}
-
-function toggleSkill(el) {
-  el.classList.toggle('selected');
-}
-
-function addCustomSkill() {
-  const input = document.getElementById('custom-skill');
-  const val = input.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-  if (!val) return;
-  const container = document.getElementById('skill-tags');
-  // Check if already exists
-  if (container.querySelector(`[data-skill="${val}"]`)) {
-    container.querySelector(`[data-skill="${val}"]`).classList.add('selected');
-    input.value = '';
-    return;
-  }
-  const tag = document.createElement('span');
-  tag.className = 'skill-tag selected';
-  tag.dataset.skill = val;
-  tag.textContent = val;
-  tag.onclick = function() { toggleSkill(this); };
-  container.appendChild(tag);
-  input.value = '';
-}
-
 // ─── Review ───
 
 function buildReview() {
@@ -2250,12 +2192,6 @@ function buildReview() {
     <div class="review-row"><span class="label">ENS</span><span class="value">${esc(wizardData.ens || '-')}</span></div>
     <div class="review-row"><span class="label">Type</span><span class="value">${esc(wizardData.typeName || '-')}</span></div>
     <div class="review-row"><span class="label">Network</span><span class="value">${esc({sepolia:'Sepolia',og_testnet:'0G Testnet',mainnet:'Ethereum Mainnet',og_mainnet:'0G Mainnet'}[wizardData.network] || wizardData.network)}</span></div>
-  `;
-
-  document.getElementById('review-capabilities').innerHTML = `
-    <h4>Capabilities</h4>
-    <div class="review-row"><span class="label">Skills</span><span class="value">${wizardData.skills.length > 0 ? wizardData.skills.map(s => esc(s)).join(', ') : 'None'}</span></div>
-    <div class="review-row"><span class="label">Max Tasks</span><span class="value">${wizardData.maxTasks || 5}</span></div>
   `;
 
   document.getElementById('review-policy').innerHTML = `
@@ -2325,7 +2261,6 @@ function deployComplete() {
     type: wizardData.type,
     typeIcon: wizardData.typeIcon,
     network: wizardData.network,
-    skills: wizardData.skills,
     allowedTools: wizardData.allowedTools,
     valueLimit: wizardData.valueLimit,
     endpoints: wizardData.endpoints,
@@ -3054,6 +2989,17 @@ function ensProfileToAgent(profile) {
 // ═══════════════════════════════════════
 
 let connectValidationResult = null;
+
+let registerMenuTimer = null;
+function showRegisterMenu() {
+  clearTimeout(registerMenuTimer);
+  document.getElementById('register-menu').classList.add('open');
+}
+function hideRegisterMenu() {
+  registerMenuTimer = setTimeout(() => {
+    document.getElementById('register-menu').classList.remove('open');
+  }, 200);
+}
 
 function openConnectModal() {
   const modal = document.getElementById('connect-agent-modal');
