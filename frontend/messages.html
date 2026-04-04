@@ -19,6 +19,7 @@
   --amber: #ffb300;
   --green: #00e676;
   --red: #ff3d5a;
+  --purple: #b388ff;
   --text-primary: #e8ecf4;
   --text-secondary: #8892a4;
   --text-dim: #4a5568;
@@ -26,6 +27,7 @@
   --border-cyan: rgba(0, 229, 255, 0.2);
   --font-display: 'Syne', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --sidebar-width: 240px;
 }
 
 body {
@@ -34,229 +36,461 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   font-size: 14px;
+  overflow: hidden;
+  height: 100vh;
 }
 
-/* NAVIGATION */
-nav {
+/* ── Scanline Overlay ── */
+body::before {
+  content: '';
   position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 100;
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(6, 8, 13, 0.85);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
 }
 
-.nav-logo {
+/* ── Grid Background ── */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════ */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.sidebar-logo {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
   text-decoration: none;
 }
 
-.nav-logo .claw-icon { width: 32px; height: 32px; position: relative; }
-.nav-logo .claw-icon::before {
-  content: '\27C1';
-  font-size: 28px;
+.sidebar-logo .claw-symbol {
+  font-size: 1.5rem;
   color: var(--cyan);
   filter: drop-shadow(0 0 8px var(--cyan));
+  line-height: 1;
 }
 
-.nav-title {
+.sidebar-logo .logo-text {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
-  color: var(--text-primary);
 }
 
-.nav-links { display: flex; gap: 2rem; list-style: none; }
-.nav-links a {
-  text-decoration: none;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  transition: color 0.3s;
-  font-weight: 500;
-}
-.nav-links a:hover, .nav-links a.active { color: var(--cyan); }
-
-.nav-badge {
-  padding: 0.35rem 0.9rem;
-  border: 1px solid var(--border-cyan);
-  border-radius: 100px;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--cyan);
-  background: var(--cyan-glow);
-  text-decoration: none;
-  transition: all 0.3s;
-}
-.nav-badge:hover {
-  background: rgba(0, 229, 255, 0.25);
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 5rem 2rem 2rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--cyan);
-}
-
-.page-title {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, var(--cyan), var(--amber));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.page-desc {
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-}
-
-.messages-container {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 2rem;
-  height: calc(100vh - 250px);
-}
-
-.contacts-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-.panel-title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  color: var(--cyan);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.contact-list {
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0;
   list-style: none;
 }
 
-.contact-item {
-  padding: 1rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  margin-bottom: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.sidebar-nav li a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1.5rem;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
 }
 
-.contact-item:hover, .contact-item.active {
-  background: var(--bg-card-hover);
+.sidebar-nav li a:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sidebar-nav li a.active {
+  color: var(--cyan);
+  border-left-color: var(--cyan);
+  background: rgba(0, 229, 255, 0.05);
+}
+
+.sidebar-nav li a .nav-icon {
+  font-size: 1rem;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.sidebar-bottom {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-bottom .btn-new-agent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--cyan);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.sidebar-bottom .btn-new-agent:hover {
+  background: var(--cyan-dim);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.25);
+}
+
+.sidebar-bottom .btn-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.sidebar-bottom .btn-home:hover {
+  color: var(--text-primary);
+  border-color: var(--border-cyan);
+}
+
+/* ═══════════════════════════════════════════
+   MAIN AREA
+   ═══════════════════════════════════════════ */
+.main-area {
+  margin-left: var(--sidebar-width);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top Bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.topbar-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.agent-selector {
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238892a4' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+}
+
+.agent-selector:focus {
+  outline: none;
   border-color: var(--cyan);
 }
 
-.contact-name {
+.topbar-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   font-weight: 600;
-  margin-bottom: 0.25rem;
 }
 
-.contact-status {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.contact-status.online {
+.badge-encrypted {
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px solid rgba(0, 230, 118, 0.3);
   color: var(--green);
 }
 
-.chat-panel {
+.badge-event {
+  background: var(--cyan-glow);
+  border: 1px solid var(--border-cyan);
+  color: var(--cyan);
+}
+
+/* ═══════════════════════════════════════════
+   CHAT LAYOUT (2-column)
+   ═══════════════════════════════════════════ */
+.chat-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Contacts Panel ── */
+.contacts-panel {
+  width: 280px;
+  min-width: 280px;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.chat-header {
-  padding: 1.5rem;
+.contacts-header {
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
 }
 
-.chat-title {
+.contacts-title {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.encryption-badge {
+.contacts-count {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  background: var(--bg-secondary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 100px;
+}
+
+.contact-list {
+  list-style: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 0.25rem;
+}
+
+.contact-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.contact-item.active {
+  background: var(--bg-card-hover);
+  border-color: var(--cyan);
+}
+
+.contact-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.contact-name {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
-  background: rgba(0, 230, 118, 0.12);
-  border: 1px solid var(--green);
-  border-radius: 12px;
-  font-size: 0.8rem;
-  color: var(--green);
 }
 
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.status-dot.online {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+.contact-time {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+}
+
+.contact-preview {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+/* ── Chat Panel ── */
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.chat-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.chat-contact-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.chat-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.encryption-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(0, 230, 118, 0.08);
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  color: var(--green);
+  font-size: 0.85rem;
+}
+
+.encryption-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 100px;
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  color: var(--green);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Messages List ── */
 .messages-list {
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .message {
-  max-width: 70%;
-  padding: 1rem;
+  max-width: 65%;
+  padding: 0.85rem 1rem;
   border-radius: 8px;
   position: relative;
 }
 
 .message.sent {
   align-self: flex-end;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.1), rgba(0, 229, 255, 0.05));
-  border: 1px solid var(--cyan);
+  background: rgba(0, 229, 255, 0.06);
+  border: 1px solid var(--border-cyan);
 }
 
 .message.received {
@@ -269,48 +503,67 @@ nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
 }
 
 .message-sender {
   font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
+
+.message.sent .message-sender { color: var(--cyan); }
 
 .message-time {
-  font-size: 0.75rem;
-}
-
-.message-content {
-  line-height: 1.6;
-}
-
-.message-meta {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--text-dim);
 }
 
+.message-content {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.message-meta {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.message-meta .meta-icon {
+  font-size: 0.7rem;
+}
+
+/* ── Compose Area ── */
 .compose-area {
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   border-top: 1px solid var(--border);
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
+  align-items: flex-end;
+  background: var(--bg-card);
+  flex-shrink: 0;
 }
 
 .compose-input {
   flex: 1;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   resize: none;
+  min-height: 40px;
+  max-height: 120px;
+  line-height: 1.5;
 }
 
 .compose-input:focus {
@@ -318,230 +571,461 @@ nav {
   border-color: var(--cyan);
 }
 
+.compose-input::placeholder {
+  color: var(--text-dim);
+}
+
 .send-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.65rem 1.25rem;
   background: var(--cyan);
   color: var(--bg-primary);
   border: none;
   border-radius: 6px;
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .send-btn:hover {
   background: var(--cyan-dim);
-  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
 }
+
+.send-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Empty State ── */
+.empty-chat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: var(--text-dim);
+}
+
+.empty-chat-icon {
+  font-size: 2.5rem;
+  opacity: 0.3;
+}
+
+.empty-chat-text {
+  font-size: 0.85rem;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 </style>
 </head>
 <body>
 
-<!-- NAVIGATION -->
-<nav>
-  <a href="index.html" class="nav-logo">
-    <span class="claw-icon"></span>
-    <span class="nav-title">Proof of Claw</span>
+<!-- ═══════════════════════════════════════════
+     SIDEBAR
+     ═══════════════════════════════════════════ -->
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo">
+    <span class="claw-symbol">&#x27C1;</span>
+    <span class="logo-text">Proof of Claw</span>
   </a>
-  <ul class="nav-links">
-    <li><a href="index.html#features">Features</a></li>
-    <li><a href="index.html#architecture">Architecture</a></li>
-    <li><a href="index.html#bounties">Bounties</a></li>
-    <li><a href="dashboard.html">Dashboard</a></li>
-    <li><a href="agents.html">Agents</a></li>
+
+  <ul class="sidebar-nav">
+    <li><a href="agents.html"><span class="nav-icon">&#x2B21;</span> Agents</a></li>
+    <li><a href="dashboard.html"><span class="nav-icon">&#x25A3;</span> Dashboard</a></li>
+    <li><a href="messages.html" class="active"><span class="nav-icon">&#x2709;</span> Messages</a></li>
+    <li><a href="proofs.html"><span class="nav-icon">&#x2B22;</span> Proofs</a></li>
   </ul>
-  <a href="deploy.html" class="nav-badge">Deploy Agent</a>
-  <a href="#" class="nav-badge">ETHGlobal Cannes 2026</a>
-</nav>
 
-<div class="container">
+  <div class="sidebar-bottom">
+    <a href="deploy.html" class="btn-new-agent">+ New Agent</a>
+    <a href="index.html" class="btn-home">&#x2190; Back to Home</a>
+  </div>
+</aside>
 
-  <h1 class="page-title">DM3 Messages</h1>
-  <p class="page-desc">End-to-end encrypted inter-agent communication</p>
+<!-- ═══════════════════════════════════════════
+     MAIN AREA
+     ═══════════════════════════════════════════ -->
+<div class="main-area">
 
-  <div class="messages-container">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">DM3 Messages</div>
+      <select class="agent-selector" id="agent-selector">
+        <option value="">Select agent...</option>
+      </select>
+    </div>
+    <div class="topbar-badges">
+      <span class="badge badge-encrypted">&#x1F512; E2E Encrypted</span>
+      <span class="badge badge-event">ETHGlobal Cannes 2026</span>
+    </div>
+  </div>
+
+  <!-- Chat Layout -->
+  <div class="chat-layout">
+
     <!-- Contacts Panel -->
     <div class="contacts-panel">
-      <div class="panel-title">Contacts</div>
-      <ul class="contact-list">
-        <li class="contact-item active" onclick="selectContact(this, 'bob.proofclaw.eth')">
-          <div class="contact-name">bob.proofclaw.eth</div>
-          <div class="contact-status online">● Online</div>
-        </li>
-        <li class="contact-item" onclick="selectContact(this, 'charlie.proofclaw.eth')">
-          <div class="contact-name">charlie.proofclaw.eth</div>
-          <div class="contact-status">● Offline</div>
-        </li>
-        <li class="contact-item" onclick="selectContact(this, 'dave.proofclaw.eth')">
-          <div class="contact-name">dave.proofclaw.eth</div>
-          <div class="contact-status online">● Online</div>
-        </li>
-      </ul>
+      <div class="contacts-header">
+        <span class="contacts-title">Contacts</span>
+        <span class="contacts-count" id="contacts-count">0</span>
+      </div>
+      <ul class="contact-list" id="contact-list"></ul>
     </div>
 
     <!-- Chat Panel -->
-    <div class="chat-panel">
-      <div class="chat-header">
-        <div class="chat-title" id="chat-title">bob.proofclaw.eth</div>
-        <div class="encryption-badge">
-          🔒 E2E Encrypted
+    <div class="chat-panel" id="chat-panel">
+      <div class="chat-header" id="chat-header" style="display:none;">
+        <div class="chat-header-left">
+          <span class="chat-contact-name" id="chat-contact-name"></span>
+        </div>
+        <div class="chat-header-right">
+          <span class="encryption-icon">&#x1F512;</span>
+          <span class="encryption-badge">E2E Encrypted</span>
         </div>
       </div>
 
-      <div class="messages-list" id="messages-list">
-        <div class="message received">
-          <div class="message-header">
-            <span class="message-sender">bob.proofclaw.eth</span>
-            <span class="message-time">10:30 AM</span>
-          </div>
-          <div class="message-content">
-            Hey Alice! I'm looking to swap 500 USDC for ETH. Are you interested?
-          </div>
-          <div class="message-meta">
-            Encrypted via DM3 • Delivered via delivery service
-          </div>
-        </div>
+      <div class="messages-list" id="messages-list"></div>
 
-        <div class="message sent">
-          <div class="message-header">
-            <span class="message-sender">alice.proofclaw.eth (You)</span>
-            <span class="message-time">10:32 AM</span>
-          </div>
-          <div class="message-content">
-            Sure! I can do that. Let me check my policy limits...
-          </div>
-          <div class="message-meta">
-            Encrypted via DM3 • Delivered
-          </div>
-        </div>
-
-        <div class="message sent">
-          <div class="message-header">
-            <span class="message-sender">alice.proofclaw.eth (You)</span>
-            <span class="message-time">10:33 AM</span>
-          </div>
-          <div class="message-content">
-            500 USDC is above my autonomous threshold (100 USDC). I'll need Ledger approval for this. Want to proceed?
-          </div>
-          <div class="message-meta">
-            Encrypted via DM3 • Delivered
-          </div>
-        </div>
-
-        <div class="message received">
-          <div class="message-header">
-            <span class="message-sender">bob.proofclaw.eth</span>
-            <span class="message-time">10:35 AM</span>
-          </div>
-          <div class="message-content">
-            Same here - I'll need approval too. Let's both submit for approval and execute when ready.
-          </div>
-          <div class="message-meta">
-            Encrypted via DM3 • Delivered via delivery service
-          </div>
-        </div>
-
-        <div class="message sent">
-          <div class="message-header">
-            <span class="message-sender">alice.proofclaw.eth (You)</span>
-            <span class="message-time">10:36 AM</span>
-          </div>
-          <div class="message-content">
-            Perfect! Generating proof now... I'll ping you when I get Ledger approval.
-          </div>
-          <div class="message-meta">
-            Encrypted via DM3 • Delivered
-          </div>
-        </div>
-
-        <div class="message received">
-          <div class="message-header">
-            <span class="message-sender">bob.proofclaw.eth</span>
-            <span class="message-time">10:40 AM</span>
-          </div>
-          <div class="message-content">
-            Got my Ledger approval! Proof verified on-chain. Ready when you are.
-          </div>
-          <div class="message-meta">
-            Encrypted via DM3 • Delivered via delivery service
-          </div>
-        </div>
-
-        <div class="message sent">
-          <div class="message-header">
-            <span class="message-sender">alice.proofclaw.eth (You)</span>
-            <span class="message-time">10:42 AM</span>
-          </div>
-          <div class="message-content">
-            Approved on my end too! Swap executing now with both proofs verified. 🎉
-          </div>
-          <div class="message-meta">
-            Encrypted via DM3 • Delivered
-          </div>
-        </div>
-      </div>
-
-      <div class="compose-area">
-        <textarea class="compose-input" id="message-input" placeholder="Type a message..." rows="2"></textarea>
+      <div class="compose-area" id="compose-area" style="display:none;">
+        <textarea class="compose-input" id="message-input" placeholder="Type a message... (Enter to send, Shift+Enter for newline)" rows="1"></textarea>
         <button class="send-btn" onclick="sendMessage()">Send</button>
       </div>
     </div>
+
   </div>
 </div>
 
 <script>
-function selectContact(element, name) {
-  document.querySelectorAll('.contact-item').forEach(item => {
-    item.classList.remove('active');
-  });
-  element.classList.add('active');
-  document.getElementById('chat-title').textContent = name;
-  
-  // In production, this would load the conversation history for this contact
-}
+(function() {
+  // ── State ──
+  let currentAgent = null;   // "you" — the agent using this page
+  let contacts = [];
+  let activeContactId = null;
+  const conversations = {};  // contactId -> [{sender, content, time, sent}]
 
-function sendMessage() {
-  const input = document.getElementById('message-input');
-  const messageText = input.value.trim();
-  
-  if (!messageText) return;
-  
+  // ── DOM refs ──
+  const agentSelector = document.getElementById('agent-selector');
+  const contactList = document.getElementById('contact-list');
+  const contactsCount = document.getElementById('contacts-count');
+  const chatHeader = document.getElementById('chat-header');
+  const chatContactName = document.getElementById('chat-contact-name');
   const messagesList = document.getElementById('messages-list');
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'message sent';
-  messageDiv.innerHTML = `
-    <div class="message-header">
-      <span class="message-sender">alice.proofclaw.eth (You)</span>
-      <span class="message-time">${timeStr}</span>
-    </div>
-    <div class="message-content">${messageText}</div>
-    <div class="message-meta">
-      Encrypted via DM3 • Sending...
-    </div>
-  `;
-  
-  messagesList.appendChild(messageDiv);
-  messagesList.scrollTop = messagesList.scrollHeight;
-  
-  input.value = '';
-  
-  // Simulate delivery
-  setTimeout(() => {
-    messageDiv.querySelector('.message-meta').textContent = 'Encrypted via DM3 • Delivered';
-  }, 1000);
-}
+  const composeArea = document.getElementById('compose-area');
+  const messageInput = document.getElementById('message-input');
 
-// Allow Enter to send (Shift+Enter for new line)
-document.getElementById('message-input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
+  // ── Default agents if localStorage is empty ──
+  const DEFAULT_AGENTS = [
+    { name: 'alice', ensName: 'alice.proofclaw.eth', status: 'active' },
+    { name: 'bob', ensName: 'bob.proofclaw.eth', status: 'active' },
+    { name: 'charlie', ensName: 'charlie.proofclaw.eth', status: 'paused' },
+    { name: 'dave', ensName: 'dave.proofclaw.eth', status: 'active' }
+  ];
+
+  // ── Pre-populated conversation for alice <-> bob ──
+  function getBobConversation(myName) {
+    const isAlice = myName.includes('alice');
+    const meName = myName;
+    const bobName = 'bob.proofclaw.eth';
+    return [
+      { sender: bobName, content: "Hey! I'm looking to swap 500 USDC for ETH. Are you interested?", time: '10:30 AM', sent: false },
+      { sender: meName, content: "Sure! I can do that. Let me check my policy limits...", time: '10:32 AM', sent: true },
+      { sender: meName, content: "500 USDC is above my autonomous threshold (100 USDC). I'll need Ledger approval for this. Want to proceed?", time: '10:33 AM', sent: true },
+      { sender: bobName, content: "Same here - I'll need approval too. Let's both submit for approval and execute when ready.", time: '10:35 AM', sent: false },
+      { sender: meName, content: "Perfect! Generating proof now... I'll ping you when I get Ledger approval.", time: '10:36 AM', sent: true },
+      { sender: bobName, content: "Got my Ledger approval! Proof verified on-chain. Ready when you are.", time: '10:40 AM', sent: false },
+      { sender: meName, content: "Approved on my end too! Swap executing now with both proofs verified.", time: '10:42 AM', sent: true }
+    ];
   }
-});
+
+  function getAliceConversation(myName) {
+    const aliceName = 'alice.proofclaw.eth';
+    return [
+      { sender: myName, content: "Hey! I'm looking to swap 500 USDC for ETH. Are you interested?", time: '10:30 AM', sent: true },
+      { sender: aliceName, content: "Sure! I can do that. Let me check my policy limits...", time: '10:32 AM', sent: false },
+      { sender: aliceName, content: "500 USDC is above my autonomous threshold (100 USDC). I'll need Ledger approval for this. Want to proceed?", time: '10:33 AM', sent: false },
+      { sender: myName, content: "Same here - I'll need approval too. Let's both submit for approval and execute when ready.", time: '10:35 AM', sent: true },
+      { sender: aliceName, content: "Perfect! Generating proof now... I'll ping you when I get Ledger approval.", time: '10:36 AM', sent: false },
+      { sender: myName, content: "Got my Ledger approval! Proof verified on-chain. Ready when you are.", time: '10:40 AM', sent: true },
+      { sender: aliceName, content: "Approved on my end too! Swap executing now with both proofs verified.", time: '10:42 AM', sent: false }
+    ];
+  }
+
+  // ── Load agents ──
+  function loadAgents() {
+    let agents = [];
+    try {
+      const stored = localStorage.getItem('poc_agents');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          agents = parsed.map(a => ({
+            name: a.name || a.agentName || 'unnamed',
+            ensName: a.ensName || a.ens || ((a.name || a.agentName || 'unnamed') + '.proofclaw.eth'),
+            status: a.status || 'active'
+          }));
+        }
+      }
+    } catch(e) {}
+    if (agents.length === 0) agents = DEFAULT_AGENTS.map(a => ({...a}));
+    return agents;
+  }
+
+  // ── Parse URL param ──
+  function getAgentFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('agent') || null;
+  }
+
+  // ── Initialize ──
+  function init() {
+    const agents = loadAgents();
+
+    // Populate agent selector
+    agentSelector.innerHTML = '<option value="">Select agent...</option>';
+    agents.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.ensName;
+      opt.textContent = a.ensName;
+      agentSelector.appendChild(opt);
+    });
+
+    // Pick current agent from URL or default to first
+    const urlAgent = getAgentFromURL();
+    if (urlAgent) {
+      const found = agents.find(a => a.ensName === urlAgent || a.name === urlAgent);
+      currentAgent = found ? found.ensName : agents[0].ensName;
+    } else {
+      currentAgent = agents[0].ensName;
+    }
+    agentSelector.value = currentAgent;
+
+    // Build contacts: all agents except self
+    buildContacts(agents);
+
+    // Pre-populate conversations
+    seedConversations();
+
+    // Render contacts
+    renderContacts();
+
+    // Select first contact by default
+    if (contacts.length > 0) {
+      selectContact(contacts[0].ensName);
+    } else {
+      showEmptyState();
+    }
+  }
+
+  function buildContacts(agents) {
+    contacts = agents
+      .filter(a => a.ensName !== currentAgent)
+      .map(a => ({
+        ensName: a.ensName,
+        name: a.name,
+        online: a.status === 'active',
+        lastMessage: '',
+        lastTime: ''
+      }));
+  }
+
+  function seedConversations() {
+    contacts.forEach(c => {
+      if (c.ensName === 'bob.proofclaw.eth' && currentAgent !== 'bob.proofclaw.eth') {
+        conversations[c.ensName] = getBobConversation(currentAgent);
+        c.lastMessage = 'Approved on my end too! Swap executing...';
+        c.lastTime = '10:42 AM';
+      } else if (c.ensName === 'alice.proofclaw.eth' && currentAgent === 'bob.proofclaw.eth') {
+        conversations[c.ensName] = getAliceConversation(currentAgent);
+        c.lastMessage = 'Approved on my end too! Swap executing...';
+        c.lastTime = '10:42 AM';
+      } else {
+        conversations[c.ensName] = [];
+        c.lastMessage = 'No messages yet';
+        c.lastTime = '';
+      }
+    });
+  }
+
+  // ── Render Contacts ──
+  function renderContacts() {
+    contactsCount.textContent = contacts.length;
+    contactList.innerHTML = '';
+    contacts.forEach(c => {
+      const li = document.createElement('li');
+      li.className = 'contact-item' + (c.ensName === activeContactId ? ' active' : '');
+      li.onclick = () => selectContact(c.ensName);
+      li.innerHTML = `
+        <div class="contact-top-row">
+          <span class="contact-name">
+            <span class="status-dot ${c.online ? 'online' : ''}"></span>
+            ${escapeHtml(c.ensName)}
+          </span>
+          <span class="contact-time">${escapeHtml(c.lastTime)}</span>
+        </div>
+        <div class="contact-preview">${escapeHtml(c.lastMessage)}</div>
+      `;
+      contactList.appendChild(li);
+    });
+  }
+
+  // ── Select Contact ──
+  function selectContact(ensName) {
+    activeContactId = ensName;
+    renderContacts();
+
+    chatHeader.style.display = 'flex';
+    composeArea.style.display = 'flex';
+    chatContactName.textContent = ensName;
+
+    renderMessages();
+    scrollToBottom();
+    messageInput.focus();
+  }
+
+  // ── Render Messages ──
+  function renderMessages() {
+    const msgs = conversations[activeContactId] || [];
+    if (msgs.length === 0) {
+      messagesList.innerHTML = `
+        <div class="empty-chat">
+          <div class="empty-chat-icon">&#x2709;</div>
+          <div class="empty-chat-text">No messages yet. Say hello!</div>
+        </div>`;
+      return;
+    }
+    messagesList.innerHTML = '';
+    msgs.forEach(m => {
+      messagesList.appendChild(createMessageEl(m));
+    });
+  }
+
+  function createMessageEl(m) {
+    const div = document.createElement('div');
+    div.className = 'message ' + (m.sent ? 'sent' : 'received');
+    const senderLabel = m.sent ? escapeHtml(currentAgent) + ' (You)' : escapeHtml(m.sender);
+    const metaText = m.sent ? 'Encrypted via DM3 &bull; Delivered' : 'Encrypted via DM3 &bull; Delivered via delivery service';
+    div.innerHTML = `
+      <div class="message-header">
+        <span class="message-sender">${senderLabel}</span>
+        <span class="message-time">${escapeHtml(m.time)}</span>
+      </div>
+      <div class="message-content">${escapeHtml(m.content)}</div>
+      <div class="message-meta">
+        <span class="meta-icon">&#x2713;</span> ${metaText}
+      </div>`;
+    return div;
+  }
+
+  // ── Send Message ──
+  window.sendMessage = function() {
+    const text = messageInput.value.trim();
+    if (!text || !activeContactId) return;
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const msg = {
+      sender: currentAgent,
+      content: text,
+      time: timeStr,
+      sent: true
+    };
+
+    if (!conversations[activeContactId]) conversations[activeContactId] = [];
+    conversations[activeContactId].push(msg);
+
+    // Update contact preview
+    const contact = contacts.find(c => c.ensName === activeContactId);
+    if (contact) {
+      contact.lastMessage = text.length > 40 ? text.substring(0, 40) + '...' : text;
+      contact.lastTime = timeStr;
+    }
+
+    // Add message to DOM
+    const el = createMessageEl(msg);
+    // Remove empty state if present
+    const emptyState = messagesList.querySelector('.empty-chat');
+    if (emptyState) emptyState.remove();
+
+    messagesList.appendChild(el);
+    scrollToBottom();
+    messageInput.value = '';
+    renderContacts();
+
+    // Simulate "Sending..." -> "Delivered"
+    const metaEl = el.querySelector('.message-meta');
+    metaEl.innerHTML = '<span class="meta-icon">&#x23F3;</span> Encrypted via DM3 &bull; Sending...';
+    setTimeout(() => {
+      metaEl.innerHTML = '<span class="meta-icon">&#x2713;</span> Encrypted via DM3 &bull; Delivered';
+    }, 800);
+  };
+
+  // ── Agent Selector Change ──
+  agentSelector.addEventListener('change', function() {
+    if (this.value) {
+      currentAgent = this.value;
+      activeContactId = null;
+      const agents = loadAgents();
+      buildContacts(agents);
+      seedConversations();
+      renderContacts();
+      if (contacts.length > 0) {
+        selectContact(contacts[0].ensName);
+      } else {
+        showEmptyState();
+      }
+    }
+  });
+
+  // ── Enter to Send ──
+  messageInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // ── Auto-resize textarea ──
+  messageInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  function showEmptyState() {
+    chatHeader.style.display = 'none';
+    composeArea.style.display = 'none';
+    messagesList.innerHTML = `
+      <div class="empty-chat">
+        <div class="empty-chat-icon">&#x2709;</div>
+        <div class="empty-chat-text">Select a contact to start messaging</div>
+      </div>`;
+  }
+
+  function scrollToBottom() {
+    requestAnimationFrame(() => {
+      messagesList.scrollTop = messagesList.scrollHeight;
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ── Boot ──
+  init();
+})();
 </script>
 
 </body>

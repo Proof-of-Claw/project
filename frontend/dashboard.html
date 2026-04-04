@@ -17,8 +17,12 @@
   --cyan-dim: #00a3b5;
   --cyan-glow: rgba(0, 229, 255, 0.15);
   --amber: #ffb300;
+  --amber-glow: rgba(255, 179, 0, 0.12);
   --green: #00e676;
+  --green-glow: rgba(0, 230, 118, 0.12);
   --red: #ff3d5a;
+  --purple: #b388ff;
+  --purple-glow: rgba(179, 136, 255, 0.15);
   --text-primary: #e8ecf4;
   --text-secondary: #8892a4;
   --text-dim: #4a5568;
@@ -26,7 +30,11 @@
   --border-cyan: rgba(0, 229, 255, 0.2);
   --font-display: 'Syne', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --sidebar-w: 240px;
+  --topbar-h: 60px;
 }
+
+html, body { height: 100%; }
 
 body {
   font-family: var(--font-mono);
@@ -34,226 +42,586 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   font-size: 14px;
+  overflow-x: hidden;
 }
 
-/* NAVIGATION */
-nav {
+/* Scanline overlay */
+body::after {
+  content: '';
   position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 100;
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(6, 8, 13, 0.85);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 9999;
 }
 
-.nav-logo {
+/* Grid background */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ======================================== */
+/* SIDEBAR                                  */
+/* ======================================== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  padding: 1.5rem 0;
+}
+
+.sidebar-logo {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding: 0 1.25rem;
+  margin-bottom: 2rem;
   text-decoration: none;
 }
 
-.nav-logo .claw-icon { width: 32px; height: 32px; position: relative; }
-.nav-logo .claw-icon::before {
-  content: '\27C1';
-  font-size: 28px;
+.sidebar-logo .claw-icon {
+  font-size: 24px;
   color: var(--cyan);
   filter: drop-shadow(0 0 8px var(--cyan));
+  line-height: 1;
 }
 
-.nav-title {
+.sidebar-logo .logo-text {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1rem;
   letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 
-.nav-links { display: flex; gap: 2rem; list-style: none; }
-.nav-links a {
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 0.75rem;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-radius: 6px;
   text-decoration: none;
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  transition: color 0.3s;
+  font-size: 0.8rem;
   font-weight: 500;
+  letter-spacing: 0.03em;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
 }
-.nav-links a:hover, .nav-links a.active { color: var(--cyan); }
 
-.nav-badge {
-  padding: 0.35rem 0.9rem;
-  border: 1px solid var(--border-cyan);
-  border-radius: 100px;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
+.sidebar-nav a:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sidebar-nav a.active {
   color: var(--cyan);
   background: var(--cyan-glow);
-  text-decoration: none;
-  transition: all 0.3s;
-}
-.nav-badge:hover {
-  background: rgba(0, 229, 255, 0.25);
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+  border-left-color: var(--cyan);
 }
 
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 5rem 2rem 2rem;
+.sidebar-nav a .nav-icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar-bottom {
+  padding: 1rem 1rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.sidebar-btn.primary {
+  background: var(--cyan);
+  color: var(--bg-primary);
+}
+
+.sidebar-btn.primary:hover {
+  background: var(--cyan-dim);
+  box-shadow: 0 0 16px var(--cyan-glow);
+}
+
+.sidebar-btn.ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.sidebar-btn.ghost:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-cyan);
+}
+
+/* ======================================== */
+/* TOPBAR                                   */
+/* ======================================== */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-w);
+  right: 0;
+  height: var(--topbar-h);
+  background: rgba(6, 8, 13, 0.88);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.75rem;
+  z-index: 150;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.agent-selector {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238892a4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  padding-right: 2rem;
+}
+
+.agent-selector:focus {
+  border-color: var(--cyan);
+}
+
+.agent-selector option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.85rem;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 500;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--green);
+  box-shadow: 0 0 6px var(--green);
   animation: pulse 2s ease-in-out infinite;
 }
 
+.status-dot.offline { background: var(--text-dim); box-shadow: none; animation: none; }
+.status-dot.busy { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.4; }
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+.ethglobal-badge {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border-cyan);
+  border-radius: 100px;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+  background: var(--cyan-glow);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ======================================== */
+/* MAIN CONTENT                             */
+/* ======================================== */
+.main {
+  position: relative;
+  z-index: 1;
+  margin-left: var(--sidebar-w);
+  margin-top: var(--topbar-h);
+  padding: 1.75rem;
+  min-height: calc(100vh - var(--topbar-h));
+}
+
+/* ======================================== */
+/* AGENT HEADER                             */
+/* ======================================== */
+.agent-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.agent-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.agent-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: var(--cyan-glow);
+  border: 1px solid var(--border-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.agent-header-info h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.agent-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.type-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--purple-glow);
+  color: var(--purple);
+  border: 1px solid rgba(179, 136, 255, 0.2);
+}
+
+.agent-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.uptime-display {
+  font-size: 0.85rem;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.uptime-display span { color: var(--text-dim); font-weight: 400; }
+
+.policy-hash-display {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.policy-hash-display .hash { color: var(--cyan); }
+
+/* ======================================== */
+/* METRICS GRID                             */
+/* ======================================== */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+@media (max-width: 1100px) {
+  .metrics-grid { grid-template-columns: 1fr; }
 }
 
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 1.5rem;
-  transition: all 0.3s ease;
+  padding: 1.25rem;
+  transition: all 0.25s ease;
 }
 
 .card:hover {
   background: var(--bg-card-hover);
-  border-color: var(--cyan);
+  border-color: var(--border-cyan);
   box-shadow: 0 0 20px var(--cyan-glow);
 }
 
 .card-title {
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-bottom: 0.9rem;
   color: var(--cyan);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .metric {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
+  padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
 }
 
-.metric:last-child {
-  border-bottom: none;
-}
+.metric:last-child { border-bottom: none; }
 
 .metric-label {
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .metric-value {
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 0.85rem;
 }
 
 .metric-value.success { color: var(--green); }
 .metric-value.warning { color: var(--amber); }
 .metric-value.error { color: var(--red); }
+.metric-value.hash { color: var(--cyan); font-size: 0.75rem; }
+
+/* ======================================== */
+/* PENDING APPROVALS                        */
+/* ======================================== */
+.pending-section {
+  background: linear-gradient(135deg, rgba(255, 179, 0, 0.04), rgba(255, 61, 90, 0.04));
+  border: 1px solid rgba(255, 179, 0, 0.3);
+  padding: 1.25rem;
+  border-radius: 8px;
+  margin-bottom: 1.75rem;
+}
+
+.pending-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pending-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.pending-count {
+  background: var(--amber);
+  color: var(--bg-primary);
+  padding: 0.15rem 0.6rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.approval-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.approval-desc {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.approval-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.approval-details {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.8;
+}
+
+.approval-details .hash { color: var(--cyan); word-break: break-all; }
+
+.approval-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ======================================== */
+/* ACTIVITY FEED                            */
+/* ======================================== */
+.activity-section { margin-bottom: 1.75rem; }
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.75rem;
+}
 
 .activity-list {
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .activity-item {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--bg-secondary);
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 6px;
-  margin-bottom: 0.75rem;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .activity-item:hover {
   background: var(--bg-card-hover);
-  border-color: var(--cyan);
+  border-color: var(--border-cyan);
 }
 
 .activity-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1rem;
   flex-shrink: 0;
 }
 
 .activity-icon.proof { background: var(--cyan-glow); color: var(--cyan); }
-.activity-icon.message { background: rgba(255, 179, 0, 0.12); color: var(--amber); }
-.activity-icon.approval { background: rgba(0, 230, 118, 0.12); color: var(--green); }
+.activity-icon.message { background: var(--amber-glow); color: var(--amber); }
+.activity-icon.approval { background: var(--green-glow); color: var(--green); }
 
-.activity-content {
-  flex: 1;
-}
+.activity-content { flex: 1; min-width: 0; }
 
 .activity-title {
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.1rem;
 }
 
 .activity-meta {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
+/* ======================================== */
+/* BUTTONS                                  */
+/* ======================================== */
 .btn {
-  padding: 0.75rem 1.5rem;
-  background: var(--cyan);
-  color: var(--bg-primary);
+  padding: 0.55rem 1.2rem;
   border: none;
   border-radius: 6px;
   font-family: var(--font-mono);
   font-weight: 600;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.btn:hover {
+.btn-primary {
+  background: var(--cyan);
+  color: var(--bg-primary);
+}
+
+.btn-primary:hover {
   background: var(--cyan-dim);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px var(--cyan-glow);
 }
 
@@ -265,311 +633,617 @@ nav {
 
 .btn-secondary:hover {
   background: var(--bg-card-hover);
-  border-color: var(--cyan);
+  border-color: var(--border-cyan);
 }
 
-.pending-approvals {
-  background: linear-gradient(135deg, rgba(255, 179, 0, 0.05), rgba(255, 61, 90, 0.05));
-  border: 1px solid var(--amber);
-  padding: 1.5rem;
-  border-radius: 8px;
-  margin-bottom: 2rem;
+.btn-danger {
+  background: rgba(255, 61, 90, 0.1);
+  color: var(--red);
+  border: 1px solid rgba(255, 61, 90, 0.2);
 }
 
-.approval-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+.btn-danger:hover {
+  background: rgba(255, 61, 90, 0.2);
 }
 
-.approval-title {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--amber);
-}
-
-.approval-count {
+.btn-amber {
   background: var(--amber);
   color: var(--bg-primary);
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.85rem;
 }
 
-.code-block {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1rem;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  overflow-x: auto;
-  margin-top: 0.5rem;
+.btn-amber:hover {
+  background: #c68a00;
 }
 
-.hash {
-  color: var(--cyan);
-  word-break: break-all;
+/* ======================================== */
+/* QUICK ACTIONS                            */
+/* ======================================== */
+.quick-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ======================================== */
+/* EMPTY STATE                              */
+/* ======================================== */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-dim);
+}
+
+.empty-state .icon { font-size: 2rem; margin-bottom: 0.75rem; }
+.empty-state p { font-size: 0.85rem; }
+
+/* ======================================== */
+/* ANIMATIONS                               */
+/* ======================================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+
+/* ======================================== */
+/* RESPONSIVE                               */
+/* ======================================== */
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { display: none; }
+  .topbar { left: 0; }
+  .main { margin-left: 0; }
+  .metrics-grid { grid-template-columns: 1fr; }
+  .agent-header { flex-direction: column; }
+  .agent-header-right { align-items: flex-start; }
 }
 </style>
 </head>
 <body>
 
-<!-- NAVIGATION -->
-<nav>
-  <a href="index.html" class="nav-logo">
-    <span class="claw-icon"></span>
-    <span class="nav-title">Proof of Claw</span>
+<div class="grid-bg"></div>
+
+<!-- ======================================== -->
+<!-- SIDEBAR                                  -->
+<!-- ======================================== -->
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo">
+    <span class="claw-icon">&#x27C1;</span>
+    <span class="logo-text">Proof of Claw</span>
   </a>
-  <ul class="nav-links">
-    <li><a href="index.html#features">Features</a></li>
-    <li><a href="index.html#architecture">Architecture</a></li>
-    <li><a href="index.html#bounties">Bounties</a></li>
-    <li><a href="dashboard.html" class="active">Dashboard</a></li>
-    <li><a href="agents.html">Agents</a></li>
-  </ul>
-  <a href="deploy.html" class="nav-badge">Deploy Agent</a>
-  <a href="#" class="nav-badge">ETHGlobal Cannes 2026</a>
-</nav>
 
-<div class="container">
+  <nav class="sidebar-nav">
+    <a href="agents.html">
+      <span class="nav-icon">&#x2726;</span> Agents
+    </a>
+    <a href="dashboard.html" class="active">
+      <span class="nav-icon">&#x25A3;</span> Dashboard
+    </a>
+    <a href="messages.html">
+      <span class="nav-icon">&#x2709;</span> Messages
+    </a>
+    <a href="proofs.html">
+      <span class="nav-icon">&#x27C1;</span> Proofs
+    </a>
+  </nav>
 
-  <!-- Pending Approvals -->
-  <div id="pending-approvals" class="pending-approvals" style="display: none;">
-    <div class="approval-header">
-      <div class="approval-title">⚠️ Pending Ledger Approvals</div>
-      <div class="approval-count" id="approval-count">0</div>
+  <div class="sidebar-bottom">
+    <a href="agents.html#register" class="sidebar-btn primary">+ New Agent</a>
+    <a href="index.html" class="sidebar-btn ghost">Back to Home</a>
+  </div>
+</aside>
+
+<!-- ======================================== -->
+<!-- TOPBAR                                   -->
+<!-- ======================================== -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-title">Agent Dashboard</span>
+    <select id="agent-selector" class="agent-selector" onchange="switchAgent(this.value)">
+      <option value="">Loading...</option>
+    </select>
+  </div>
+  <div class="topbar-right">
+    <div class="status-badge" id="topbar-status">
+      <span class="status-dot" id="topbar-dot"></span>
+      <span id="topbar-status-text">Online</span>
     </div>
-    <div id="approval-list"></div>
+    <div class="ethglobal-badge">ETHGlobal Cannes 2026</div>
+  </div>
+</header>
+
+<!-- ======================================== -->
+<!-- MAIN CONTENT                             -->
+<!-- ======================================== -->
+<main class="main" id="main-content">
+
+  <!-- Agent Header -->
+  <div class="agent-header" id="agent-header">
+    <div class="agent-header-left">
+      <div class="agent-avatar" id="agent-avatar">&#x27C1;</div>
+      <div class="agent-header-info">
+        <h2 id="agent-name">---</h2>
+        <div class="agent-header-meta">
+          <span id="agent-ens" style="color: var(--cyan);">---</span>
+          <span class="type-badge" id="agent-type-badge">---</span>
+          <span id="agent-status-inline">
+            <span class="status-dot" id="header-dot" style="display:inline-block; vertical-align:middle;"></span>
+            <span id="header-status-text" style="font-size: 0.75rem;">Online</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="agent-header-right">
+      <div class="uptime-display"><span>Uptime </span><span id="uptime">0h 0m 0s</span></div>
+      <div class="policy-hash-display">Policy: <span class="hash" id="policy-hash-short">---</span></div>
+    </div>
   </div>
 
-  <!-- Dashboard Grid -->
-  <div class="dashboard-grid">
-    <!-- Agent Status -->
+  <!-- Metrics Grid -->
+  <div class="metrics-grid">
+    <!-- Agent Status Card -->
     <div class="card">
       <div class="card-title">Agent Status</div>
       <div class="metric">
         <span class="metric-label">Agent ID</span>
-        <span class="metric-value" id="agent-id">alice-agent</span>
+        <span class="metric-value" id="metric-agent-id">---</span>
       </div>
       <div class="metric">
         <span class="metric-label">ENS Name</span>
-        <span class="metric-value" id="ens-name">alice.proofclaw.eth</span>
+        <span class="metric-value hash" id="metric-ens">---</span>
       </div>
       <div class="metric">
         <span class="metric-label">Uptime</span>
-        <span class="metric-value success" id="uptime">0h 0m</span>
+        <span class="metric-value success" id="metric-uptime">0h 0m</span>
       </div>
       <div class="metric">
         <span class="metric-label">Policy Hash</span>
-        <span class="metric-value hash" id="policy-hash">0x1234...5678</span>
+        <span class="metric-value hash" id="metric-policy-hash">---</span>
       </div>
     </div>
 
-    <!-- Execution Stats -->
+    <!-- Execution Stats Card -->
     <div class="card">
       <div class="card-title">Execution Stats</div>
       <div class="metric">
         <span class="metric-label">Total Actions</span>
-        <span class="metric-value" id="total-actions">0</span>
+        <span class="metric-value" id="stat-total">0</span>
       </div>
       <div class="metric">
         <span class="metric-label">Autonomous</span>
-        <span class="metric-value success" id="autonomous-actions">0</span>
+        <span class="metric-value success" id="stat-autonomous">0</span>
       </div>
       <div class="metric">
         <span class="metric-label">Ledger Approved</span>
-        <span class="metric-value warning" id="approved-actions">0</span>
+        <span class="metric-value warning" id="stat-approved">0</span>
       </div>
       <div class="metric">
         <span class="metric-label">Policy Violations</span>
-        <span class="metric-value error" id="violations">0</span>
+        <span class="metric-value error" id="stat-violations">0</span>
       </div>
     </div>
 
-    <!-- Proof Generation -->
+    <!-- Proof Generation Card -->
     <div class="card">
       <div class="card-title">Proof Generation</div>
       <div class="metric">
         <span class="metric-label">Proofs Generated</span>
-        <span class="metric-value" id="proofs-generated">0</span>
+        <span class="metric-value" id="stat-proofs">0</span>
       </div>
       <div class="metric">
         <span class="metric-label">Verified On-Chain</span>
-        <span class="metric-value success" id="proofs-verified">0</span>
+        <span class="metric-value success" id="stat-verified">0</span>
       </div>
       <div class="metric">
         <span class="metric-label">Avg. Proof Time</span>
-        <span class="metric-value" id="avg-proof-time">~45s</span>
+        <span class="metric-value">~45s</span>
       </div>
       <div class="metric">
         <span class="metric-label">Provider</span>
-        <span class="metric-value" id="proof-provider">Boundless</span>
+        <span class="metric-value">Boundless</span>
       </div>
     </div>
   </div>
 
-  <!-- Recent Activity -->
-  <div class="card">
-    <div class="card-title">Recent Activity</div>
-    <ul class="activity-list" id="activity-list">
-      <li class="activity-item">
-        <div class="activity-icon proof">⟁</div>
-        <div class="activity-content">
-          <div class="activity-title">Proof Generated</div>
-          <div class="activity-meta">Swap 100 USDC → ETH • Autonomous • 2 min ago</div>
-        </div>
-      </li>
-      <li class="activity-item">
-        <div class="activity-icon message">✉</div>
-        <div class="activity-content">
-          <div class="activity-title">DM3 Message Received</div>
-          <div class="activity-meta">From bob.proofclaw.eth • 5 min ago</div>
-        </div>
-      </li>
-      <li class="activity-item">
-        <div class="activity-icon approval">✓</div>
-        <div class="activity-content">
-          <div class="activity-title">Ledger Approval Granted</div>
-          <div class="activity-meta">Transfer 500 USDC • 10 min ago</div>
-        </div>
-      </li>
-    </ul>
+  <!-- Pending Ledger Approvals -->
+  <div class="pending-section" id="pending-section" style="display: none;">
+    <div class="pending-header">
+      <div class="pending-title">Pending Ledger Approvals</div>
+      <span class="pending-count" id="pending-count">1</span>
+    </div>
+    <div id="pending-list"></div>
   </div>
 
-  <!-- Actions -->
-  <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-    <button class="btn" onclick="viewProofs()">View Proofs</button>
-    <button class="btn-secondary btn" onclick="viewMessages()">DM3 Messages</button>
-    <button class="btn-secondary btn" onclick="viewPolicy()">Policy Config</button>
+  <!-- Recent Activity -->
+  <div class="activity-section">
+    <div class="section-title">Recent Activity</div>
+    <ul class="activity-list" id="activity-list"></ul>
   </div>
-</div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <a class="btn btn-primary" id="btn-proofs" href="proofs.html">View Proofs</a>
+    <a class="btn btn-secondary" id="btn-messages" href="messages.html">DM3 Messages</a>
+    <a class="btn btn-secondary" href="agents.html">Back to Agents</a>
+  </div>
+
+</main>
 
 <script>
-// Mock data - in production, this would connect to the agent's API
+// =====================================================
+// DEFAULT MOCK AGENTS (same as agents page)
+// =====================================================
+const DEFAULT_AGENTS = [
+  {
+    id: 'alpha-sentinel',
+    name: 'alpha-sentinel',
+    type: 'coordinator',
+    icon: '\u26A1',
+    status: 'online',
+    ens: 'alpha.proofclaw.eth',
+    policyHash: '0x9f3a...c4e1',
+    desc: 'Primary fleet coordinator for multi-agent orchestration',
+    skills: ['multi-agent','delegation','task-routing','typescript'],
+    spendLimit: 500,
+    tasks: 156,
+    trust: 72,
+    uptime: '99.2%'
+  },
+  {
+    id: 'defi-scout',
+    name: 'defi-scout',
+    type: 'defi-strategist',
+    icon: '\uD83D\uDCCA',
+    status: 'online',
+    ens: 'defi-scout.proofclaw.eth',
+    policyHash: '0x7b2e...a8d3',
+    desc: 'DeFi market scanner and yield optimizer',
+    skills: ['defi-protocols','uniswap','aave','data-analysis'],
+    spendLimit: 100,
+    tasks: 89,
+    trust: 65,
+    uptime: '97.8%'
+  },
+  {
+    id: 'sec-auditor',
+    name: 'sec-auditor',
+    type: 'security-auditor',
+    icon: '\uD83D\uDD12',
+    status: 'busy',
+    ens: 'sec-auditor.proofclaw.eth',
+    policyHash: '0x3d71...f5b9',
+    desc: 'Smart contract security auditor',
+    skills: ['solidity','security-audit','smart-contracts','slither'],
+    spendLimit: 50,
+    tasks: 42,
+    trust: 58,
+    uptime: '95.4%'
+  },
+  {
+    id: 'gov-delegate',
+    name: 'gov-delegate',
+    type: 'governance-agent',
+    icon: '\uD83C\uDF0F',
+    status: 'online',
+    ens: 'gov-delegate.proofclaw.eth',
+    policyHash: '0xa4f8...2c67',
+    desc: 'DAO governance participation agent',
+    skills: ['governance','dao-voting','proposals','snapshot'],
+    spendLimit: 100,
+    tasks: 31,
+    trust: 54,
+    uptime: '98.1%'
+  },
+  {
+    id: 'yield-hunter',
+    name: 'yield-hunter',
+    type: 'defi-strategist',
+    icon: '\uD83D\uDCB0',
+    status: 'offline',
+    ens: 'yield-hunter.proofclaw.eth',
+    policyHash: '0x61c3...9ae4',
+    desc: 'Cross-chain yield farming specialist',
+    skills: ['yield-farming','liquidity','cross-chain','bridges'],
+    spendLimit: 200,
+    tasks: 67,
+    trust: 48,
+    uptime: '88.3%'
+  },
+  {
+    id: 'data-oracle',
+    name: 'data-oracle',
+    type: 'data-analyst',
+    icon: '\uD83D\uDCC8',
+    status: 'online',
+    ens: 'data-oracle.proofclaw.eth',
+    policyHash: '0x2e89...b7f0',
+    desc: 'On-chain data aggregation and analytics',
+    skills: ['data-analysis','chainlink','the-graph','sql'],
+    spendLimit: 50,
+    tasks: 203,
+    trust: 69,
+    uptime: '99.6%'
+  }
+];
+
+// =====================================================
+// STATE
+// =====================================================
+let agents = [];
+let currentAgent = null;
 let startTime = Date.now();
 let stats = {
-  totalActions: 0,
-  autonomousActions: 0,
-  approvedActions: 0,
+  total: 0,
+  autonomous: 0,
+  approved: 0,
   violations: 0,
-  proofsGenerated: 0,
-  proofsVerified: 0
+  proofs: 0,
+  verified: 0
 };
+let activityTimers = [];
 
-// Update uptime
-function updateUptime() {
-  const elapsed = Date.now() - startTime;
-  const hours = Math.floor(elapsed / 3600000);
-  const minutes = Math.floor((elapsed % 3600000) / 60000);
-  document.getElementById('uptime').textContent = `${hours}h ${minutes}m`;
+// =====================================================
+// INIT
+// =====================================================
+function init() {
+  loadAgents();
+  const urlParams = new URLSearchParams(window.location.search);
+  const agentId = urlParams.get('agent');
+
+  if (agentId) {
+    currentAgent = agents.find(a => a.id === agentId);
+  }
+  if (!currentAgent && agents.length > 0) {
+    currentAgent = agents[0];
+  }
+
+  populateSelector();
+
+  if (currentAgent) {
+    renderAgent();
+    startUptimeCounter();
+    seedActivity();
+    scheduleSimulations();
+  } else {
+    showEmptyState();
+  }
 }
 
-setInterval(updateUptime, 1000);
+function loadAgents() {
+  try {
+    const stored = localStorage.getItem('poc_agents');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        agents = parsed;
+        return;
+      }
+    }
+  } catch (e) {}
 
-// Simulate activity
-function addActivity(type, title, meta) {
+  // Use defaults
+  agents = DEFAULT_AGENTS;
+  localStorage.setItem('poc_agents', JSON.stringify(agents));
+}
+
+function populateSelector() {
+  const sel = document.getElementById('agent-selector');
+  sel.innerHTML = '';
+  agents.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.icon ? a.icon + ' ' + a.name : a.name;
+    if (currentAgent && a.id === currentAgent.id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function switchAgent(id) {
+  window.location.href = 'dashboard.html?agent=' + encodeURIComponent(id);
+}
+
+// =====================================================
+// RENDER AGENT
+// =====================================================
+function renderAgent() {
+  const a = currentAgent;
+  const statusClass = a.status === 'online' ? '' : a.status === 'busy' ? 'busy' : 'offline';
+  const statusLabel = a.status === 'online' ? 'Online' : a.status === 'busy' ? 'Busy' : 'Offline';
+
+  // Header
+  document.getElementById('agent-avatar').textContent = a.icon || '\u27C1';
+  document.getElementById('agent-name').textContent = a.name;
+  document.getElementById('agent-ens').textContent = a.ens || a.name + '.proofclaw.eth';
+  document.getElementById('agent-type-badge').textContent = a.type || 'agent';
+  document.getElementById('header-dot').className = 'status-dot' + (statusClass ? ' ' + statusClass : '');
+  document.getElementById('header-status-text').textContent = statusLabel;
+  document.getElementById('policy-hash-short').textContent = a.policyHash || '0x' + a.id.slice(0, 4) + '...' + a.id.slice(-4);
+
+  // Topbar status
+  document.getElementById('topbar-dot').className = 'status-dot' + (statusClass ? ' ' + statusClass : '');
+  document.getElementById('topbar-status-text').textContent = statusLabel;
+
+  // Metrics - Agent Status card
+  document.getElementById('metric-agent-id').textContent = a.id;
+  document.getElementById('metric-ens').textContent = a.ens || a.name + '.proofclaw.eth';
+  document.getElementById('metric-policy-hash').textContent = a.policyHash || '0x' + a.id.slice(0, 4) + '...' + a.id.slice(-4);
+
+  // Set initial stats from agent data
+  stats.total = a.tasks || 0;
+  stats.autonomous = Math.floor((a.tasks || 0) * 0.7);
+  stats.approved = Math.floor((a.tasks || 0) * 0.25);
+  stats.violations = Math.floor((a.tasks || 0) * 0.05);
+  stats.proofs = Math.floor((a.tasks || 0) * 0.9);
+  stats.verified = Math.floor((a.tasks || 0) * 0.85);
+  updateStats();
+
+  // Quick action links
+  document.getElementById('btn-proofs').href = 'proofs.html?agent=' + encodeURIComponent(a.id);
+  document.getElementById('btn-messages').href = 'messages.html?agent=' + encodeURIComponent(a.id);
+
+  // Update sidebar nav links with agent param
+  document.querySelectorAll('.sidebar-nav a').forEach(link => {
+    const href = link.getAttribute('href');
+    if (href && href !== '#' && !href.includes('index.html')) {
+      const base = href.split('?')[0];
+      if (base === 'dashboard.html') {
+        link.href = base + '?agent=' + encodeURIComponent(a.id);
+      }
+    }
+  });
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = stats.total;
+  document.getElementById('stat-autonomous').textContent = stats.autonomous;
+  document.getElementById('stat-approved').textContent = stats.approved;
+  document.getElementById('stat-violations').textContent = stats.violations;
+  document.getElementById('stat-proofs').textContent = stats.proofs;
+  document.getElementById('stat-verified').textContent = stats.verified;
+}
+
+// =====================================================
+// UPTIME COUNTER
+// =====================================================
+function startUptimeCounter() {
+  function tick() {
+    const elapsed = Date.now() - startTime;
+    const h = Math.floor(elapsed / 3600000);
+    const m = Math.floor((elapsed % 3600000) / 60000);
+    const s = Math.floor((elapsed % 60000) / 1000);
+    const str = h + 'h ' + m + 'm ' + s + 's';
+    document.getElementById('uptime').textContent = str;
+    document.getElementById('metric-uptime').textContent = h + 'h ' + m + 'm';
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// =====================================================
+// ACTIVITY FEED
+// =====================================================
+function addActivity(type, title, description) {
   const list = document.getElementById('activity-list');
-  const item = document.createElement('li');
-  item.className = 'activity-item';
-  
-  const icons = { proof: '⟁', message: '✉', approval: '✓' };
-  
-  item.innerHTML = `
-    <div class="activity-icon ${type}">${icons[type]}</div>
-    <div class="activity-content">
-      <div class="activity-title">${title}</div>
-      <div class="activity-meta">${meta}</div>
-    </div>
-  `;
-  
-  list.insertBefore(item, list.firstChild);
-  if (list.children.length > 10) {
+  const icons = { proof: '\u27C1', message: '\u2709', approval: '\u2713' };
+  const li = document.createElement('li');
+  li.className = 'activity-item fade-in';
+  li.innerHTML =
+    '<div class="activity-icon ' + type + '">' + (icons[type] || '\u27C1') + '</div>' +
+    '<div class="activity-content">' +
+      '<div class="activity-title">' + title + '</div>' +
+      '<div class="activity-meta">' + description + '</div>' +
+    '</div>';
+  list.insertBefore(li, list.firstChild);
+  // Keep max 12 items
+  while (list.children.length > 12) {
     list.removeChild(list.lastChild);
   }
 }
 
-// Simulate pending approval
+function seedActivity() {
+  const a = currentAgent;
+  const ens = a.ens || a.name + '.proofclaw.eth';
+  addActivity('proof', 'Proof Generated', 'Swap 100 USDC \u2192 ETH \u2022 Autonomous \u2022 2 min ago');
+  addActivity('message', 'DM3 Message Received', 'From bob.proofclaw.eth \u2022 5 min ago');
+  addActivity('approval', 'Ledger Approval Granted', 'Transfer 500 USDC \u2022 10 min ago');
+  addActivity('proof', 'Proof Verified On-Chain', 'Query balance \u2022 Autonomous \u2022 18 min ago');
+  addActivity('message', 'DM3 Message Sent', 'To ' + ens + ' \u2022 25 min ago');
+}
+
+// =====================================================
+// SIMULATIONS
+// =====================================================
+function scheduleSimulations() {
+  // Show pending Ledger approval after 3 seconds
+  activityTimers.push(setTimeout(function() {
+    showPendingApproval();
+  }, 3000));
+
+  // Add proof activity after 8 seconds
+  activityTimers.push(setTimeout(function() {
+    addActivity('proof', 'Proof Generated', 'Query token balance \u2022 Autonomous \u2022 Just now');
+    stats.proofs++;
+    stats.verified++;
+    stats.autonomous++;
+    stats.total++;
+    updateStats();
+  }, 8000));
+
+  // Add message activity after 15 seconds
+  activityTimers.push(setTimeout(function() {
+    addActivity('message', 'DM3 Message Received', 'From alpha.proofclaw.eth \u2022 Just now');
+  }, 15000));
+
+  // Add another proof after 22 seconds
+  activityTimers.push(setTimeout(function() {
+    addActivity('proof', 'Proof Verified On-Chain', 'Swap 50 USDC \u2192 DAI \u2022 Autonomous \u2022 Just now');
+    stats.proofs++;
+    stats.verified++;
+    stats.autonomous++;
+    stats.total++;
+    updateStats();
+  }, 22000));
+}
+
 function showPendingApproval() {
-  const container = document.getElementById('pending-approvals');
-  const list = document.getElementById('approval-list');
-  const count = document.getElementById('approval-count');
-  
-  container.style.display = 'block';
-  count.textContent = '1';
-  
-  list.innerHTML = `
-    <div class="activity-item">
-      <div class="activity-icon approval">🔐</div>
-      <div class="activity-content">
-        <div class="activity-title">High-Value Transfer Requires Approval</div>
-        <div class="activity-meta">Transfer 500 USDC to 0x1234...5678</div>
-        <div class="code-block">
-          Action Value: 500 USDC ($500.00)<br>
-          Autonomous Limit: 100 USDC<br>
-          <span class="hash">Output Commitment: 0xabcd...ef01</span>
-        </div>
-        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-          <button class="btn" onclick="approveLedger()">Approve on Ledger</button>
-          <button class="btn-secondary btn" onclick="rejectAction()">Reject</button>
-        </div>
-      </div>
-    </div>
-  `;
+  const section = document.getElementById('pending-section');
+  const list = document.getElementById('pending-list');
+  const a = currentAgent;
+  const limit = a.spendLimit || 100;
+
+  section.style.display = 'block';
+  section.classList.add('fade-in');
+
+  list.innerHTML =
+    '<div class="approval-card">' +
+      '<div class="approval-desc">High-Value Transfer Requires Ledger Approval</div>' +
+      '<div class="approval-meta">Transfer 500 USDC to 0xd8dA...6045 exceeds autonomous limit</div>' +
+      '<div class="approval-details">' +
+        'Action Value: 500 USDC ($500.00)<br>' +
+        'Autonomous Limit: ' + limit + ' USDC<br>' +
+        '<span class="hash">Output Commitment: 0xabcd1234ef5678900987654321fedcba...ef01</span>' +
+      '</div>' +
+      '<div class="approval-actions">' +
+        '<button class="btn btn-amber" onclick="approveLedger()">Approve on Ledger</button>' +
+        '<button class="btn btn-danger" onclick="rejectAction()">Reject</button>' +
+      '</div>' +
+    '</div>';
+
+  addActivity('approval', 'Approval Requested', 'Transfer 500 USDC \u2022 Awaiting Ledger \u2022 Just now');
 }
 
 function approveLedger() {
-  alert('Opening Ledger approval flow...\n\nIn production, this would:\n1. Connect to Ledger device\n2. Display Clear Signing (ERC-7730)\n3. Request physical approval\n4. Submit signed transaction');
-  document.getElementById('pending-approvals').style.display = 'none';
-  addActivity('approval', 'Ledger Approval Granted', 'Transfer 500 USDC • Just now');
-  stats.approvedActions++;
-  stats.totalActions++;
+  document.getElementById('pending-section').style.display = 'none';
+  addActivity('approval', 'Ledger Approval Granted', 'Transfer 500 USDC \u2022 Signed via Ledger \u2022 Just now');
+  stats.approved++;
+  stats.total++;
+  stats.proofs++;
+  stats.verified++;
   updateStats();
 }
 
 function rejectAction() {
-  document.getElementById('pending-approvals').style.display = 'none';
-  addActivity('approval', 'Action Rejected', 'Transfer 500 USDC • Just now');
+  document.getElementById('pending-section').style.display = 'none';
+  addActivity('approval', 'Action Rejected', 'Transfer 500 USDC \u2022 Rejected by owner \u2022 Just now');
 }
 
-function updateStats() {
-  document.getElementById('total-actions').textContent = stats.totalActions;
-  document.getElementById('autonomous-actions').textContent = stats.autonomousActions;
-  document.getElementById('approved-actions').textContent = stats.approvedActions;
-  document.getElementById('violations').textContent = stats.violations;
-  document.getElementById('proofs-generated').textContent = stats.proofsGenerated;
-  document.getElementById('proofs-verified').textContent = stats.proofsVerified;
+// =====================================================
+// EMPTY STATE
+// =====================================================
+function showEmptyState() {
+  document.getElementById('main-content').innerHTML =
+    '<div class="empty-state">' +
+      '<div class="icon">\u27C1</div>' +
+      '<p>No agents found. Deploy an agent first.</p>' +
+      '<a href="agents.html" class="btn btn-primary" style="margin-top: 1rem;">Go to Agents</a>' +
+    '</div>';
 }
 
-function viewProofs() {
-  window.location.href = 'proofs.html';
-}
-
-function viewMessages() {
-  window.location.href = 'messages.html';
-}
-
-function viewPolicy() {
-  alert('Policy Configuration:\n\nAllowed Tools: swap_tokens, transfer, query\nMax Autonomous Value: 100 USDC\nEndpoint Allowlist: api.uniswap.org, api.0x.org\nPolicy Hash: 0x1234...5678');
-}
-
-// Simulate some activity after 3 seconds
-setTimeout(() => {
-  showPendingApproval();
-}, 3000);
-
-// Simulate proof generation
-setTimeout(() => {
-  addActivity('proof', 'Proof Generated', 'Query balance • Autonomous • Just now');
-  stats.proofsGenerated++;
-  stats.proofsVerified++;
-  stats.autonomousActions++;
-  stats.totalActions++;
-  updateStats();
-}, 8000);
+// =====================================================
+// BOOT
+// =====================================================
+init();
 </script>
 
 </body>

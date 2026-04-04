@@ -239,9 +239,14 @@ nav {
   width: 100%;
   height: 100%;
   border: none;
-  opacity: 0.6;
+  opacity: 0;
   filter: saturate(1.2);
   pointer-events: none;
+  transition: opacity 1.5s ease;
+}
+
+.hero-spline iframe.loaded {
+  opacity: 0.6;
 }
 
 .hero-content {
@@ -1453,11 +1458,12 @@ footer {
     <span class="nav-title">Proof of Claw</span>
   </a>
   <ul class="nav-links">
-    <li><a href="dashboard.html">Dashboard</a></li>
-    <li><a href="agents.html">Agents</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#bounties">Bounties</a></li>
   </ul>
   <div class="nav-actions">
-    <a href="deploy.html" class="nav-badge">Deploy Agent</a>
+    <a href="agents.html" class="nav-badge">Launch App</a>
     <a href="#" class="nav-badge amber">ETHGlobal Cannes 2026</a>
   </div>
   <button class="hamburger" onclick="this.classList.toggle('active'); document.querySelector('.mobile-menu').classList.toggle('active');">
@@ -1467,9 +1473,10 @@ footer {
 
 <!-- Mobile Menu -->
 <div class="mobile-menu">
-  <a href="dashboard.html">Dashboard</a>
-  <a href="agents.html">Agents</a>
-  <a href="deploy.html">Deploy Agent</a>
+  <a href="#features">Features</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#bounties">Bounties</a>
+  <a href="agents.html">Launch App</a>
 </div>
 
 <!-- ========== HERO ========== -->
@@ -1491,8 +1498,8 @@ footer {
       Private inference via 0G Compute. Encrypted inter-agent messaging. ZK proofs of policy compliance. Hardware-gated human approval for high-value actions.
     </p>
     <div class="hero-actions">
-      <a href="#demo" class="btn-primary">Watch Demo</a>
-      <a href="#terminal" class="btn-secondary">See It Run</a>
+      <a href="agents.html" class="btn-primary">Launch App →</a>
+      <a href="#architecture" class="btn-secondary">How It Works</a>
     </div>
     <div class="hero-stats">
       <div class="hero-stat">
@@ -2057,6 +2064,16 @@ footer {
 
 <!-- ========== SCRIPTS ========== -->
 <script>
+// ===== SPLINE IFRAME FADE-IN =====
+(function() {
+  var splineIframe = document.querySelector('.hero-spline iframe');
+  if (splineIframe) {
+    splineIframe.addEventListener('load', function() {
+      splineIframe.classList.add('loaded');
+    });
+  }
+})();
+
 // ===== HERO PARTICLE CANVAS (optimized) =====
 (function() {
   const canvas = document.getElementById('hero-canvas');
