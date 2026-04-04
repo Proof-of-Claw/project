@@ -3359,6 +3359,7 @@ function ensProfileToAgent(profile) {
     name: agentId,
     ens: profile.ensName,
     type: profile.agentType || 'unknown',
+    typeIcon: typeIcons[profile.agentType] || 'public/icons/coordinator.svg',
     network: profile.network || 'sepolia',
     skills: profile.skills || [],
     allowedTools: [],
