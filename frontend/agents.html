@@ -2209,6 +2209,43 @@ function openProfile(agentId) {
     <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Skills</div>
     <div class="profile-skills">${a.skills.map(s => `<span class="tag">${esc(s)}</span>`).join('')}</div>
     ` : ''}
+
+    <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Permissions &amp; Policy</div>
+        <button id="profile-edit-toggle" onclick="toggleProfileEdit('${a.id}')" style="font-size:10px;padding:3px 10px;background:rgba(0,229,255,0.1);border:1px solid var(--border-cyan);border-radius:4px;color:var(--cyan);cursor:pointer;font-family:var(--font-mono);">Edit</button>
+      </div>
+      <div id="profile-permissions-view">
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;"><span style="color:var(--text-dim);width:100px;display:inline-block;">Tools:</span> ${(a.allowedTools || []).join(', ') || 'None'}</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;"><span style="color:var(--text-dim);width:100px;display:inline-block;">Value Limit:</span> $${a.valueLimit || 0} USD</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;"><span style="color:var(--text-dim);width:100px;display:inline-block;">Endpoints:</span> ${esc(a.endpoints || 'Any')}</div>
+        <div style="font-size:12px;color:var(--text-secondary);"><span style="color:var(--text-dim);width:100px;display:inline-block;">Network:</span> ${esc(a.network || 'sepolia')}</div>
+      </div>
+      <div id="profile-permissions-edit" style="display:none;">
+        <div class="form-group" style="margin-bottom:10px;">
+          <label style="font-size:11px;">Allowed Tools</label>
+          <input type="text" id="profile-edit-tools" value="${esc((a.allowedTools || []).join(', '))}" style="font-size:12px;padding:8px 10px;">
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label style="font-size:11px;">Autonomous Value Limit (USD)</label>
+          <input type="number" id="profile-edit-limit" value="${a.valueLimit || 0}" min="0" step="10" style="font-size:12px;padding:8px 10px;">
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label style="font-size:11px;">Endpoint Allowlist</label>
+          <input type="text" id="profile-edit-endpoints" value="${esc(a.endpoints || '')}" style="font-size:12px;padding:8px 10px;">
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label style="font-size:11px;">Description</label>
+          <textarea id="profile-edit-desc" style="font-size:12px;padding:8px 10px;min-height:60px;">${esc(a.description || '')}</textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="saveProfileEdit('${a.id}')" style="flex:1;padding:8px;font-size:11px;background:var(--cyan);color:#000;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:var(--font-mono);">Save &amp; Get New Command</button>
+          <button onclick="toggleProfileEdit('${a.id}')" style="padding:8px 14px;font-size:11px;background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:var(--font-mono);">Cancel</button>
+        </div>
+        <div id="profile-edit-result" style="margin-top:8px;font-size:11px;"></div>
+      </div>
+    </div>
+
     <div class="profile-actions">
       <button onclick="closeProfile();openChat('${a.id}');" style="background:linear-gradient(135deg,var(--cyan),#00b8d4);color:#000;font-weight:700;border:none;">Chat</button>
       <a href="dashboard.html?agent=${a.id}">Dashboard</a>
@@ -2218,6 +2255,63 @@ function openProfile(agentId) {
   `;
 
   document.getElementById('profile-modal').classList.add('active');
+}
+
+function toggleProfileEdit(agentId) {
+  const viewEl = document.getElementById('profile-permissions-view');
+  const editEl = document.getElementById('profile-permissions-edit');
+  const btn = document.getElementById('profile-edit-toggle');
+  if (editEl.style.display === 'none') {
+    editEl.style.display = 'block';
+    viewEl.style.display = 'none';
+    btn.textContent = 'Cancel';
+  } else {
+    editEl.style.display = 'none';
+    viewEl.style.display = 'block';
+    btn.textContent = 'Edit';
+  }
+}
+
+function saveProfileEdit(agentId) {
+  const a = agents.find(x => x.id === agentId);
+  if (!a) return;
+
+  const tools = document.getElementById('profile-edit-tools').value.trim();
+  const limit = parseInt(document.getElementById('profile-edit-limit').value) || 0;
+  const endpoints = document.getElementById('profile-edit-endpoints').value.trim();
+  const desc = document.getElementById('profile-edit-desc').value.trim();
+
+  // Update agent
+  a.allowedTools = tools.split(',').map(s => s.trim()).filter(Boolean);
+  a.valueLimit = limit;
+  a.endpoints = endpoints;
+  a.description = desc;
+  saveAgents();
+
+  // Update stored config and regenerate command
+  const oldConfig = loadAgentConfig(agentId) || {};
+  const newConfig = {
+    ...oldConfig,
+    tools: a.allowedTools.join(','),
+    endpoints,
+    maxWei: limit * 1e16,
+  };
+  newConfig.runCmd = buildRunCmd(agentId, a.ens, newConfig);
+  saveAgentConfig(agentId, newConfig);
+
+  // Show result with the new command
+  const resultEl = document.getElementById('profile-edit-result');
+  resultEl.innerHTML = `
+    <div style="margin-top:8px;padding:10px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:6px;">
+      <div style="color:var(--green);font-size:11px;margin-bottom:6px;font-weight:700;">Permissions updated!</div>
+      <div style="color:var(--text-secondary);font-size:11px;margin-bottom:8px;">Restart your agent with the updated command for changes to take effect.</div>
+      <div style="position:relative;">
+        <pre id="profile-new-cmd" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:10px;color:var(--cyan);white-space:pre-wrap;word-break:break-all;line-height:1.6;max-height:120px;overflow-y:auto;">${esc(newConfig.runCmd)}</pre>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('profile-new-cmd').textContent);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500);" style="position:absolute;top:4px;right:4px;padding:2px 8px;font-size:9px;background:rgba(0,229,255,0.15);border:1px solid var(--border-cyan);border-radius:3px;color:var(--cyan);cursor:pointer;font-family:var(--font-mono);">Copy</button>
+      </div>
+    </div>`;
+
+  renderAgents();
 }
 
 function closeProfile() {
@@ -2577,13 +2671,57 @@ function deployComplete() {
   saveAgents();
 
   document.getElementById('success-message').textContent =
-    `${newAgent.name} (${newAgent.ens}) is now live and generating cryptographic proofs.`;
+    `${newAgent.name} (${newAgent.ens}) registered. Start your agent to connect.`;
+
+  // Build the cargo run command with the agent's actual config
+  const pk = document.getElementById('private-key').value.trim() || '0x_YOUR_PRIVATE_KEY';
+  const rpcUrl = wizardData.network === 'sepolia' ? 'https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY'
+    : wizardData.network === 'og_testnet' ? 'https://evmrpc-testnet.0g.ai'
+    : wizardData.network === 'og_mainnet' ? 'https://evmrpc.0g.ai'
+    : 'https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY';
+  const tools = (wizardData.allowedTools || []).join(',') || 'swap_tokens,transfer,query';
+  const endpoints = wizardData.endpoints || 'https://api.uniswap.org,https://api.0x.org';
+  const maxWei = (wizardData.valueLimit || 100) * 1e16; // rough USD to wei
+
+  const runCmd = `cd agent && \\
+AGENT_ID=${agentId} \\
+ENS_NAME=${newAgent.ens} \\
+PRIVATE_KEY=${pk} \\
+RPC_URL=${rpcUrl} \\
+ZERO_G_INDEXER_RPC=https://indexer-storage-testnet.0g.ai \\
+ZERO_G_COMPUTE_ENDPOINT=https://broker-testnet.0g.ai \\
+DM3_DELIVERY_SERVICE_URL=http://localhost:3001 \\
+ALLOWED_TOOLS=${tools} \\
+ENDPOINT_ALLOWLIST=${endpoints} \\
+MAX_VALUE_AUTONOMOUS_WEI=${maxWei} \\
+cargo run`;
+
+  // Persist run command and config for reconnect/update flow
+  saveAgentConfig(agentId, {
+    runCmd,
+    privateKey: pk,
+    rpcUrl,
+    tools,
+    endpoints,
+    maxWei,
+    network: wizardData.network,
+    lastUrl: 'http://localhost:8420',
+  });
 
   document.getElementById('success-links').innerHTML = `
-    <a href="dashboard.html?agent=${agentId}" class="btn-primary">Open Dashboard</a>
-    <a href="messages.html?agent=${agentId}" class="btn-secondary">Send Message</a>
-    <a href="proofs.html?agent=${agentId}" class="btn-secondary">View Proofs</a>
-    <a href="#" class="btn-secondary" onclick="event.preventDefault();closeWizard();renderAgents();">Close</a>
+    <div style="text-align:left;width:100%;margin-bottom:16px;">
+      <div style="color:var(--text-dim);font-size:11px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Step 1 — Run your agent</div>
+      <div style="position:relative;">
+        <pre id="run-command" style="background:var(--bg-primary);border:1px solid var(--border-cyan);border-radius:8px;padding:14px 16px;font-size:11px;color:var(--cyan);overflow-x:auto;white-space:pre-wrap;word-break:break-all;line-height:1.8;max-height:200px;overflow-y:auto;">${esc(runCmd)}</pre>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('run-command').textContent);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500);" style="position:absolute;top:8px;right:8px;padding:4px 12px;font-size:10px;background:rgba(0,229,255,0.15);border:1px solid var(--border-cyan);border-radius:4px;color:var(--cyan);cursor:pointer;font-family:var(--font-mono);">Copy</button>
+      </div>
+      <div style="color:var(--text-dim);font-size:11px;margin-top:16px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Step 2 — Connect &amp; Chat</div>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Once your agent is running, connect and start chatting.</p>
+    </div>
+    <div style="display:flex;gap:8px;width:100%;flex-wrap:wrap;">
+      <button class="btn-primary" style="flex:1;" onclick="closeWizard();renderAgents();if(typeof PocAPI!=='undefined')PocAPI.showConnectModal();">Connect OpenClaw</button>
+      <a href="#" class="btn-secondary" style="flex:0;" onclick="event.preventDefault();closeWizard();renderAgents();">Later</a>
+    </div>
   `;
 
   renderAgents();
@@ -2627,23 +2765,35 @@ function openChat(agentId) {
     if (sendBtn) sendBtn.disabled = false;
     renderChatHistory(agentId, a);
   } else {
-    // Not connected — show connect prompt
+    // Not connected — show saved command + reconnect
     chatInput.disabled = true;
     chatInput.placeholder = 'Connect your agent to start chatting';
     if (sendBtn) sendBtn.disabled = true;
     const container = document.getElementById('chat-messages');
+    const savedConfig = loadAgentConfig(agentId);
+    const savedCmd = savedConfig?.runCmd || buildRunCmd(a.id, a.ens, savedConfig || {});
+    const savedUrl = savedConfig?.lastUrl || 'http://localhost:8420';
+
     container.innerHTML = `
-      <div class="chat-welcome">
-        <div class="welcome-icon" style="font-size:48px;opacity:0.4;">&#x26A0;</div>
-        <h3>Agent Not Connected</h3>
-        <p>Start your OpenClaw agent backend and connect it to chat in real time.</p>
-        <div style="text-align:left;margin-top:16px;padding:16px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border);font-size:12px;line-height:2;">
-          <div style="color:var(--text-dim);margin-bottom:8px;">1. Start your agent:</div>
-          <code style="display:block;color:var(--cyan);padding:8px 12px;background:rgba(0,229,255,0.05);border-radius:4px;margin-bottom:12px;word-break:break-all;font-size:11px;">cd agent && AGENT_ID=${esc(a.id)} ENS_NAME=${esc(a.ens)} cargo run</code>
-          <div style="color:var(--text-dim);margin-bottom:8px;">2. Click <strong style="color:var(--text-primary);">Connect OpenClaw</strong> in the sidebar</div>
-          <div style="color:var(--text-dim);">3. Enter <code style="color:var(--cyan);">http://localhost:8420</code> and connect</div>
+      <div class="chat-welcome" style="text-align:left;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:40px;opacity:0.5;margin-bottom:8px;">&#x1F50C;</div>
+          <h3>Agent Offline</h3>
+          <p style="color:var(--text-secondary);font-size:12px;">Start your agent and reconnect to chat.</p>
         </div>
-        <button onclick="closeChat();if(typeof PocAPI!=='undefined')PocAPI.showConnectModal();" class="btn-wizard btn-wizard-next" style="margin-top:16px;padding:10px 24px;font-size:12px;">Connect OpenClaw</button>
+        <div style="color:var(--text-dim);font-size:11px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Run Command</div>
+        <div style="position:relative;">
+          <pre id="chat-run-cmd" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:10px;color:var(--cyan);white-space:pre-wrap;word-break:break-all;line-height:1.7;max-height:160px;overflow-y:auto;">${esc(savedCmd)}</pre>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('chat-run-cmd').textContent);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500);" style="position:absolute;top:6px;right:6px;padding:3px 10px;font-size:10px;background:rgba(0,229,255,0.15);border:1px solid var(--border-cyan);border-radius:4px;color:var(--cyan);cursor:pointer;font-family:var(--font-mono);">Copy</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn-wizard btn-wizard-next" style="flex:1;padding:10px;font-size:12px;" onclick="attemptReconnect('${agentId}')">Reconnect (${esc(savedUrl)})</button>
+        </div>
+        <div id="reconnect-status" style="margin-top:8px;font-size:11px;text-align:center;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-wizard btn-wizard-back" style="flex:1;padding:8px;font-size:11px;" onclick="openUpdateConfig('${agentId}')">Update Config</button>
+          <button class="btn-wizard btn-wizard-back" style="flex:1;padding:8px;font-size:11px;" onclick="closeChat();if(typeof PocAPI!=='undefined')PocAPI.showConnectModal();">Connect Other URL</button>
+        </div>
       </div>`;
   }
 
@@ -2670,6 +2820,150 @@ function chatOpenProfile() {
     closeChat();
     setTimeout(() => openProfile(chatAgentId), 380);
   }
+}
+
+// ─── Agent Config Persistence (for reconnect/update) ───
+
+function saveAgentConfig(agentId, config) {
+  localStorage.setItem('poc_agent_config_' + agentId, JSON.stringify(config));
+}
+
+function loadAgentConfig(agentId) {
+  try { return JSON.parse(localStorage.getItem('poc_agent_config_' + agentId)); } catch { return null; }
+}
+
+function buildRunCmd(agentId, agentEns, config) {
+  return `cd agent && \\
+AGENT_ID=${agentId} \\
+ENS_NAME=${agentEns} \\
+PRIVATE_KEY=${config.privateKey || '0x_YOUR_PRIVATE_KEY'} \\
+RPC_URL=${config.rpcUrl || 'https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY'} \\
+ZERO_G_INDEXER_RPC=https://indexer-storage-testnet.0g.ai \\
+ZERO_G_COMPUTE_ENDPOINT=https://broker-testnet.0g.ai \\
+DM3_DELIVERY_SERVICE_URL=http://localhost:3001 \\
+ALLOWED_TOOLS=${config.tools || 'swap_tokens,transfer,query'} \\
+ENDPOINT_ALLOWLIST=${config.endpoints || 'https://api.uniswap.org,https://api.0x.org'} \\
+MAX_VALUE_AUTONOMOUS_WEI=${config.maxWei || 1e18} \\
+cargo run`;
+}
+
+async function attemptReconnect(agentId) {
+  const config = loadAgentConfig(agentId);
+  const url = config?.lastUrl || 'http://localhost:8420';
+  const statusEl = document.getElementById('reconnect-status');
+
+  if (statusEl) {
+    statusEl.innerHTML = '<span style="color:var(--amber);">Connecting to ' + esc(url) + '...</span>';
+  }
+
+  try {
+    if (typeof PocAPI === 'undefined') throw new Error('PocAPI not loaded');
+    const conn = await PocAPI.connect(url);
+
+    // Save the working URL
+    if (config) { config.lastUrl = url; saveAgentConfig(agentId, config); }
+
+    // Refresh chat view
+    if (chatAgentId === agentId) {
+      const a = agents.find(x => x.id === agentId);
+      if (a) {
+        a.status = 'online';
+        a.live = true;
+        saveAgents();
+        openChat(agentId); // re-render with live state
+      }
+    }
+    renderAgents();
+  } catch (e) {
+    if (statusEl) {
+      statusEl.innerHTML = '<span style="color:var(--red);">Failed: ' + esc(e.message) + '. Is your agent running?</span>';
+    }
+  }
+}
+
+function openUpdateConfig(agentId) {
+  const a = agents.find(x => x.id === agentId);
+  if (!a) return;
+  const config = loadAgentConfig(agentId) || {};
+
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = `
+    <div class="chat-welcome" style="text-align:left;">
+      <h3 style="text-align:center;margin-bottom:16px;">Update Agent Config</h3>
+      <div class="form-group">
+        <label>Allowed Tools</label>
+        <input type="text" id="update-tools" value="${esc(config.tools || (a.allowedTools||[]).join(','))}" placeholder="swap_tokens,transfer,query">
+      </div>
+      <div class="form-group">
+        <label>Endpoint Allowlist</label>
+        <input type="text" id="update-endpoints" value="${esc(config.endpoints || a.endpoints || '')}" placeholder="https://api.uniswap.org">
+      </div>
+      <div class="form-group">
+        <label>Autonomous Value Limit (USD)</label>
+        <input type="number" id="update-limit" value="${a.valueLimit || 100}" min="0" step="10">
+      </div>
+      <div class="form-group">
+        <label>RPC URL</label>
+        <input type="text" id="update-rpc" value="${esc(config.rpcUrl || '')}" placeholder="https://eth-sepolia.g.alchemy.com/v2/...">
+      </div>
+      <div class="form-group">
+        <label>Agent API URL</label>
+        <input type="text" id="update-url" value="${esc(config.lastUrl || 'http://localhost:8420')}" placeholder="http://localhost:8420">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn-wizard btn-wizard-next" style="flex:1;padding:10px;font-size:12px;" onclick="saveUpdatedConfig('${agentId}')">Save &amp; Get New Command</button>
+        <button class="btn-wizard btn-wizard-back" style="padding:10px 16px;font-size:12px;" onclick="openChat('${agentId}')">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function saveUpdatedConfig(agentId) {
+  const a = agents.find(x => x.id === agentId);
+  if (!a) return;
+
+  const tools = document.getElementById('update-tools').value.trim();
+  const endpoints = document.getElementById('update-endpoints').value.trim();
+  const limit = parseInt(document.getElementById('update-limit').value) || 100;
+  const rpcUrl = document.getElementById('update-rpc').value.trim();
+  const lastUrl = document.getElementById('update-url').value.trim();
+
+  // Update agent in list
+  a.allowedTools = tools.split(',').map(s => s.trim()).filter(Boolean);
+  a.valueLimit = limit;
+  a.endpoints = endpoints;
+  saveAgents();
+
+  // Update stored config
+  const oldConfig = loadAgentConfig(agentId) || {};
+  const newConfig = {
+    ...oldConfig,
+    tools,
+    endpoints,
+    maxWei: limit * 1e16,
+    rpcUrl: rpcUrl || oldConfig.rpcUrl,
+    lastUrl: lastUrl || oldConfig.lastUrl || 'http://localhost:8420',
+  };
+  const runCmd = buildRunCmd(agentId, a.ens, newConfig);
+  newConfig.runCmd = runCmd;
+  saveAgentConfig(agentId, newConfig);
+
+  // Show the new command
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = `
+    <div class="chat-welcome" style="text-align:left;">
+      <h3 style="text-align:center;margin-bottom:4px;">Config Updated</h3>
+      <p style="text-align:center;color:var(--text-secondary);font-size:12px;margin-bottom:16px;">Restart your agent with the new command below.</p>
+      <div style="color:var(--text-dim);font-size:11px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Updated Run Command</div>
+      <div style="position:relative;">
+        <pre id="updated-run-cmd" style="background:var(--bg-primary);border:1px solid var(--border-cyan);border-radius:8px;padding:14px 16px;font-size:11px;color:var(--cyan);white-space:pre-wrap;word-break:break-all;line-height:1.8;max-height:200px;overflow-y:auto;">${esc(runCmd)}</pre>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('updated-run-cmd').textContent);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500);" style="position:absolute;top:8px;right:8px;padding:4px 12px;font-size:10px;background:rgba(0,229,255,0.15);border:1px solid var(--border-cyan);border-radius:4px;color:var(--cyan);cursor:pointer;font-family:var(--font-mono);">Copy</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn-wizard btn-wizard-next" style="flex:1;padding:10px;font-size:12px;" onclick="attemptReconnect('${agentId}')">Reconnect</button>
+        <button class="btn-wizard btn-wizard-back" style="padding:10px 16px;font-size:12px;" onclick="openChat('${agentId}')">Back to Chat</button>
+      </div>
+      <div id="reconnect-status" style="margin-top:8px;font-size:11px;text-align:center;"></div>
+    </div>`;
 }
 
 // ─── Chat History Persistence ───
