@@ -702,6 +702,7 @@ body.sidebar-collapsed #poc-connection-slot { display: none; }
   <nav class="sidebar-nav">
     <a href="agents.html"><span class="nav-icon">&#x2B21;</span> Agents</a>
     <a href="dashboard.html"><span class="nav-icon">&#x25A3;</span> Dashboard</a>
+    <a href="dashboard.html?view=auth"><span class="nav-icon">&#x1F512;</span> Auth</a>
     <a href="messages.html"><span class="nav-icon">&#x2709;</span> Messages</a>
     <a href="proofs.html" class="active"><span class="nav-icon">&#x2713;</span> Proofs</a>
   </nav>
@@ -796,93 +797,117 @@ body.sidebar-collapsed #poc-connection-slot { display: none; }
 </div>
 
 <script>
-// ===================== DATA =====================
-const PROOFS = [
-  {
-    id: '1234',
-    agent: 'alice-agent',
-    action: 'swap_tokens',
-    value: 100,
-    currency: 'USDC',
-    approval: 'Autonomous',
-    timestamp: '2026-04-03 16:45:32 UTC',
-    proofTime: '42s (Boundless)',
-    proofTimeNum: 42,
-    status: 'verified',
-    commitment: '0xabcd1234ef567890abcd1234ef567890abcd1234ef567890abcd1234ef567890',
-    policyChecks: [
-      { rule: 'Tool Allowlist', detail: 'swap_tokens is in allowed tools list', pass: true },
-      { rule: 'Value Threshold', detail: '100 USDC \u2264 100 USDC autonomous limit', pass: true },
-      { rule: 'Endpoint Allowlist', detail: 'api.uniswap.org is approved', pass: true },
-      { rule: 'Prompt Injection', detail: 'No injection patterns detected', pass: true }
-    ],
-    verifiedOutput: {
-      agent_id: 'alice-agent',
-      policy_hash: '0x1234...5678',
-      output_commitment: '0xabcd...7890',
-      all_checks_passed: true,
-      requires_ledger_approval: false,
-      action_value: 100000000
-    },
-    txHash: '0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba',
-    blockNumber: '12,345,678'
-  },
-  {
-    id: '1235',
-    agent: 'alice-agent',
-    action: 'transfer',
-    value: 500,
-    currency: 'USDC',
-    approval: 'Ledger Approved',
-    timestamp: '2026-04-03 16:30:15 UTC',
-    proofTime: '38s (Boundless)',
-    proofTimeNum: 38,
-    status: 'verified',
-    commitment: '0xef012345ab678901ef012345ab678901ef012345ab678901ef012345ab678901',
-    policyChecks: [
-      { rule: 'Tool Allowlist', detail: 'transfer is in allowed tools list', pass: true },
-      { rule: 'Value Threshold', detail: '500 USDC > 100 USDC \u2192 Ledger approval required', pass: true },
-      { rule: 'Endpoint Allowlist', detail: 'api.aave.com is approved', pass: true },
-      { rule: 'Prompt Injection', detail: 'No injection patterns detected', pass: true }
-    ],
-    verifiedOutput: {
-      agent_id: 'alice-agent',
-      policy_hash: '0x1234...5678',
-      output_commitment: '0xef01...8901',
-      all_checks_passed: true,
-      requires_ledger_approval: true,
-      action_value: 500000000
-    },
-    txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    blockNumber: '12,345,650'
-  },
-  {
-    id: '1236',
-    agent: 'alice-agent',
-    action: 'query',
-    value: 0,
-    currency: 'USDC',
-    approval: 'Autonomous',
-    timestamp: '2026-04-03 16:50:00 UTC',
-    proofTime: '~15s remaining',
-    proofTimeNum: null,
-    status: 'pending',
-    commitment: '0x5678abcd9012ef345678abcd9012ef345678abcd9012ef345678abcd9012ef34',
-    policyChecks: [
-      { rule: 'Tool Allowlist', detail: 'query is in allowed tools list', pass: true },
-      { rule: 'Value Threshold', detail: '0 USDC \u2264 100 USDC autonomous limit', pass: true },
-      { rule: 'Endpoint Allowlist', detail: 'api.coingecko.com is approved', pass: true },
-      { rule: 'Prompt Injection', detail: 'No injection patterns detected', pass: true }
-    ],
-    verifiedOutput: null,
-    txHash: null,
-    blockNumber: null
-  }
-];
-
-// ===================== STATE =====================
-let proofs = JSON.parse(JSON.stringify(PROOFS));
+// ===================== LIVE DATA =====================
+let proofs = [];
 let expandedProofs = new Set();
+let livePollingTimer = null;
+
+function isConnected() {
+  return typeof PocAPI !== 'undefined' && PocAPI.isConnected && PocAPI.isConnected();
+}
+
+function getBaseUrl() {
+  const conn = isConnected() ? PocAPI.getConnection() : null;
+  return conn ? conn.url : null;
+}
+
+// Convert live API proof entry to internal format
+function convertLiveProof(entry) {
+  const shortId = entry.id.replace(/-/g, '').slice(0, 8);
+  const ts = new Date(entry.timestamp * 1000);
+  const tsStr = ts.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  const ethValue = entry.action_value_wei / 1e18;
+
+  return {
+    id: shortId,
+    _fullId: entry.id,
+    agent: entry.agent_id,
+    action: 'inference',
+    value: ethValue > 0 ? ethValue.toFixed(4) : 0,
+    currency: 'A0GI',
+    approval: entry.requires_ledger ? 'Ledger Approved' : 'Autonomous',
+    timestamp: tsStr,
+    proofTime: '~1s (Mock)',
+    proofTimeNum: 1,
+    status: entry.all_checks_passed ? 'verified' : 'failed',
+    commitment: entry.output_commitment,
+    policyChecks: [
+      { rule: 'Policy Hash', detail: entry.policy_hash.slice(0, 18) + '...', pass: entry.all_checks_passed },
+      { rule: 'Ledger Approval', detail: entry.requires_ledger ? 'Required' : 'Not required', pass: true },
+      { rule: 'All Checks Passed', detail: entry.all_checks_passed ? 'Yes' : 'One or more failed', pass: entry.all_checks_passed },
+    ],
+    verifiedOutput: {
+      agent_id: entry.agent_id,
+      policy_hash: entry.policy_hash,
+      output_commitment: entry.output_commitment,
+      all_checks_passed: entry.all_checks_passed,
+      requires_ledger_approval: entry.requires_ledger,
+      action_value: entry.action_value_wei,
+      session_id: entry.session_id,
+      trace_root: entry.trace_root || null,
+    },
+    txHash: null,
+    blockNumber: null,
+    isLive: true,
+  };
+}
+
+async function fetchLiveProofs() {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) return;
+
+  try {
+    const data = await PocAPI.fetchProofs(baseUrl);
+    if (data && data.proofs) {
+      const liveProofs = data.proofs.map(convertLiveProof);
+      // Keep mock data but prepend live proofs
+      const mockProofs = window._mockProofs || [];
+      proofs = [...liveProofs, ...mockProofs];
+      renderProofs();
+      populateAgentFilters();
+      updateStats();
+    }
+  } catch (e) {
+    console.warn('Failed to fetch live proofs:', e.message);
+  }
+}
+
+function startLivePolling() {
+  if (livePollingTimer) return;
+  fetchLiveProofs();
+  livePollingTimer = setInterval(fetchLiveProofs, 8000);
+}
+
+function stopLivePolling() {
+  if (livePollingTimer) {
+    clearInterval(livePollingTimer);
+    livePollingTimer = null;
+  }
+}
+
+// Stats update from live data
+function updateStats() {
+  const total = proofs.length;
+  const verified = proofs.filter(p => p.status === 'verified').length;
+  const pending = proofs.filter(p => p.status === 'pending').length;
+  const totalEl = document.getElementById('statTotal');
+  const verifiedEl = document.getElementById('statVerified');
+  const pendingEl = document.getElementById('statPending');
+  if (totalEl) totalEl.textContent = total;
+  if (verifiedEl) verifiedEl.textContent = verified;
+  if (pendingEl) pendingEl.textContent = pending;
+}
+
+// Initialise: load live data if connected, else mock data
+function initProofs() {
+  if (isConnected()) {
+    startLivePolling();
+  } else {
+    proofs = JSON.parse(JSON.stringify(window._mockProofs || []));
+    renderProofs();
+    populateAgentFilters();
+  }
+}
 
 // ===================== HELPERS =====================
 function getAgents() {
@@ -1138,9 +1163,95 @@ setTimeout(() => {
 }, 5000);
 
 // ===================== INIT =====================
-populateAgentFilters();
+// Store mock data for fallback when not connected
+window._mockProofs = JSON.parse(JSON.stringify([
+  {
+    id: '1234',
+    agent: 'alice-agent',
+    action: 'swap_tokens',
+    value: 100,
+    currency: 'USDC',
+    approval: 'Autonomous',
+    timestamp: '2026-04-03 16:45:32 UTC',
+    proofTime: '42s (Boundless)',
+    proofTimeNum: 42,
+    status: 'verified',
+    commitment: '0xabcd1234ef567890abcd1234ef567890abcd1234ef567890abcd1234ef567890',
+    policyChecks: [
+      { rule: 'Tool Allowlist', detail: 'swap_tokens is in allowed tools list', pass: true },
+      { rule: 'Value Threshold', detail: '100 USDC \u2264 100 USDC autonomous limit', pass: true },
+      { rule: 'Endpoint Allowlist', detail: 'api.uniswap.org is approved', pass: true },
+      { rule: 'Prompt Injection', detail: 'No injection patterns detected', pass: true }
+    ],
+    verifiedOutput: {
+      agent_id: 'alice-agent',
+      policy_hash: '0x1234...5678',
+      output_commitment: '0xabcd...7890',
+      all_checks_passed: true,
+      requires_ledger_approval: false,
+      action_value: 100000000
+    },
+    txHash: '0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba',
+    blockNumber: '12,345,678',
+    isLive: false,
+  },
+  {
+    id: '1235',
+    agent: 'alice-agent',
+    action: 'transfer',
+    value: 500,
+    currency: 'USDC',
+    approval: 'Ledger Approved',
+    timestamp: '2026-04-03 16:30:15 UTC',
+    proofTime: '38s (Boundless)',
+    proofTimeNum: 38,
+    status: 'verified',
+    commitment: '0xef012345ab678901ef012345ab678901ef012345ab678901ef012345ab678901',
+    policyChecks: [
+      { rule: 'Tool Allowlist', detail: 'transfer is in allowed tools list', pass: true },
+      { rule: 'Value Threshold', detail: '500 USDC > 100 USDC \u2192 Ledger approval required', pass: true },
+      { rule: 'Endpoint Allowlist', detail: 'api.aave.com is approved', pass: true },
+      { rule: 'Prompt Injection', detail: 'No injection patterns detected', pass: true }
+    ],
+    verifiedOutput: {
+      agent_id: 'alice-agent',
+      policy_hash: '0x1234...5678',
+      output_commitment: '0xef01...8901',
+      all_checks_passed: true,
+      requires_ledger_approval: true,
+      action_value: 500000000
+    },
+    txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    blockNumber: '12,345,650',
+    isLive: false,
+  },
+  {
+    id: '1236',
+    agent: 'alice-agent',
+    action: 'query',
+    value: 0,
+    currency: 'USDC',
+    approval: 'Autonomous',
+    timestamp: '2026-04-03 16:50:00 UTC',
+    proofTime: '~15s remaining',
+    proofTimeNum: null,
+    status: 'pending',
+    commitment: '0x5678abcd9012ef345678abcd9012ef345678abcd9012ef345678abcd9012ef34',
+    policyChecks: [
+      { rule: 'Tool Allowlist', detail: 'query is in allowed tools list', pass: true },
+      { rule: 'Value Threshold', detail: '0 USDC \u2264 100 USDC autonomous limit', pass: true },
+      { rule: 'Endpoint Allowlist', detail: 'api.coingecko.com is approved', pass: true },
+      { rule: 'Prompt Injection', detail: 'No injection patterns detected', pass: true }
+    ],
+    verifiedOutput: null,
+    txHash: null,
+    blockNumber: null,
+    isLive: false,
+  }
+]));
+
+initProofs();
 applyUrlParams();
-renderProofs();
 </script>
 <script>
 // Sidebar collapse

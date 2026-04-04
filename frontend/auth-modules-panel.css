@@ -1,0 +1,177 @@
+/* Auth modules panel — always scoped under .poc-auth-panel */
+
+.poc-auth-panel {
+  position: relative;
+  z-index: 1;
+}
+
+.poc-auth-panel .page-intro {
+  margin-bottom: 2rem;
+}
+
+.poc-auth-panel .page-intro h1 {
+  font-family: var(--font-display, 'Syne', sans-serif);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  letter-spacing: -0.03em;
+  margin-bottom: 0.65rem;
+  line-height: 1.15;
+  color: var(--text-primary, #e8ecf4);
+}
+
+.poc-auth-panel .page-intro p {
+  color: var(--text-secondary, #8892a4);
+  max-width: 62ch;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.poc-auth-panel .page-intro a {
+  color: var(--cyan, #00e5ff);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+.poc-auth-panel .page-intro a:hover {
+  border-bottom-color: var(--cyan, #00e5ff);
+}
+
+.poc-auth-panel .module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.15rem;
+}
+
+.poc-auth-panel .auth-card {
+  background: var(--bg-card, #0f1520);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-radius: 14px;
+  padding: 1.35rem 1.35rem 1.2rem;
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  --accent: var(--cyan, #00e5ff);
+}
+
+.poc-auth-panel .auth-card:hover {
+  background: var(--bg-card-hover, #141c2a);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border, rgba(255,255,255,0.06)));
+  box-shadow: 0 8px 40px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.poc-auth-panel .auth-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.poc-auth-panel .auth-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary, #0c1018));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
+}
+
+.poc-auth-panel .auth-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.poc-auth-panel .auth-card h2 {
+  font-family: var(--font-display, 'Syne', sans-serif);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.15rem;
+  color: var(--text-primary, #e8ecf4);
+}
+
+.poc-auth-panel .auth-card .tagline {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-dim, #4a5568);
+}
+
+.poc-auth-panel .auth-card p.desc {
+  color: var(--text-secondary, #8892a4);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.poc-auth-panel .flow-list {
+  list-style: none;
+  font-size: 0.74rem;
+  color: var(--text-dim, #4a5568);
+  border-top: 1px solid var(--border, rgba(255,255,255,0.06));
+  padding-top: 0.75rem;
+  margin-top: auto;
+}
+
+.poc-auth-panel .flow-list li {
+  padding: 0.22rem 0;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.poc-auth-panel .flow-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.poc-auth-panel .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.poc-auth-panel .chip {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.22rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border, rgba(255,255,255,0.06));
+  color: var(--text-secondary, #8892a4);
+}
+
+.poc-auth-panel .spec-callout {
+  margin-top: 2rem;
+  padding: 1.1rem 1.35rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-cyan, rgba(0, 229, 255, 0.2));
+  background: var(--cyan-glow, rgba(0, 229, 255, 0.15));
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8892a4);
+  line-height: 1.55;
+}
+
+.poc-auth-panel .spec-callout strong {
+  color: var(--text-primary, #e8ecf4);
+}
+
+.poc-auth-panel .spec-callout a {
+  color: var(--cyan, #00e5ff);
+}
+
+/* Standalone page wrapper */
+.auth-standalone-shell .poc-auth-panel {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 6.5rem 1.5rem 4rem;
+}
