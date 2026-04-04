@@ -1117,13 +1117,16 @@ nav {
 .sponsor-logo:hover { color: var(--text-secondary); }
 
 .sponsor-logo .sp-icon {
-  width: 52px; height: 52px;
+  width: 68px; height: 68px;
   border-radius: 8px;
   object-fit: contain;
   border: none;
   background: transparent;
   padding: 6px;
   filter: brightness(0) invert(1);
+}
+.sponsor-logo .sp-icon.sp-no-invert {
+  filter: none;
 }
 
 /* ========== SECTION COMMON ========== */
@@ -2150,7 +2153,7 @@ footer {
     <div class="sponsor-bar-label">Built with</div>
     <div class="sponsor-logos">
       <a href="https://0g.ai" class="sponsor-logo">
-        <img src="public/sponsors/0g-symbol.svg" alt="0G" class="sp-icon">
+        <img src="public/sponsors/0g-logo-white.svg" alt="0G" class="sp-icon sp-no-invert">
         0G Network
       </a>
       <a href="https://ens.domains" class="sponsor-logo">
@@ -2168,10 +2171,6 @@ footer {
       <a href="https://developers.ledger.com" class="sponsor-logo">
         <img src="public/sponsors/ledger-logo.svg" alt="Ledger" class="sp-icon">
         Ledger
-      </a>
-      <a href="https://github.com/EcosystemNetwork/Swarm" class="sponsor-logo">
-        <img src="public/sponsors/swarm-logo.png" alt="Swarm" class="sp-icon">
-        Swarm
       </a>
     </div>
   </div>
