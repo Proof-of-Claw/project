@@ -295,6 +295,9 @@ body.sidebar-collapsed .main-content { margin-left: 60px; }
     <a href="soul-vault.html" class="active" aria-current="page">
       <span class="nav-icon">&#x2B23;</span> Soul Vault
     </a>
+    <a href="approve.html">
+      <span class="nav-icon">&#x2714;</span> Approve
+    </a>
   </nav>
   <div class="sidebar-bottom">
     <div id="poc-connection-slot"></div>
@@ -521,6 +524,7 @@ body.sidebar-collapsed .main-content { margin-left: 60px; }
   </div>
 </main>
 
+<script src="crypto.js"></script>
 <script src="shared.js"></script>
 <script>
 // ═══════════════════════════════════════
@@ -980,10 +984,22 @@ function deployComplete() {
     privateKey: pk, rpcUrl, tools, endpoints, maxWei
   });
 
-  saveAgentConfig(agentId, {
-    runCmd, privateKey: pk, rpcUrl, tools, endpoints, maxWei,
+  // Encrypt private key with AES-256-GCM before storing
+  const configData = {
+    runCmd, rpcUrl, tools, endpoints, maxWei,
     network: wizardData.network, lastUrl: 'http://localhost:8420',
-  });
+    encrypted: false
+  };
+  if (pk && pk !== '0x_YOUR_PRIVATE_KEY') {
+    sha256(agentId).then(keyHash => {
+      storeEncryptedSecret('poc_secret_' + agentId, pk, keyHash);
+      configData.encrypted = true;
+      saveAgentConfig(agentId, configData);
+    });
+  } else {
+    configData.privateKey = pk;
+    saveAgentConfig(agentId, configData);
+  }
 
   document.getElementById('success-links').innerHTML = `
     <div style="text-align:left;width:100%;margin-bottom:16px;">
