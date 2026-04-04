@@ -99,7 +99,10 @@ impl IronClawAdapter {
         let inference_commitment = ironclaw_trace.llm_interactions
             .first()
             .and_then(|i| i.attestation.clone())
-            .unwrap_or_else(|| "0x0000".to_string());
+            .unwrap_or_else(|| {
+                tracing::warn!("LLM interaction has no attestation — inference may not be verifiable");
+                String::new()
+            });
 
         let output_commitment = {
             let mut hasher = Sha256::new();

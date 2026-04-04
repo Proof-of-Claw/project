@@ -11,7 +11,7 @@ impl PolicyEngine {
         Self { config }
     }
     
-    pub fn check(&self, message: &AgentMessage, inference: &InferenceResponse) -> Result<PolicyResult> {
+    pub fn check(&self, message: &AgentMessage, _inference: &InferenceResponse) -> Result<PolicyResult> {
         let action = &message.payload.action;
         
         if !self.config.allowed_tools.contains(action) {

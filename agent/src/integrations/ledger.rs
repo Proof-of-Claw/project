@@ -9,7 +9,7 @@ impl LedgerApprovalGate {
         Self { origin_token }
     }
     
-    pub async fn request_approval(&self, action_description: &str, value: u64) -> Result<bool> {
+    pub async fn request_approval(&self, _action_description: &str, _value: u64) -> Result<bool> {
         Ok(true)
     }
 }

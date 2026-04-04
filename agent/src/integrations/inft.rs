@@ -1,5 +1,5 @@
 use crate::core::config::AgentConfig;
-use anyhow::Result;
+use anyhow::{Result, Context};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -85,6 +85,44 @@ impl INFTClient {
         })
     }
 
+    /// Make an eth_call and return the raw hex result
+    async fn eth_call(&self, calldata: &[u8]) -> Result<Vec<u8>> {
+        if self.inft_contract.is_empty() {
+            anyhow::bail!("INFT_CONTRACT address not configured");
+        }
+
+        let result = self
+            .client
+            .post(&self.rpc_url)
+            .json(&serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "eth_call",
+                "params": [{
+                    "to": self.inft_contract,
+                    "data": format!("0x{}", hex::encode(calldata))
+                }, "latest"],
+                "id": 1
+            }))
+            .send()
+            .await
+            .context("Failed to send eth_call to RPC")?;
+
+        let body: serde_json::Value = result.json().await?;
+
+        if let Some(error) = body.get("error") {
+            anyhow::bail!("RPC error querying iNFT contract: {}", error);
+        }
+
+        let result_hex = body["result"]
+            .as_str()
+            .unwrap_or("0x");
+
+        let bytes = hex::decode(result_hex.trim_start_matches("0x"))
+            .unwrap_or_default();
+
+        Ok(bytes)
+    }
+
     /// Build agent metadata from config for iNFT minting
     pub fn build_metadata(config: &AgentConfig) -> AgentMetadata {
         AgentMetadata {
@@ -95,7 +133,10 @@ impl INFTClient {
                 max_value_autonomous_wei: config.policy.max_value_autonomous_wei,
                 endpoint_allowlist: config.policy.endpoint_allowlist.clone(),
             },
-            risc_zero_image_id: String::new(),
+            risc_zero_image_id: config
+                .risc_zero_image_id
+                .clone()
+                .unwrap_or_default(),
             capabilities: config.policy.allowed_tools.clone(),
             dm3_endpoint: config.dm3_delivery_service_url.clone(),
             inference_model: "0g-compute".to_string(),
@@ -115,8 +156,6 @@ impl INFTClient {
         let metadata_hash = format!("0x{}", hex::encode(hasher.finalize()));
 
         // Upload to 0G Storage
-        // In production this uses the 0G Storage SDK with AES-256-GCM encryption.
-        // The encrypted blob is uploaded and the returned root hash becomes the URI.
         let upload_response = self
             .client
             .post(format!("{}/upload", self.zero_g_storage_endpoint))
@@ -134,16 +173,13 @@ impl INFTClient {
         let encrypted_uri = match upload_response {
             Ok(resp) => {
                 let body = resp.text().await.unwrap_or_default();
-                // Parse root hash from response, fall back to content-hash URI
                 if body.starts_with("0x") {
                     format!("0g://{}", body)
                 } else {
-                    // Generate deterministic URI from content hash
                     format!("0g://{}", &metadata_hash[2..])
                 }
             }
             Err(_) => {
-                // Fallback: content-addressable URI from metadata hash
                 format!("0g://{}", &metadata_hash[2..])
             }
         };
@@ -152,8 +188,6 @@ impl INFTClient {
     }
 
     /// Build the mint transaction calldata for ProofOfClawINFT.mint()
-    ///
-    /// Returns ABI-encoded calldata ready for submission via ethers-rs or cast.
     pub fn build_mint_calldata(
         agent_id: &str,
         policy_hash: &str,
@@ -164,7 +198,6 @@ impl INFTClient {
     ) -> Vec<u8> {
         use ethers::abi::{encode, Token};
 
-        // agent_id as bytes32
         let mut agent_id_bytes = [0u8; 32];
         let agent_hash = {
             let mut hasher = Sha256::new();
@@ -173,16 +206,10 @@ impl INFTClient {
         };
         agent_id_bytes.copy_from_slice(&agent_hash);
 
-        // policy_hash as bytes32
         let policy_bytes = hex_to_bytes32(policy_hash);
-
-        // risc_zero_image_id as bytes32
         let image_id_bytes = hex_to_bytes32(risc_zero_image_id);
-
-        // metadata_hash as bytes32
         let meta_hash_bytes = hex_to_bytes32(metadata_hash);
 
-        // Function selector: mint(bytes32,bytes32,bytes32,string,bytes32,string)
         let selector = &ethers::utils::keccak256(
             b"mint(bytes32,bytes32,bytes32,string,bytes32,string)",
         )[..4];
@@ -201,14 +228,18 @@ impl INFTClient {
         calldata
     }
 
-    /// Query iNFT data for an agent from the contract
+    /// Query full iNFT data for an agent from the contract.
+    ///
+    /// Calls `getAgentData(bytes32)` which returns:
+    /// (uint256 tokenId, address owner, bytes32 policyHash, bytes32 imageId,
+    ///  string encryptedUri, bytes32 metadataHash, string ensName,
+    ///  uint256 reputationScore, uint256 totalProofs, uint256 mintedAt, bool active)
     pub async fn get_agent_inft(&self, agent_id: &str) -> Result<Option<INFTData>> {
-        // Compute agent_id bytes32
         let mut hasher = Sha256::new();
         hasher.update(agent_id.as_bytes());
         let agent_hash = format!("0x{}", hex::encode(hasher.finalize()));
 
-        // Call getTokenByAgent(bytes32) via eth_call
+        // First check if token exists via getTokenByAgent(bytes32)
         let selector = &ethers::utils::keccak256(b"getTokenByAgent(bytes32)")[..4];
         let agent_bytes = hex_to_bytes32(&agent_hash);
 
@@ -217,27 +248,16 @@ impl INFTClient {
             ethers::abi::Token::FixedBytes(agent_bytes.to_vec()),
         ]));
 
-        let result = self
-            .client
-            .post(&self.rpc_url)
-            .json(&serde_json::json!({
-                "jsonrpc": "2.0",
-                "method": "eth_call",
-                "params": [{
-                    "to": self.inft_contract,
-                    "data": format!("0x{}", hex::encode(&calldata))
-                }, "latest"],
-                "id": 1
-            }))
-            .send()
-            .await?;
+        let result_bytes = self.eth_call(&calldata).await?;
 
-        let body: serde_json::Value = result.json().await?;
-        let result_hex = body["result"].as_str().unwrap_or("0x0");
+        if result_bytes.len() < 32 {
+            return Ok(None);
+        }
 
-        // Token ID 0 means not minted
+        // Decode token ID
         let token_id = u64::from_str_radix(
-            result_hex.trim_start_matches("0x").trim_start_matches('0'),
+            &hex::encode(&result_bytes[..32])
+                .trim_start_matches('0'),
             16,
         )
         .unwrap_or(0);
@@ -246,19 +266,122 @@ impl INFTClient {
             return Ok(None);
         }
 
+        // Now fetch full agent data via getAgentData(bytes32)
+        let data_selector = &ethers::utils::keccak256(b"getAgentData(bytes32)")[..4];
+        let mut data_calldata = data_selector.to_vec();
+        data_calldata.extend_from_slice(&ethers::abi::encode(&[
+            ethers::abi::Token::FixedBytes(agent_bytes.to_vec()),
+        ]));
+
+        let data_bytes = self.eth_call(&data_calldata).await?;
+
+        if data_bytes.len() < 352 {
+            // Minimal response: just return what we have from token ID
+            return Ok(Some(INFTData {
+                token_id,
+                owner: String::new(),
+                agent_id: agent_hash,
+                policy_hash: String::new(),
+                risc_zero_image_id: String::new(),
+                encrypted_uri: String::new(),
+                metadata_hash: String::new(),
+                ens_name: String::new(),
+                reputation_score: 0,
+                total_proofs: 0,
+                minted_at: 0,
+                active: true,
+            }));
+        }
+
+        // Decode the full struct from ABI-encoded data
+        let tokens = ethers::abi::decode(
+            &[
+                ethers::abi::ParamType::Uint(256),      // tokenId
+                ethers::abi::ParamType::Address,          // owner
+                ethers::abi::ParamType::FixedBytes(32),   // policyHash
+                ethers::abi::ParamType::FixedBytes(32),   // imageId
+                ethers::abi::ParamType::String,           // encryptedUri
+                ethers::abi::ParamType::FixedBytes(32),   // metadataHash
+                ethers::abi::ParamType::String,           // ensName
+                ethers::abi::ParamType::Uint(256),        // reputationScore
+                ethers::abi::ParamType::Uint(256),        // totalProofs
+                ethers::abi::ParamType::Uint(256),        // mintedAt
+                ethers::abi::ParamType::Bool,             // active
+            ],
+            &data_bytes,
+        )
+        .context("Failed to decode iNFT agent data from contract")?;
+
+        let owner = tokens[1]
+            .clone()
+            .into_address()
+            .map(|a| format!("0x{}", hex::encode(a.as_bytes())))
+            .unwrap_or_default();
+
+        let policy_hash = tokens[2]
+            .clone()
+            .into_fixed_bytes()
+            .map(|b| format!("0x{}", hex::encode(b)))
+            .unwrap_or_default();
+
+        let risc_zero_image_id = tokens[3]
+            .clone()
+            .into_fixed_bytes()
+            .map(|b| format!("0x{}", hex::encode(b)))
+            .unwrap_or_default();
+
+        let encrypted_uri = tokens[4]
+            .clone()
+            .into_string()
+            .unwrap_or_default();
+
+        let metadata_hash = tokens[5]
+            .clone()
+            .into_fixed_bytes()
+            .map(|b| format!("0x{}", hex::encode(b)))
+            .unwrap_or_default();
+
+        let ens_name = tokens[6]
+            .clone()
+            .into_string()
+            .unwrap_or_default();
+
+        let reputation_score = tokens[7]
+            .clone()
+            .into_uint()
+            .unwrap_or_default()
+            .as_u64();
+
+        let total_proofs = tokens[8]
+            .clone()
+            .into_uint()
+            .unwrap_or_default()
+            .as_u64();
+
+        let minted_at = tokens[9]
+            .clone()
+            .into_uint()
+            .unwrap_or_default()
+            .as_u64();
+
+        let active = tokens[10]
+            .clone()
+            .into_bool()
+            .unwrap_or(true);
+
         Ok(Some(INFTData {
             token_id,
-            owner: String::new(),
+            owner,
             agent_id: agent_hash,
-            policy_hash: String::new(),
-            risc_zero_image_id: String::new(),
-            encrypted_uri: String::new(),
-            metadata_hash: String::new(),
-            ens_name: String::new(),
-            reputation_score: 0,
-            total_proofs: 0,
-            minted_at: 0,
-            active: true,
+            policy_hash,
+            risc_zero_image_id,
+            encrypted_uri,
+            metadata_hash,
+            ens_name,
+            reputation_score,
+            total_proofs,
+            minted_at,
+            active,
         }))
     }
 }

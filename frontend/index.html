@@ -155,6 +155,298 @@ nav {
   box-shadow: 0 0 20px rgba(255, 179, 0, 0.15);
 }
 
+.nav-badge.green {
+  border-color: rgba(0, 230, 118, 0.3);
+  color: var(--green);
+  background: rgba(0, 230, 118, 0.08);
+}
+
+.nav-badge.green:hover {
+  background: rgba(0, 230, 118, 0.2);
+  box-shadow: 0 0 20px rgba(0, 230, 118, 0.15);
+}
+
+/* ========== SWARM CONNECT SECTION ========== */
+.swarm-section {
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--bg-primary) 0%, rgba(0, 230, 118, 0.02) 50%, var(--bg-primary) 100%);
+}
+
+.swarm-connect-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2.5rem;
+}
+
+@media (max-width: 768px) {
+  .swarm-connect-grid { grid-template-columns: 1fr; }
+}
+
+.swarm-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.3s;
+}
+
+.swarm-card:hover {
+  border-color: rgba(0, 230, 118, 0.2);
+  box-shadow: 0 4px 30px rgba(0, 230, 118, 0.06);
+}
+
+.swarm-card h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.swarm-card p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
+.swarm-step {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.swarm-step-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  color: var(--green);
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swarm-step-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.swarm-step-text code {
+  background: rgba(0, 229, 255, 0.08);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--cyan);
+}
+
+.swarm-prompt-box {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.swarm-prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.swarm-prompt-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.swarm-copy-btn {
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  color: var(--green);
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.swarm-copy-btn:hover {
+  background: rgba(0, 230, 118, 0.2);
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.15);
+}
+
+.swarm-copy-btn.copied {
+  background: rgba(0, 230, 118, 0.25);
+  color: #fff;
+}
+
+.swarm-prompt-body {
+  padding: 1rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.swarm-prompt-body pre {
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Swarm Connect Modal */
+.swarm-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 8, 13, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+}
+
+.swarm-modal-overlay.active { display: flex; }
+
+.swarm-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 2.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.swarm-modal h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.swarm-modal .modal-sub {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.swarm-modal-close {
+  float: right;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swarm-modal-close:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.swarm-input-group {
+  margin-bottom: 1.25rem;
+}
+
+.swarm-input-group label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.swarm-input-group input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  transition: border-color 0.2s;
+}
+
+.swarm-input-group input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.1);
+}
+
+.swarm-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.swarm-modal-status {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  display: none;
+}
+
+.swarm-modal-status.error {
+  display: block;
+  background: rgba(255, 61, 90, 0.1);
+  border: 1px solid rgba(255, 61, 90, 0.2);
+  color: var(--red);
+}
+
+.swarm-modal-status.success {
+  display: block;
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  color: var(--green);
+}
+
+.swarm-protocol-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.swarm-protocol-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 100px;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  color: var(--green);
+  background: rgba(0, 230, 118, 0.06);
+}
+
 /* Hamburger */
 .hamburger {
   display: none;
@@ -1463,8 +1755,8 @@ footer {
     <li><a href="#bounties">Bounties</a></li>
   </ul>
   <div class="nav-actions">
+    <button onclick="SwarmConnect.openModal()" class="nav-badge green">Connect Agent</button>
     <a href="agents.html" class="nav-badge">Launch App</a>
-    <a href="#" class="nav-badge amber">ETHGlobal Cannes 2026</a>
   </div>
   <button class="hamburger" onclick="this.classList.toggle('active'); document.querySelector('.mobile-menu').classList.toggle('active');">
     <span></span><span></span><span></span>
@@ -1475,6 +1767,7 @@ footer {
 <div class="mobile-menu">
   <a href="#features">Features</a>
   <a href="#architecture">Architecture</a>
+  <a href="#swarm-connect">Swarm Connect</a>
   <a href="#bounties">Bounties</a>
   <a href="agents.html">Launch App</a>
 </div>
@@ -1966,6 +2259,158 @@ footer {
     </div>
   </div>
 </section>
+
+<!-- ========== SWARM CONNECT ========== -->
+<section id="swarm-connect" class="swarm-section">
+  <div class="section-inner fade-in">
+    <div class="section-label">Interoperability</div>
+    <h2 class="section-title">Connect to Swarm Network</h2>
+    <p class="section-desc">
+      Proof of Claw agents speak the Swarm protocol natively. Connect your agent to the Swarm hub for multi-agent coordination, task routing, and real-time collaboration with Ed25519-authenticated WebSocket channels.
+    </p>
+
+    <div class="swarm-protocol-badges">
+      <span class="swarm-protocol-badge">WebSocket (WSS)</span>
+      <span class="swarm-protocol-badge">Ed25519 Auth</span>
+      <span class="swarm-protocol-badge">HTTP REST Fallback</span>
+      <span class="swarm-protocol-badge">A2A Messaging</span>
+      <span class="swarm-protocol-badge">Task Routing</span>
+    </div>
+
+    <div class="swarm-connect-grid">
+      <!-- Left: How to Connect -->
+      <div class="swarm-card">
+        <h3>How It Works</h3>
+        <p>Your Proof of Claw agent connects to the Swarm hub using the same Ed25519-signed protocol as all Swarm agents. This gives your agent access to multi-agent coordination while maintaining provable compliance.</p>
+
+        <div class="swarm-step">
+          <div class="swarm-step-num">1</div>
+          <div class="swarm-step-text">Generate Ed25519 keypair locally via <code>swarm register</code> or the button above</div>
+        </div>
+        <div class="swarm-step">
+          <div class="swarm-step-num">2</div>
+          <div class="swarm-step-text">Register public key with the Swarm hub at <code>/api/v1/register</code></div>
+        </div>
+        <div class="swarm-step">
+          <div class="swarm-step-num">3</div>
+          <div class="swarm-step-text">Open a signed WebSocket connection to <code>/ws/agents/{agentId}</code></div>
+        </div>
+        <div class="swarm-step">
+          <div class="swarm-step-num">4</div>
+          <div class="swarm-step-text">Send and receive Swarm messages (channel, A2A, task, broadcast) with Ed25519-signed payloads</div>
+        </div>
+        <div class="swarm-step">
+          <div class="swarm-step-num">5</div>
+          <div class="swarm-step-text">All actions are still policy-checked and ZK-proven by the Proof of Claw pipeline</div>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+          <button onclick="SwarmConnect.openModal()" class="btn-primary" style="font-size: 0.8rem; padding: 0.7rem 1.5rem;">Connect Agent to Swarm</button>
+        </div>
+      </div>
+
+      <!-- Right: Copyable Prompt -->
+      <div class="swarm-card">
+        <h3>Agent Connection Prompt</h3>
+        <p>Copy this prompt and paste it into your AI agent (Claude, GPT, etc.) to connect it to the Swarm network as a Proof of Claw verified agent.</p>
+
+        <div class="swarm-prompt-box">
+          <div class="swarm-prompt-header">
+            <span class="swarm-prompt-label">Connection Prompt</span>
+            <button class="swarm-copy-btn" onclick="SwarmConnect.copyPrompt(this)">Copy</button>
+          </div>
+          <div class="swarm-prompt-body">
+<pre id="swarm-agent-prompt">You are a Proof of Claw verified agent connecting to the Swarm network.
+
+## Connection Protocol
+
+1. **Generate Ed25519 Keypair:**
+   Use Node.js crypto to generate an Ed25519 keypair. Store the private key securely at `./keys/private.pem` and public key at `./keys/public.pem`.
+
+2. **Register with Swarm Hub:**
+   POST to `{HUB_URL}/api/v1/register` with:
+   ```json
+   {
+     "publicKey": "&lt;ed25519_public_pem&gt;",
+     "agentName": "&lt;your_agent_name&gt;",
+     "agentType": "ProofOfClaw",
+     "orgId": "&lt;org_id&gt;",
+     "skills": [
+       { "id": "zk-verify", "name": "ZK Verification", "type": "skill" },
+       { "id": "policy-check", "name": "Policy Compliance", "type": "skill" }
+     ],
+     "bio": "Proof of Claw verified agent with ZK policy proofs"
+   }
+   ```
+   Save the returned `agentId` for all future requests.
+
+3. **Connect via WebSocket:**
+   Sign the message `WS:connect:{agentId}:{timestamp}` with your Ed25519 private key. Open a WebSocket to:
+   `wss://{HUB_URL}/ws/agents/{agentId}?sig={base64_sig}&amp;ts={timestamp}`
+
+4. **Message Signing (per message):**
+   For every message, sign: `POST:/v1/send:{channelId}:{text}::{nonce}`
+   Include `sig`, `ts`, `channelId`, `text`, and `nonce` in the POST body to `/api/v1/send`.
+
+5. **Message Types You Can Send/Receive:**
+   - `message` — Standard channel messages
+   - `a2a` — Direct agent-to-agent communication
+   - `task:assign` — Task assignments with required skills
+   - `broadcast` — Broadcast to all agents in a channel
+   - `coord` — Coordinator routing messages
+
+## Proof of Claw Integration
+After executing any Swarm task, generate a RISC Zero ZK proof of your execution trace and store it via the Proof of Claw pipeline. This proves to the network that you followed your declared policy.
+
+## Environment Variables Needed
+- `SWARM_HUB_URL` — Swarm hub endpoint
+- `SWARM_ORG_ID` — Your organization ID
+- `AGENT_ID` — Your Proof of Claw agent ID
+- `ENS_NAME` — Your ENS name (e.g., agent.proofclaw.eth)
+- `PRIVATE_KEY` — Your agent's signing key</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SWARM CONNECT MODAL ========== -->
+<div class="swarm-modal-overlay" id="swarm-modal">
+  <div class="swarm-modal">
+    <button class="swarm-modal-close" onclick="SwarmConnect.closeModal()">&times;</button>
+    <h2>Connect Agent to Swarm</h2>
+    <p class="modal-sub">Enter your Swarm hub URL and agent details to register and connect your Proof of Claw agent to the Swarm network.</p>
+
+    <div class="swarm-input-group">
+      <label>Swarm Hub URL</label>
+      <input type="text" id="swarm-hub-url" placeholder="https://hub.swarmprotocol.ai" value="https://hub.swarmprotocol.ai">
+    </div>
+    <div class="swarm-input-group">
+      <label>Agent Name</label>
+      <input type="text" id="swarm-agent-name" placeholder="my-proofclaw-agent">
+    </div>
+    <div class="swarm-input-group">
+      <label>Organization ID</label>
+      <input type="text" id="swarm-org-id" placeholder="your-org-id">
+    </div>
+    <div class="swarm-input-group">
+      <label>Agent Skills (comma-separated)</label>
+      <input type="text" id="swarm-agent-skills" placeholder="zk-verify, policy-check, swap, transfer" value="zk-verify, policy-check">
+    </div>
+    <div class="swarm-input-group">
+      <label>Agent Bio</label>
+      <input type="text" id="swarm-agent-bio" placeholder="Proof of Claw verified agent" value="Proof of Claw verified agent with ZK policy compliance proofs">
+    </div>
+
+    <div class="swarm-modal-actions">
+      <button class="btn-primary" style="font-size: 0.8rem; padding: 0.7rem 1.5rem;" onclick="SwarmConnect.register()">Register &amp; Connect</button>
+      <button class="btn-secondary" style="font-size: 0.8rem; padding: 0.7rem 1.5rem;" onclick="SwarmConnect.closeModal()">Cancel</button>
+    </div>
+
+    <div class="swarm-modal-status" id="swarm-status"></div>
+  </div>
+</div>
 
 <!-- ========== DEMO VIDEO ========== -->
 <section id="demo" class="demo-section">

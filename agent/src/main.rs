@@ -1,10 +1,18 @@
+#[allow(dead_code)]
 mod core;
+#[allow(dead_code)]
 mod tools;
+#[allow(dead_code)]
 mod safety;
+#[allow(dead_code)]
 mod integrations;
+#[allow(dead_code)]
 mod ironclaw_adapter;
+#[allow(dead_code)]
 mod proof_agent;
+#[allow(dead_code)]
 mod proof_generator;
+#[allow(dead_code)]
 mod api;
 
 use anyhow::Result;

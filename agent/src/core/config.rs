@@ -17,6 +17,7 @@ pub struct AgentConfig {
     pub eip8004_validation_registry: Option<String>,
     pub eip8004_integration_contract: Option<String>,
     pub inft_contract: Option<String>,
+    pub risc_zero_image_id: Option<String>,
     pub policy: PolicyConfig,
 }
 
@@ -29,43 +30,80 @@ pub struct PolicyConfig {
 
 impl AgentConfig {
     pub fn from_env() -> Result<Self> {
+        let private_key = env::var("PRIVATE_KEY")
+            .context("PRIVATE_KEY not set")?;
+
+        // Reject the all-zeros placeholder key
+        let stripped = private_key.trim_start_matches("0x");
+        if stripped.chars().all(|c| c == '0') {
+            anyhow::bail!(
+                "PRIVATE_KEY is set to all zeros — configure a real private key in .env"
+            );
+        }
+
         Ok(Self {
             agent_id: env::var("AGENT_ID")
                 .context("AGENT_ID not set")?,
             ens_name: env::var("ENS_NAME")
                 .context("ENS_NAME not set")?,
-            private_key: env::var("PRIVATE_KEY")
-                .context("PRIVATE_KEY not set")?,
+            private_key,
             rpc_url: env::var("RPC_URL")
-                .unwrap_or_else(|_| "https://eth-sepolia.g.alchemy.com/v2/demo".to_string()),
+                .context("RPC_URL not set — provide a real RPC endpoint (e.g. Alchemy, Infura)")?,
             zero_g_indexer_rpc: env::var("ZERO_G_INDEXER_RPC")
-                .unwrap_or_else(|_| "https://indexer-storage-testnet.0g.ai".to_string()),
+                .context("ZERO_G_INDEXER_RPC not set")?,
             zero_g_compute_endpoint: env::var("ZERO_G_COMPUTE_ENDPOINT")
-                .unwrap_or_else(|_| "https://broker-testnet.0g.ai".to_string()),
+                .context("ZERO_G_COMPUTE_ENDPOINT not set")?,
             dm3_delivery_service_url: env::var("DM3_DELIVERY_SERVICE_URL")
-                .unwrap_or_else(|_| "http://localhost:3001".to_string()),
+                .context("DM3_DELIVERY_SERVICE_URL not set")?,
             ledger_origin_token: env::var("LEDGER_ORIGIN_TOKEN").ok(),
-            eip8004_identity_registry: env::var("EIP8004_IDENTITY_REGISTRY").ok(),
-            eip8004_reputation_registry: env::var("EIP8004_REPUTATION_REGISTRY").ok(),
-            eip8004_validation_registry: env::var("EIP8004_VALIDATION_REGISTRY").ok(),
-            eip8004_integration_contract: env::var("EIP8004_INTEGRATION_CONTRACT").ok(),
-            inft_contract: env::var("INFT_CONTRACT").ok(),
+            eip8004_identity_registry: non_zero_address("EIP8004_IDENTITY_REGISTRY"),
+            eip8004_reputation_registry: non_zero_address("EIP8004_REPUTATION_REGISTRY"),
+            eip8004_validation_registry: non_zero_address("EIP8004_VALIDATION_REGISTRY"),
+            eip8004_integration_contract: non_zero_address("EIP8004_INTEGRATION_CONTRACT"),
+            inft_contract: non_zero_address("INFT_CONTRACT"),
+            risc_zero_image_id: non_zero_hash("RISC_ZERO_IMAGE_ID"),
             policy: PolicyConfig {
                 allowed_tools: env::var("ALLOWED_TOOLS")
-                    .unwrap_or_else(|_| "swap,transfer,query".to_string())
+                    .context("ALLOWED_TOOLS not set")?
                     .split(',')
-                    .map(|s| s.to_string())
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
                     .collect(),
                 endpoint_allowlist: env::var("ENDPOINT_ALLOWLIST")
-                    .unwrap_or_else(|_| "https://api.uniswap.org,https://api.0x.org".to_string())
+                    .context("ENDPOINT_ALLOWLIST not set")?
                     .split(',')
-                    .map(|s| s.to_string())
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
                     .collect(),
                 max_value_autonomous_wei: env::var("MAX_VALUE_AUTONOMOUS_WEI")
-                    .unwrap_or_else(|_| "1000000000000000000".to_string())
+                    .context("MAX_VALUE_AUTONOMOUS_WEI not set")?
                     .parse()
-                    .unwrap_or(1_000_000_000_000_000_000),
+                    .context("MAX_VALUE_AUTONOMOUS_WEI must be a valid u64")?,
             },
         })
     }
+}
+
+/// Read an env var as an address, returning None if unset or all-zeros.
+fn non_zero_address(key: &str) -> Option<String> {
+    env::var(key).ok().and_then(|v| {
+        let stripped = v.trim_start_matches("0x");
+        if stripped.is_empty() || stripped.chars().all(|c| c == '0') {
+            None
+        } else {
+            Some(v)
+        }
+    })
+}
+
+/// Read an env var as a hash, returning None if unset or all-zeros.
+fn non_zero_hash(key: &str) -> Option<String> {
+    env::var(key).ok().and_then(|v| {
+        let stripped = v.trim_start_matches("0x");
+        if stripped.is_empty() || stripped.chars().all(|c| c == '0') {
+            None
+        } else {
+            Some(v)
+        }
+    })
 }

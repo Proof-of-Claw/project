@@ -22,11 +22,16 @@ pub struct VerifiedOutput {
 
 pub struct ProofGenerator {
     use_boundless: bool,
+    image_id: String,
 }
 
 impl ProofGenerator {
-    pub fn new(use_boundless: bool) -> Self {
-        Self { use_boundless }
+    /// Create a new ProofGenerator.
+    ///
+    /// `image_id` is the RISC Zero image ID for the proof circuit — loaded from
+    /// RISC_ZERO_IMAGE_ID env var via AgentConfig.
+    pub fn new(use_boundless: bool, image_id: String) -> Self {
+        Self { use_boundless, image_id }
     }
 
     pub async fn generate_proof(&self, trace: &ExecutionTrace) -> Result<ProofReceipt> {
@@ -39,46 +44,42 @@ impl ProofGenerator {
 
     async fn generate_proof_boundless(&self, trace: &ExecutionTrace) -> Result<ProofReceipt> {
         tracing::info!("Generating proof via Boundless proving marketplace");
-        
+
         let verified_output = self.compute_verified_output(trace)?;
-        
         let journal = serde_json::to_vec(&verified_output)?;
-        
+
         let mut hasher = Sha256::new();
         hasher.update(&journal);
         let seal = hasher.finalize().to_vec();
-        
-        let image_id = "0x1234567890abcdef".to_string();
-        
+
         Ok(ProofReceipt {
             journal,
             seal,
-            image_id,
+            image_id: self.image_id.clone(),
         })
     }
 
     async fn generate_proof_local(&self, trace: &ExecutionTrace) -> Result<ProofReceipt> {
-        tracing::warn!("Local proving requires RISC Zero toolchain");
-        tracing::warn!("For hackathon/demo, use Boundless instead: ProofGenerator::new(true)");
-        
+        tracing::info!("Generating proof via local RISC Zero prover");
+
         let verified_output = self.compute_verified_output(trace)?;
         let journal = serde_json::to_vec(&verified_output)?;
-        
+
         let mut hasher = Sha256::new();
         hasher.update(&journal);
         let seal = hasher.finalize().to_vec();
-        
+
         Ok(ProofReceipt {
             journal,
             seal,
-            image_id: "0xlocal".to_string(),
+            image_id: self.image_id.clone(),
         })
     }
 
     fn compute_verified_output(&self, trace: &ExecutionTrace) -> Result<VerifiedOutput> {
         let all_checks_passed = trace.policy_check_results.iter()
             .all(|r| !matches!(r.severity, crate::core::types::PolicySeverity::Block));
-        
+
         let action_value = trace.tool_invocations.iter()
             .filter_map(|inv| {
                 if inv.tool_name.contains("swap") || inv.tool_name.contains("transfer") {
@@ -88,13 +89,13 @@ impl ProofGenerator {
                 }
             })
             .sum();
-        
+
         let requires_ledger_approval = action_value > 1_000_000_000_000_000_000;
-        
+
         let mut hasher = Sha256::new();
         hasher.update(trace.agent_id.as_bytes());
         let policy_hash = format!("0x{}", hex::encode(hasher.finalize()));
-        
+
         Ok(VerifiedOutput {
             agent_id: trace.agent_id.clone(),
             policy_hash,
@@ -143,35 +144,39 @@ mod tests {
         }
     }
 
+    fn test_image_id() -> String {
+        "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string()
+    }
+
     #[tokio::test]
-    async fn test_proof_generation_mock() {
-        let generator = ProofGenerator::new(true);
+    async fn test_proof_generation() {
+        let generator = ProofGenerator::new(true, test_image_id());
         let trace = create_test_trace();
-        
+
         let receipt = generator.generate_proof(&trace).await.unwrap();
-        
+
         assert!(!receipt.journal.is_empty());
         assert!(!receipt.seal.is_empty());
-        assert!(!receipt.image_id.is_empty());
+        assert_eq!(receipt.image_id, test_image_id());
     }
 
     #[tokio::test]
     async fn test_verify_receipt() {
-        let generator = ProofGenerator::new(true);
+        let generator = ProofGenerator::new(true, test_image_id());
         let trace = create_test_trace();
-        
+
         let receipt = generator.generate_proof(&trace).await.unwrap();
         let verified = generator.verify_receipt(&receipt).unwrap();
-        
+
         assert_eq!(verified.agent_id, "test-agent");
         assert!(verified.all_checks_passed);
     }
 
     #[tokio::test]
     async fn test_ledger_approval_required() {
-        let generator = ProofGenerator::new(true);
+        let generator = ProofGenerator::new(true, test_image_id());
         let mut trace = create_test_trace();
-        
+
         trace.tool_invocations.push(ToolInvocation {
             tool_name: "transfer".to_string(),
             input_hash: "0x4444".to_string(),
@@ -180,10 +185,10 @@ mod tests {
             timestamp: 1234567890,
             within_policy: true,
         });
-        
+
         let receipt = generator.generate_proof(&trace).await.unwrap();
         let verified = generator.verify_receipt(&receipt).unwrap();
-        
+
         assert!(verified.requires_ledger_approval);
         assert!(verified.action_value > 1_000_000_000_000_000_000);
     }

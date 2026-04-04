@@ -12,7 +12,6 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
 use crate::core::config::AgentConfig;
-use crate::core::types::*;
 
 /// Shared agent state accessible by API handlers
 #[derive(Debug, Clone)]
@@ -128,7 +127,7 @@ async fn get_status(State(state): State<SharedState>) -> Json<StatusResponse> {
     let now = chrono::Utc::now().timestamp();
     let uptime = now - s.started_at;
 
-    // Compute a mock policy hash from config
+    // Compute policy hash from the actual policy config
     let policy_str = format!(
         "{:?}{:?}{}",
         s.config.policy.allowed_tools,
@@ -137,7 +136,7 @@ async fn get_status(State(state): State<SharedState>) -> Json<StatusResponse> {
     );
     use sha2::Digest as _;
     let hash_bytes = sha2::Sha256::digest(policy_str.as_bytes());
-    let policy_hash = format!("0x{}", &hex::encode(hash_bytes)[..16]);
+    let policy_hash = format!("0x{}", hex::encode(hash_bytes));
 
     Json(StatusResponse {
         agent_id: s.config.agent_id.clone(),
@@ -146,6 +145,8 @@ async fn get_status(State(state): State<SharedState>) -> Json<StatusResponse> {
         uptime_secs: uptime,
         network: if s.config.rpc_url.contains("sepolia") {
             "sepolia".to_string()
+        } else if s.config.rpc_url.contains("testnet") {
+            "testnet".to_string()
         } else {
             "mainnet".to_string()
         },
@@ -193,6 +194,8 @@ async fn send_message(
     };
     s.messages.push(msg);
 
+    s.stats.total_actions += 1;
+
     s.activity.insert(0, ActivityItem {
         activity_type: "message".to_string(),
         title: "DM3 Message Sent".to_string(),
@@ -208,6 +211,60 @@ async fn send_message(
 
 async fn health() -> &'static str {
     "ok"
+}
+
+// ========== STATE MUTATION (called by agent runtime) ==========
+
+impl AgentState {
+    /// Record a completed proof in the agent state.
+    pub fn record_proof(&mut self, proof: ProofRecord) {
+        self.stats.proofs_generated += 1;
+        self.stats.total_actions += 1;
+
+        if proof.status == "verified" {
+            self.stats.proofs_verified += 1;
+        }
+
+        match proof.approval_type.as_str() {
+            "Autonomous" => self.stats.autonomous_actions += 1,
+            "Ledger Approved" => self.stats.approved_actions += 1,
+            _ => {}
+        }
+
+        self.activity.insert(0, ActivityItem {
+            activity_type: "proof".to_string(),
+            title: "Proof Generated".to_string(),
+            description: format!(
+                "{} {} | {} | {}",
+                proof.action, proof.value, proof.approval_type, proof.status
+            ),
+            timestamp: proof.timestamp,
+        });
+
+        self.proofs.insert(0, proof);
+    }
+
+    /// Record a policy violation.
+    pub fn record_violation(&mut self, rule: &str, details: &str) {
+        self.stats.violations += 1;
+        self.activity.insert(0, ActivityItem {
+            activity_type: "violation".to_string(),
+            title: format!("Policy Violation: {}", rule),
+            description: details.to_string(),
+            timestamp: chrono::Utc::now().timestamp(),
+        });
+    }
+
+    /// Record an incoming DM3 message.
+    pub fn record_incoming_message(&mut self, msg: MessageRecord) {
+        self.activity.insert(0, ActivityItem {
+            activity_type: "message".to_string(),
+            title: "DM3 Message Received".to_string(),
+            description: format!("From {} via encrypted channel", msg.from),
+            timestamp: msg.timestamp,
+        });
+        self.messages.push(msg);
+    }
 }
 
 // ========== SERVER SETUP ==========
@@ -229,134 +286,23 @@ pub fn create_router(state: SharedState) -> Router {
         .layer(cors)
 }
 
+/// Create initial agent state — starts empty, populated by real agent activity.
 pub fn create_initial_state(config: AgentConfig) -> SharedState {
     let now = chrono::Utc::now().timestamp();
-
-    // Seed with some demo data
-    let activity = vec![
-        ActivityItem {
-            activity_type: "proof".to_string(),
-            title: "Proof Generated".to_string(),
-            description: format!("Swap 100 USDC -> ETH | Autonomous | Verified on-chain"),
-            timestamp: now - 120,
-        },
-        ActivityItem {
-            activity_type: "message".to_string(),
-            title: "DM3 Message Received".to_string(),
-            description: "From bob.proofclaw.eth via encrypted channel".to_string(),
-            timestamp: now - 300,
-        },
-        ActivityItem {
-            activity_type: "approval".to_string(),
-            title: "Ledger Approval Granted".to_string(),
-            description: "Transfer 500 USDC | Owner signed via Ledger".to_string(),
-            timestamp: now - 600,
-        },
-    ];
-
-    let proofs = vec![
-        ProofRecord {
-            proof_id: "POC-1234".to_string(),
-            agent_id: config.agent_id.clone(),
-            action: "swap_tokens".to_string(),
-            value: "100 USDC".to_string(),
-            approval_type: "Autonomous".to_string(),
-            status: "verified".to_string(),
-            timestamp: now - 120,
-            proof_time_secs: 42,
-            output_commitment: "0xabcd1234ef567890abcd1234ef567890abcd1234ef567890abcd1234ef567890".to_string(),
-            tx_hash: Some("0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba".to_string()),
-            block_number: Some(12345678),
-            policy_checks: vec![
-                PolicyCheckRecord { rule: "Tool Allowlist".to_string(), passed: true, details: "swap_tokens is in allowed tools list".to_string() },
-                PolicyCheckRecord { rule: "Value Threshold".to_string(), passed: true, details: "100 USDC <= autonomous limit".to_string() },
-                PolicyCheckRecord { rule: "Endpoint Allowlist".to_string(), passed: true, details: "api.uniswap.org is approved".to_string() },
-                PolicyCheckRecord { rule: "Prompt Injection".to_string(), passed: true, details: "No injection patterns detected".to_string() },
-            ],
-        },
-        ProofRecord {
-            proof_id: "POC-1235".to_string(),
-            agent_id: config.agent_id.clone(),
-            action: "transfer".to_string(),
-            value: "500 USDC".to_string(),
-            approval_type: "Ledger Approved".to_string(),
-            status: "verified".to_string(),
-            timestamp: now - 600,
-            proof_time_secs: 38,
-            output_commitment: "0xef012345ab678901ef012345ab678901ef012345ab678901ef012345ab678901".to_string(),
-            tx_hash: Some("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string()),
-            block_number: Some(12345650),
-            policy_checks: vec![
-                PolicyCheckRecord { rule: "Tool Allowlist".to_string(), passed: true, details: "transfer is in allowed tools list".to_string() },
-                PolicyCheckRecord { rule: "Value Threshold".to_string(), passed: true, details: "500 USDC > limit -> Ledger approval required".to_string() },
-                PolicyCheckRecord { rule: "Ledger Signature".to_string(), passed: true, details: "Valid signature from owner's Ledger device".to_string() },
-                PolicyCheckRecord { rule: "Clear Signing".to_string(), passed: true, details: "ERC-7730 metadata displayed on Ledger screen".to_string() },
-            ],
-        },
-        ProofRecord {
-            proof_id: "POC-1236".to_string(),
-            agent_id: config.agent_id.clone(),
-            action: "query".to_string(),
-            value: "0 USDC".to_string(),
-            approval_type: "Autonomous".to_string(),
-            status: "pending".to_string(),
-            timestamp: now,
-            proof_time_secs: 0,
-            output_commitment: "0x5678abcd9012ef345678abcd9012ef345678abcd9012ef345678abcd9012ef34".to_string(),
-            tx_hash: None,
-            block_number: None,
-            policy_checks: vec![],
-        },
-    ];
-
-    let messages = vec![
-        MessageRecord {
-            from: "bob.proofclaw.eth".to_string(),
-            to: config.ens_name.clone(),
-            content: "Hey! I'm looking to swap 500 USDC for ETH. Are you interested?".to_string(),
-            timestamp: now - 720,
-            encrypted: true,
-            delivered: true,
-        },
-        MessageRecord {
-            from: config.ens_name.clone(),
-            to: "bob.proofclaw.eth".to_string(),
-            content: "Sure! Let me check my policy limits...".to_string(),
-            timestamp: now - 600,
-            encrypted: true,
-            delivered: true,
-        },
-        MessageRecord {
-            from: config.ens_name.clone(),
-            to: "bob.proofclaw.eth".to_string(),
-            content: "500 USDC is above my autonomous threshold. I'll need Ledger approval. Want to proceed?".to_string(),
-            timestamp: now - 540,
-            encrypted: true,
-            delivered: true,
-        },
-        MessageRecord {
-            from: "bob.proofclaw.eth".to_string(),
-            to: config.ens_name.clone(),
-            content: "Same here - let's both submit for approval and execute when ready.".to_string(),
-            timestamp: now - 420,
-            encrypted: true,
-            delivered: true,
-        },
-    ];
 
     Arc::new(RwLock::new(AgentState {
         config,
         stats: AgentStats {
-            total_actions: 47,
-            autonomous_actions: 42,
-            approved_actions: 4,
-            violations: 1,
-            proofs_generated: 45,
-            proofs_verified: 42,
+            total_actions: 0,
+            autonomous_actions: 0,
+            approved_actions: 0,
+            violations: 0,
+            proofs_generated: 0,
+            proofs_verified: 0,
         },
-        activity,
-        proofs,
-        messages,
+        activity: Vec::new(),
+        proofs: Vec::new(),
+        messages: Vec::new(),
         started_at: now,
     }))
 }
