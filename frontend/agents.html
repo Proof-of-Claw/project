@@ -1329,6 +1329,7 @@ body::before {
     </a>
   </nav>
   <div class="sidebar-bottom">
+    <div id="poc-connection-slot"></div>
     <button class="btn-new-agent-sidebar" onclick="openWizard()">+ New Agent</button>
     <a href="index.html" class="back-link">Back to Home</a>
   </div>
@@ -1355,6 +1356,7 @@ body::before {
     <button class="filter-btn" data-filter="online" onclick="setFilter('online', this)">Online</button>
     <button class="filter-btn" data-filter="busy" onclick="setFilter('busy', this)">Busy</button>
     <button class="filter-btn" data-filter="offline" onclick="setFilter('offline', this)">Offline</button>
+    <button class="btn-new-agent-top" onclick="lookupENS()" style="background:transparent;border:1px solid var(--border-cyan);color:var(--cyan);">Lookup ENS</button>
     <button class="btn-new-agent-top" onclick="openWizard()">New Agent +</button>
   </div>
 
@@ -1418,7 +1420,9 @@ body::before {
           <label>Network</label>
           <select id="agent-network">
             <option value="sepolia">Sepolia (Testnet)</option>
-            <option value="mainnet">Mainnet</option>
+            <option value="og_testnet">0G Testnet (Chain ID 16602)</option>
+            <option value="mainnet">Ethereum Mainnet</option>
+            <option value="og_mainnet">0G Mainnet (Chain ID 16661)</option>
           </select>
         </div>
       </div>
@@ -1535,6 +1539,8 @@ body::before {
             <div class="deploy-step-item" data-deploy="encrypt"><span class="step-icon">&#x25E6;</span> Encrypting secrets with AES-256-GCM</div>
             <div class="deploy-step-item" data-deploy="ens"><span class="step-icon">&#x25E6;</span> Registering ENS subdomain</div>
             <div class="deploy-step-item" data-deploy="contract"><span class="step-icon">&#x25E6;</span> Deploying policy contract</div>
+            <div class="deploy-step-item" data-deploy="inft"><span class="step-icon">&#x25E6;</span> Minting agent iNFT on 0G Chain (ERC-7857)</div>
+            <div class="deploy-step-item" data-deploy="storage"><span class="step-icon">&#x25E6;</span> Uploading encrypted metadata to 0G Storage</div>
             <div class="deploy-step-item" data-deploy="runtime"><span class="step-icon">&#x25E6;</span> Initializing agent runtime</div>
             <div class="deploy-step-item" data-deploy="og"><span class="step-icon">&#x25E6;</span> Configuring 0G decentralized compute</div>
             <div class="deploy-step-item" data-deploy="start"><span class="step-icon">&#x25E6;</span> Starting agent</div>
@@ -1593,11 +1599,11 @@ const SKILLS = [
   'governance', 'frontend', 'devops', 'ml-ops', 'mev'
 ];
 
-const DEFAULT_AGENTS = [
-  { id: 'alice-agent', name: 'alice-agent', ens: 'alice.proofclaw.eth', type: 'defi-strategist', typeIcon: '\uD83D\uDCC8', network: 'sepolia', skills: ['defi-protocols', 'smart-contracts', 'web3'], allowedTools: ['swap_tokens', 'transfer', 'query'], valueLimit: 100, endpoints: 'api.uniswap.org, api.0x.org', status: 'online', deployedAt: '2026-04-03T10:00:00Z', description: 'Autonomous DeFi yield optimizer', stats: { actions: 47, proofs: 42, uptime: '3h 24m' } },
-  { id: 'bob-sentinel', name: 'bob-sentinel', ens: 'bob.proofclaw.eth', type: 'security-auditor', typeIcon: '\uD83D\uDD12', network: 'sepolia', skills: ['security-audit', 'solidity', 'zk-proofs'], allowedTools: ['query'], valueLimit: 0, endpoints: 'api.etherscan.io', status: 'online', deployedAt: '2026-04-03T08:00:00Z', description: 'Continuous smart contract security monitor', stats: { actions: 23, proofs: 23, uptime: '5h 48m' } },
-  { id: 'charlie-coordinator', name: 'charlie-coordinator', ens: 'charlie.proofclaw.eth', type: 'coordinator', typeIcon: '\uD83C\uDF0F', network: 'sepolia', skills: ['web3', 'data-analysis', 'governance'], allowedTools: ['query', 'transfer'], valueLimit: 50, endpoints: 'api.snapshot.org', status: 'busy', deployedAt: '2026-04-02T22:00:00Z', description: 'Multi-agent workflow orchestrator', stats: { actions: 89, proofs: 85, uptime: '14h 12m' } },
-];
+// No hardcoded agent data — agents are loaded from localStorage (persisted after
+// deployment via the wizard) or discovered dynamically via ENS resolution.
+// Connect a live agent via the "Connect OpenClaw" button, or resolve ENS names
+// with the "Lookup ENS" button in the toolbar.
+const DEFAULT_AGENTS = [];
 
 let agents = [];
 let currentFilter = 'all';
@@ -1700,6 +1706,8 @@ function renderAgents() {
           <div class="stat-label">Uptime</div>
         </div>
       </div>
+      ${a.address ? `<div style="font-size:10px;color:var(--text-dim);padding:0 16px;margin-top:-4px;margin-bottom:4px;font-family:var(--font-mono);word-break:break-all;">${a.address}</div>` : ''}
+      ${a.inftTokenId ? `<div style="font-size:10px;padding:0 16px;margin-bottom:4px;"><span style="color:var(--cyan);font-size:9px;text-transform:uppercase;letter-spacing:0.5px;">iNFT #${a.inftTokenId}</span></div>` : ''}
       <div class="agent-actions" onclick="event.stopPropagation();">
         <a href="dashboard.html?agent=${a.id}">Dashboard</a>
         <a href="messages.html?agent=${a.id}">Messages</a>
@@ -1756,6 +1764,10 @@ function openProfile(agentId) {
       </div>
     </div>
     ${a.description ? `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">${esc(a.description)}</p>` : ''}
+    ${a.address ? `<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;word-break:break-all;"><span style="color:var(--cyan-dim);">Address:</span> ${a.address}</div>` : ''}
+    ${a.policyHash ? `<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;word-break:break-all;"><span style="color:var(--cyan-dim);">Policy:</span> ${a.policyHash.slice(0, 18)}...</div>` : ''}
+    ${a.inftTokenId ? `<div style="font-size:11px;color:var(--amber);margin-bottom:8px;">iNFT Token #${a.inftTokenId} on 0G Chain (ERC-7857)</div>` : ''}
+    ${a.imageId ? `<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;word-break:break-all;"><span style="color:var(--cyan-dim);">RISC Zero Image:</span> ${a.imageId.slice(0, 18)}...</div>` : ''}
     <div class="profile-stats-grid">
       <div class="profile-stat"><div class="val">${a.stats.actions}</div><div class="lbl">Total Actions</div></div>
       <div class="profile-stat"><div class="val">${autonomous}</div><div class="lbl">Autonomous</div></div>
@@ -2146,10 +2158,114 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ═══════════════════════════════════════
+// ENS RESOLUTION & AGENT DISCOVERY
+// ═══════════════════════════════════════
+
+function lookupENS() {
+  const ensName = prompt('Enter an ENS name to look up (e.g., alice.proofclaw.eth):');
+  if (!ensName || !ensName.includes('.')) return;
+
+  resolveAndAddAgent(ensName);
+}
+
+async function resolveAndAddAgent(ensName) {
+  if (typeof ENSResolver === 'undefined') {
+    alert('ENS resolver not loaded. Make sure ens-resolver.js is included.');
+    return;
+  }
+
+  // Show loading state
+  const grid = document.getElementById('agent-grid');
+  const loadingId = 'ens-loading-' + Date.now();
+  grid.insertAdjacentHTML('afterbegin', `
+    <div class="agent-card" id="${loadingId}" style="opacity:0.6;">
+      <div class="agent-card-header">
+        <div class="agent-avatar" style="animation:pulse-dot 1s infinite;">&#x27C1;</div>
+        <div class="agent-info">
+          <div class="agent-name">Resolving...</div>
+          <div class="agent-ens">${esc(ensName)}</div>
+          <div class="agent-meta"><span class="type-badge">ENS Lookup</span></div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  try {
+    const profile = await ENSResolver.resolveAgent(ensName);
+    const loadingEl = document.getElementById(loadingId);
+    if (loadingEl) loadingEl.remove();
+
+    if (!profile) {
+      alert(`Could not resolve ${ensName}. The name may not have Proof of Claw records set.`);
+      return;
+    }
+
+    // Check if already in list
+    const existing = agents.find(a => a.ens === ensName);
+    if (existing) {
+      // Update existing
+      Object.assign(existing, ensProfileToAgent(profile));
+      saveAgents();
+      renderAgents();
+      return;
+    }
+
+    // Add new agent from ENS data
+    const newAgent = ensProfileToAgent(profile);
+    agents.unshift(newAgent);
+    saveAgents();
+    renderAgents();
+
+  } catch (e) {
+    const loadingEl = document.getElementById(loadingId);
+    if (loadingEl) loadingEl.remove();
+    alert(`ENS lookup failed: ${e.message}`);
+  }
+}
+
+function ensProfileToAgent(profile) {
+  const typeIcons = {
+    'defi-strategist': '\uD83D\uDCC8',
+    'security-auditor': '\uD83D\uDD12',
+    'coordinator': '\uD83C\uDF0F',
+    'data-analyst': '\uD83D\uDCCA',
+    'governance-agent': '\uD83C\uDFDB\uFE0F',
+    'devops-engineer': '\u2699\uFE0F',
+    'unknown': '\u27C1',
+  };
+
+  const agentId = profile.ensName.split('.')[0];
+  return {
+    id: agentId,
+    name: agentId,
+    ens: profile.ensName,
+    type: profile.agentType || 'unknown',
+    typeIcon: typeIcons[profile.agentType] || '\u27C1',
+    network: profile.network || 'sepolia',
+    skills: profile.skills || [],
+    allowedTools: [],
+    valueLimit: 0,
+    endpoints: profile.url || '',
+    status: 'discovered',
+    deployedAt: profile.resolvedAt,
+    description: profile.description || '',
+    address: profile.address,
+    policyHash: profile.policyHash,
+    imageId: profile.imageId,
+    inftTokenId: profile.inftTokenId,
+    dm3Profile: profile.dm3Profile,
+    ensResolved: true,
+    stats: { actions: 0, proofs: 0, uptime: '-' }
+  };
+}
+
+// ═══════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════
 
 init();
 </script>
+<script src="ens-resolver.js"></script>
+<script src="poc-api.js"></script>
 </body>
 </html>

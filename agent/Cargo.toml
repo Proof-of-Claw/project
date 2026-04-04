@@ -17,12 +17,14 @@ tracing-subscriber = "0.3"
 wasmtime = "16.0"
 sha2 = "0.10"
 hex = "0.4"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 ethers = "2.0"
 async-trait = "0.1"
 uuid = { version = "1.6", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1.10"
+axum = "0.7"
+tower-http = { version = "0.5", features = ["cors"] }
 
 [features]
 default = ["standalone"]

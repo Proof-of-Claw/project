@@ -665,7 +665,8 @@ body::after {
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="deploy.html" class="btn-new-agent">+ New Agent</a>
+    <div id="poc-connection-slot"></div>
+    <a href="agents.html" class="btn-new-agent">+ New Agent</a>
     <a href="index.html" class="btn-back-home">&larr; Back to Home</a>
   </div>
 </aside>
@@ -1099,6 +1100,6 @@ populateAgentFilters();
 applyUrlParams();
 renderProofs();
 </script>
-
+<script src="poc-api.js"></script>
 </body>
 </html>

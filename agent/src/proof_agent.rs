@@ -85,6 +85,10 @@ mod tests {
             zero_g_compute_endpoint: "http://localhost:5001".to_string(),
             dm3_delivery_service_url: "http://localhost:3001".to_string(),
             ledger_origin_token: None,
+            eip8004_identity_registry: None,
+            eip8004_reputation_registry: None,
+            eip8004_validation_registry: None,
+            eip8004_integration_contract: None,
             policy: crate::core::config::PolicyConfig {
                 allowed_tools: vec!["swap".to_string()],
                 endpoint_allowlist: vec!["https://api.example.com".to_string()],

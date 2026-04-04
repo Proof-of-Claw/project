@@ -16,6 +16,7 @@ pub struct AgentConfig {
     pub eip8004_reputation_registry: Option<String>,
     pub eip8004_validation_registry: Option<String>,
     pub eip8004_integration_contract: Option<String>,
+    pub inft_contract: Option<String>,
     pub policy: PolicyConfig,
 }
 
@@ -48,6 +49,7 @@ impl AgentConfig {
             eip8004_reputation_registry: env::var("EIP8004_REPUTATION_REGISTRY").ok(),
             eip8004_validation_registry: env::var("EIP8004_VALIDATION_REGISTRY").ok(),
             eip8004_integration_contract: env::var("EIP8004_INTEGRATION_CONTRACT").ok(),
+            inft_contract: env::var("INFT_CONTRACT").ok(),
             policy: PolicyConfig {
                 allowed_tools: env::var("ALLOWED_TOOLS")
                     .unwrap_or_else(|_| "swap,transfer,query".to_string())

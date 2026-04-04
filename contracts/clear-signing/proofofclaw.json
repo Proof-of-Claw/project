@@ -129,6 +129,46 @@
             "format": "raw"
           }
         ]
+      },
+      "mint(bytes32,bytes32,bytes32,string,bytes32,string)": {
+        "intent": "Mint agent iNFT (ERC-7857)",
+        "fields": [
+          {
+            "path": "agentId",
+            "label": "Agent ID",
+            "format": "raw"
+          },
+          {
+            "path": "policyHash",
+            "label": "Policy fingerprint",
+            "format": "raw"
+          },
+          {
+            "path": "riscZeroImageId",
+            "label": "ZK Image ID",
+            "format": "raw"
+          },
+          {
+            "path": "ensName",
+            "label": "ENS Name",
+            "format": "raw"
+          }
+        ]
+      },
+      "authorizeUsage(uint256,address,bytes)": {
+        "intent": "Authorize agent usage",
+        "fields": [
+          {
+            "path": "tokenId",
+            "label": "iNFT Token ID",
+            "format": "raw"
+          },
+          {
+            "path": "executor",
+            "label": "Authorized executor",
+            "format": "addressName"
+          }
+        ]
       }
     }
   }

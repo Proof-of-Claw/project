@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import "../src/ProofOfClawVerifier.sol";
 import "../src/EIP8004Integration.sol";
+import "../src/ProofOfClawINFT.sol";
 
 contract DeployScript is Script {
     function run() external {
@@ -37,6 +38,10 @@ contract DeployScript is Script {
         // 3. Link verifier to EIP-8004 integration
         proofOfClaw.setEIP8004Integration(address(eip8004));
         console.log("EIP-8004 integration linked to verifier");
+
+        // 4. Deploy ProofOfClawINFT (ERC-7857 iNFT for agent identity on 0G)
+        ProofOfClawINFT inft = new ProofOfClawINFT(address(proofOfClaw));
+        console.log("ProofOfClawINFT deployed at:", address(inft));
 
         vm.stopBroadcast();
     }

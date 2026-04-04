@@ -729,6 +729,7 @@ body::after {
   </nav>
 
   <div class="sidebar-bottom">
+    <div id="poc-connection-slot"></div>
     <a href="agents.html#register" class="sidebar-btn primary">+ New Agent</a>
     <a href="index.html" class="sidebar-btn ghost">Back to Home</a>
   </div>
@@ -1005,9 +1006,63 @@ function init() {
     startUptimeCounter();
     seedActivity();
     scheduleSimulations();
+    // If this agent is the live-connected one, poll live data
+    startLiveSync();
   } else {
     showEmptyState();
   }
+}
+
+// Live API sync — fetches real data from connected agent
+function startLiveSync() {
+  if (typeof PocAPI === 'undefined') return;
+  const conn = PocAPI.getConnection?.();
+  if (!conn || !currentAgent) return;
+  if (currentAgent.id !== conn.agentId) return;
+
+  async function syncOnce() {
+    try {
+      const status = await PocAPI.fetchStatus(conn.url);
+      // Update stats on page
+      document.getElementById('stat-total').textContent = status.stats.total_actions;
+      document.getElementById('stat-autonomous').textContent = status.stats.autonomous_actions;
+      document.getElementById('stat-approved').textContent = status.stats.approved_actions;
+      document.getElementById('stat-violations').textContent = status.stats.violations;
+      document.getElementById('stat-proofs').textContent = status.stats.proofs_generated;
+      document.getElementById('stat-verified').textContent = status.stats.proofs_verified;
+
+      // Update uptime from server
+      const h = Math.floor(status.uptime_secs / 3600);
+      const m = Math.floor((status.uptime_secs % 3600) / 60);
+      const s = status.uptime_secs % 60;
+      document.getElementById('uptime').textContent = `${h}h ${m}m ${s}s`;
+
+      // Fetch live activity
+      const actData = await PocAPI.fetchActivity(conn.url);
+      if (actData.items && actData.items.length > 0) {
+        const list = document.getElementById('activity-list');
+        if (list) {
+          list.innerHTML = '';
+          actData.items.slice(0, 10).forEach(item => {
+            const icons = { proof: '\u27C1', message: '\u2709', approval: '\u2713' };
+            const li = document.createElement('li');
+            li.className = 'activity-item';
+            const ago = Math.floor((Date.now()/1000 - item.timestamp));
+            const agoStr = ago < 60 ? 'Just now' : ago < 3600 ? Math.floor(ago/60) + 'm ago' : Math.floor(ago/3600) + 'h ago';
+            li.innerHTML = `<div class="activity-icon ${item.activity_type}">${icons[item.activity_type] || '\u2022'}</div>
+              <div class="activity-content"><div class="activity-title">${item.title}</div>
+              <div class="activity-meta">${item.description} &middot; ${agoStr}</div></div>`;
+            list.appendChild(li);
+          });
+        }
+      }
+    } catch(e) {
+      console.warn('Live sync failed:', e);
+    }
+  }
+  // First sync immediately, then every 5s
+  syncOnce();
+  setInterval(syncOnce, 5000);
 }
 
 function loadAgents() {
@@ -1245,6 +1300,6 @@ function showEmptyState() {
 // =====================================================
 init();
 </script>
-
+<script src="poc-api.js"></script>
 </body>
 </html>
