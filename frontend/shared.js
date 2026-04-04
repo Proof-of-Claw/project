@@ -21,6 +21,26 @@ function toggleSidebar() {
   } catch (_) { /* ignore */ }
 }
 
+/* ── Mobile Sidebar Toggle ── */
+function toggleMobileSidebar() {
+  var sidebar = document.querySelector('.sidebar');
+  var overlay = document.querySelector('.sidebar-overlay');
+  if (!sidebar) return;
+  if (sidebar.classList.contains('mobile-open')) {
+    closeMobileSidebar();
+  } else {
+    sidebar.classList.add('mobile-open');
+    if (overlay) overlay.classList.add('active');
+  }
+}
+
+function closeMobileSidebar() {
+  var sidebar = document.querySelector('.sidebar');
+  var overlay = document.querySelector('.sidebar-overlay');
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (overlay) overlay.classList.remove('active');
+}
+
 /* Restore sidebar state on load */
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -118,18 +138,18 @@ function getSwarmById(id) {
 function buildAgentENS(agentSlug, swarmId) {
   const org = getOrg();
   const swarm = getSwarmById(swarmId);
-  if (!org || !swarm) return agentSlug + '.proofclaw.eth';
-  return `${agentSlug}.${swarm.slug}.${org.slug}.eth`;
+  if (!org || !swarm) return agentSlug + '.proofofclaw.eth';
+  return `${agentSlug}.${swarm.slug}.${org.slug}.proofofclaw.eth`;
 }
 
 function buildSwarmENS(swarmSlug) {
   const org = getOrg();
-  if (!org) return swarmSlug + '.proofclaw.eth';
-  return `${swarmSlug}.${org.slug}.eth`;
+  if (!org) return swarmSlug + '.proofofclaw.eth';
+  return `${swarmSlug}.${org.slug}.proofofclaw.eth`;
 }
 
 function buildOrgENS(orgSlug) {
-  return `${orgSlug}.eth`;
+  return `${orgSlug}.proofofclaw.eth`;
 }
 
 function toSlug(str) {
@@ -230,7 +250,7 @@ function showOrgRegistration() {
 
   nameInput.addEventListener('input', function() {
     const slug = toSlug(this.value);
-    const ens = slug ? slug + '.eth' : '';
+    const ens = slug ? slug + '.proofofclaw.eth' : '';
     ensInput.value = ens;
     btn.disabled = !slug;
 
@@ -254,7 +274,7 @@ function submitOrgRegistration() {
     id: 'org-' + Date.now(),
     name: name,
     slug: slug,
-    ens: slug + '.eth',
+    ens: slug + '.proofofclaw.eth',
     description: document.getElementById('org-desc-input').value.trim(),
     network: document.getElementById('org-network-input').value,
     icon: '\u2B23',
@@ -262,21 +282,153 @@ function submitOrgRegistration() {
   };
 
   saveOrg(org);
+  injectOrgBadge();
 
-  // Animate success
+  // Show Swarm connection step
   const overlay = document.getElementById('org-register-overlay');
   const modal = overlay.querySelector('.modal');
   modal.innerHTML = `
-    <div class="modal-body" style="text-align:center;padding:40px;">
-      <div style="font-size:48px;margin-bottom:16px;">\u2705</div>
-      <h2 style="font-family:var(--font-display);font-weight:700;margin-bottom:8px;">Organization Registered!</h2>
-      <p style="color:var(--cyan);font-family:var(--font-mono);font-size:14px;margin-bottom:8px;">${esc(org.ens)}</p>
-      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:24px;">Create a swarm to start registering agents.</p>
-      <button class="btn btn-primary" style="padding:12px 32px;font-size:14px;font-weight:700;" onclick="closeOrgRegistration()">Continue</button>
+    <div class="modal-body" style="padding:32px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:40px;margin-bottom:12px;">\u2705</div>
+        <h2 style="font-family:var(--font-display);font-weight:700;margin-bottom:4px;">Organization Registered!</h2>
+        <p style="color:var(--cyan);font-family:var(--font-mono);font-size:14px;">${esc(org.ens)}</p>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:8px;">
+        <h3 style="font-family:var(--font-display);font-weight:700;font-size:15px;margin-bottom:12px;">
+          Connect to Swarm Protocol
+        </h3>
+        <p style="color:var(--text-secondary);font-size:12px;line-height:1.7;margin-bottom:16px;">
+          Link your agents to <strong style="color:var(--cyan);">swarmprotocol.fun</strong> for cross-agent
+          coordination, task routing, and fleet messaging.
+        </p>
+
+        <div id="swarm-setup-status" style="display:none;margin-bottom:16px;padding:10px 14px;border-radius:8px;font-size:12px;"></div>
+
+        <div id="swarm-setup-form">
+          <div class="form-group">
+            <label style="font-size:12px;">Swarm Org ID</label>
+            <input type="text" id="swarm-org-id-input" placeholder="Paste your org ID from swarmprotocol.fun">
+            <div class="form-hint" style="line-height:1.6;">
+              Go to <a href="https://swarmprotocol.fun" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:underline;">swarmprotocol.fun</a>,
+              create or join an org, then paste the org ID here.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="font-size:12px;">Bridge Agent Name <span style="color:var(--text-dim);">(optional)</span></label>
+            <input type="text" id="swarm-bridge-name-input" placeholder="${esc(org.name)} Bridge" value="${esc(org.name)} Bridge">
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button id="swarm-connect-btn" class="btn btn-primary" style="flex:1;padding:12px;font-size:13px;font-weight:700;" onclick="connectToSwarm()">
+              Connect to Swarm
+            </button>
+            <button class="btn" style="padding:12px 20px;font-size:13px;color:var(--text-secondary);background:var(--bg-card);border:1px solid var(--border);" onclick="closeOrgRegistration()">
+              Skip for now
+            </button>
+          </div>
+        </div>
+
+        <div id="swarm-setup-success" style="display:none;text-align:center;padding:16px 0;">
+          <div style="font-size:32px;margin-bottom:8px;">\u26A1</div>
+          <h3 style="font-family:var(--font-display);font-weight:700;font-size:15px;margin-bottom:4px;">Swarm Connected!</h3>
+          <p id="swarm-success-detail" style="color:var(--text-secondary);font-size:12px;margin-bottom:16px;"></p>
+          <button class="btn btn-primary" style="padding:12px 32px;font-size:14px;font-weight:700;" onclick="closeOrgRegistration()">Continue</button>
+        </div>
+      </div>
     </div>
   `;
 
-  injectOrgBadge();
+  checkSwarmBridgeStatus();
+}
+
+/* ── Swarm Bridge Integration ── */
+const SWARM_BRIDGE_URL = 'http://localhost:3002';
+
+async function checkSwarmBridgeStatus() {
+  try {
+    const resp = await fetch(SWARM_BRIDGE_URL + '/health', { signal: AbortSignal.timeout(2000) });
+    const data = await resp.json();
+    if (data.setupComplete) {
+      showSwarmSetupResult('success', 'Already connected as ' + esc(data.agentName) + ' (' + esc(data.agentId) + ')');
+      return;
+    }
+    showSwarmSetupResult('info', 'Bridge is running. Enter your Swarm org ID to connect.');
+  } catch {
+    showSwarmSetupResult('warn',
+      'Swarm bridge not detected on port 3002. Start it with: <code style="background:var(--bg-primary);padding:2px 6px;border-radius:4px;">make run-swarm-bridge</code>'
+    );
+  }
+}
+
+function showSwarmSetupResult(type, msg) {
+  var el = document.getElementById('swarm-setup-status');
+  if (!el) return;
+  var colors = {
+    success: { bg: 'rgba(0,230,118,0.08)', border: 'rgba(0,230,118,0.3)', text: 'var(--green)' },
+    info:    { bg: 'rgba(0,229,255,0.06)', border: 'var(--border-cyan)', text: 'var(--cyan)' },
+    warn:    { bg: 'rgba(255,167,38,0.08)', border: 'rgba(255,167,38,0.3)', text: '#ffa726' },
+    error:   { bg: 'rgba(255,82,82,0.08)', border: 'rgba(255,82,82,0.3)', text: 'var(--red)' },
+  };
+  var c = colors[type] || colors.info;
+  el.style.display = 'block';
+  el.style.background = c.bg;
+  el.style.border = '1px solid ' + c.border;
+  el.style.color = c.text;
+  el.innerHTML = msg;
+}
+
+async function connectToSwarm() {
+  var orgId = document.getElementById('swarm-org-id-input').value.trim();
+  if (!orgId) {
+    showSwarmSetupResult('error', 'Org ID is required. Get it from swarmprotocol.fun');
+    return;
+  }
+
+  var agentName = document.getElementById('swarm-bridge-name-input').value.trim() || undefined;
+  var btn = document.getElementById('swarm-connect-btn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+  showSwarmSetupResult('info', 'Registering with Swarm hub...');
+
+  try {
+    var resp = await fetch(SWARM_BRIDGE_URL + '/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgId: orgId, agentName: agentName }),
+    });
+
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Setup failed (' + resp.status + ')');
+
+    // Save Swarm config to org
+    var org = getOrg();
+    if (org) {
+      org.swarmOrgId = data.orgId;
+      org.swarmAgentId = data.agentId;
+      org.swarmAgentName = data.agentName;
+      org.swarmAsn = data.asn;
+      org.swarmConnectedAt = new Date().toISOString();
+      saveOrg(org);
+    }
+
+    // Show success
+    document.getElementById('swarm-setup-form').style.display = 'none';
+    document.getElementById('swarm-setup-status').style.display = 'none';
+    var successEl = document.getElementById('swarm-setup-success');
+    successEl.style.display = 'block';
+    document.getElementById('swarm-success-detail').innerHTML =
+      'Registered as <strong style="color:var(--cyan);">' + esc(data.agentName) + '</strong>' +
+      (data.asn ? ' &middot; ASN: ' + esc(data.asn) : '') +
+      '<br>Org: ' + esc(data.orgId);
+
+  } catch (e) {
+    showSwarmSetupResult('error', 'Failed: ' + esc(e.message));
+    btn.disabled = false;
+    btn.textContent = 'Connect to Swarm';
+  }
 }
 
 function closeOrgRegistration() {

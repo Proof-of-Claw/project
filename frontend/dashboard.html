@@ -396,12 +396,18 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 /* ======================================== */
 @media (max-width: 768px) {
   :root { --sidebar-w: 0px; }
-  .sidebar { display: none; }
-  .topbar { left: 0; }
-  .main-content { margin-left: 0; }
+  .topbar { left: 0; padding: 0 1rem; }
+  .main-content { margin-left: 0; padding: 1.25rem 1rem; }
   .metrics-grid { grid-template-columns: 1fr; }
   .agent-header { flex-direction: column; }
   .agent-header-right { align-items: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .topbar { height: 52px; }
+  .main-content { margin-top: 52px; padding: 1rem 0.75rem; }
+  .topbar-title { font-size: 0.9rem; }
+  .agent-selector { font-size: 0.7rem; padding: 0.3rem 0.5rem; max-width: 140px; }
 }
 
 /* ======================================== */
@@ -498,8 +504,11 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 <!-- ======================================== -->
 <!-- TOPBAR                                   -->
 <!-- ======================================== -->
+<div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
 <header class="topbar" role="banner">
   <div class="topbar-left">
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Open menu">&#9776;</button>
     <span class="topbar-title">Agent Dashboard</span>
     <select id="agent-selector" class="agent-selector" aria-label="Select agent" onchange="switchAgent(this.value)">
       <option value="">Loading...</option>
@@ -648,7 +657,7 @@ const DEFAULT_AGENTS = [
     type: 'coordinator',
     icon: '\u26A1',
     status: 'online',
-    ens: 'alpha.proofclaw.eth',
+    ens: 'alpha.proofofclaw.eth',
     policyHash: '0x9f3a...c4e1',
     desc: 'Primary fleet coordinator for multi-agent orchestration',
     skills: ['multi-agent','delegation','task-routing','typescript'],
@@ -663,7 +672,7 @@ const DEFAULT_AGENTS = [
     type: 'defi-strategist',
     icon: '\uD83D\uDCCA',
     status: 'online',
-    ens: 'defi-scout.proofclaw.eth',
+    ens: 'defi-scout.proofofclaw.eth',
     policyHash: '0x7b2e...a8d3',
     desc: 'DeFi market scanner and yield optimizer',
     skills: ['defi-protocols','uniswap','aave','data-analysis'],
@@ -678,7 +687,7 @@ const DEFAULT_AGENTS = [
     type: 'security-auditor',
     icon: '\uD83D\uDD12',
     status: 'busy',
-    ens: 'sec-auditor.proofclaw.eth',
+    ens: 'sec-auditor.proofofclaw.eth',
     policyHash: '0x3d71...f5b9',
     desc: 'Smart contract security auditor',
     skills: ['solidity','security-audit','smart-contracts','slither'],
@@ -693,7 +702,7 @@ const DEFAULT_AGENTS = [
     type: 'governance-agent',
     icon: '\uD83C\uDF0F',
     status: 'online',
-    ens: 'gov-delegate.proofclaw.eth',
+    ens: 'gov-delegate.proofofclaw.eth',
     policyHash: '0xa4f8...2c67',
     desc: 'DAO governance participation agent',
     skills: ['governance','dao-voting','proposals','snapshot'],
@@ -708,7 +717,7 @@ const DEFAULT_AGENTS = [
     type: 'defi-strategist',
     icon: '\uD83D\uDCB0',
     status: 'offline',
-    ens: 'yield-hunter.proofclaw.eth',
+    ens: 'yield-hunter.proofofclaw.eth',
     policyHash: '0x61c3...9ae4',
     desc: 'Cross-chain yield farming specialist',
     skills: ['yield-farming','liquidity','cross-chain','bridges'],
@@ -723,7 +732,7 @@ const DEFAULT_AGENTS = [
     type: 'data-analyst',
     icon: '\uD83D\uDCC8',
     status: 'online',
-    ens: 'data-oracle.proofclaw.eth',
+    ens: 'data-oracle.proofofclaw.eth',
     policyHash: '0x2e89...b7f0',
     desc: 'On-chain data aggregation and analytics',
     skills: ['data-analysis','chainlink','the-graph','sql'],
@@ -1067,7 +1076,7 @@ function renderAgent() {
   // Header
   document.getElementById('agent-avatar').textContent = a.icon || '\u27C1';
   document.getElementById('agent-name').textContent = a.name;
-  document.getElementById('agent-ens').textContent = a.ens || a.name + '.proofclaw.eth';
+  document.getElementById('agent-ens').textContent = a.ens || a.name + '.proofofclaw.eth';
   document.getElementById('agent-type-badge').textContent = a.type || 'agent';
   document.getElementById('header-dot').className = 'status-dot' + (statusClass ? ' ' + statusClass : '');
   document.getElementById('header-status-text').textContent = statusLabel;
@@ -1079,7 +1088,7 @@ function renderAgent() {
 
   // Metrics - Agent Status card
   document.getElementById('metric-agent-id').textContent = a.id;
-  document.getElementById('metric-ens').textContent = a.ens || a.name + '.proofclaw.eth';
+  document.getElementById('metric-ens').textContent = a.ens || a.name + '.proofofclaw.eth';
   document.getElementById('metric-policy-hash').textContent = a.policyHash || '0x' + a.id.slice(0, 4) + '...' + a.id.slice(-4);
 
   // Set initial stats from agent data
@@ -1156,9 +1165,9 @@ function addActivity(type, title, description) {
 
 function seedActivity() {
   const a = currentAgent;
-  const ens = a.ens || a.name + '.proofclaw.eth';
+  const ens = a.ens || a.name + '.proofofclaw.eth';
   addActivity('proof', 'Proof Generated', 'Swap 100 USDC \u2192 ETH \u2022 Autonomous \u2022 2 min ago');
-  addActivity('message', 'DM3 Message Received', 'From bob.proofclaw.eth \u2022 5 min ago');
+  addActivity('message', 'DM3 Message Received', 'From bob.proofofclaw.eth \u2022 5 min ago');
   addActivity('approval', 'Ledger Approval Granted', 'Transfer 500 USDC \u2022 10 min ago');
   addActivity('proof', 'Proof Verified On-Chain', 'Query balance \u2022 Autonomous \u2022 18 min ago');
   addActivity('message', 'DM3 Message Sent', 'To ' + ens + ' \u2022 25 min ago');
@@ -1185,7 +1194,7 @@ function scheduleSimulations() {
 
   // Add message activity after 15 seconds
   activityTimers.push(setTimeout(function() {
-    addActivity('message', 'DM3 Message Received', 'From alpha.proofclaw.eth \u2022 Just now');
+    addActivity('message', 'DM3 Message Received', 'From alpha.proofofclaw.eth \u2022 Just now');
   }, 15000));
 
   // Add another proof after 22 seconds

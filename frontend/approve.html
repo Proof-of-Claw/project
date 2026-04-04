@@ -680,15 +680,26 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 /* ======================================== */
 @media (max-width: 768px) {
   :root { --sidebar-w: 0px; }
-  .sidebar { display: none; }
-  .topbar { left: 0 !important; }
-  .main-content { margin-left: 0 !important; }
+  .topbar { left: 0 !important; padding: 0 1rem; }
+  .main-content { margin-left: 0 !important; padding: 1.25rem 1rem; }
   .ledger-card { flex-direction: column; align-items: flex-start; }
   .action-card-top { flex-direction: column; }
   .action-buttons { justify-content: stretch; }
   .action-buttons button { flex: 1; }
   .history-table { font-size: 0.75rem; }
   .history-table th, .history-table td { padding: 0.5rem 0.6rem; }
+  .action-details { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .topbar { height: 52px; }
+  .main-content { margin-top: 52px; padding: 1rem 0.75rem; }
+  .topbar-title { font-size: 0.95rem; }
+  .action-details { grid-template-columns: 1fr; }
+  .ledger-card { padding: 1rem; }
+  .action-card { padding: 1rem; }
+  .history-table { font-size: 0.7rem; }
+  .history-table th, .history-table td { padding: 0.4rem 0.5rem; }
 }
 </style>
 </head>
@@ -737,8 +748,11 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 <!-- ======================================== -->
 <!-- TOPBAR                                   -->
 <!-- ======================================== -->
+<div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
 <header class="topbar" role="banner">
   <div class="topbar-left">
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Open menu">&#9776;</button>
     <span class="topbar-title">Ledger Approve</span>
   </div>
   <div class="topbar-right">

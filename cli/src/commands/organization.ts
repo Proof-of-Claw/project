@@ -36,7 +36,7 @@ export function registerOrgCommands(program: Command): void {
         }
 
         const sanitized = name.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-        const ensName = `${sanitized}.eth`;
+        const ensName = `${sanitized}.proofofclaw.eth`;
 
         const orgProfile: OrgProfile = {
           id: crypto.randomUUID(),

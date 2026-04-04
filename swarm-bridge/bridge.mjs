@@ -17,12 +17,17 @@
  *   POC → Swarm:  DM3 WS dm3_message → bridge → POST /api/v1/send on Hub (Ed25519 signed)
  *
  * Usage:
- *   node bridge.mjs                          # Start bridge (reads .env or env vars)
+ *   node bridge.mjs                          # Start bridge (auto-enters setup mode if unconfigured)
  *   node bridge.mjs --register-only          # Register with Swarm hub and exit
+ *
+ * If no config.json exists, the bridge starts in SETUP MODE:
+ *   - Serves the health/setup API on BRIDGE_PORT (default 3002)
+ *   - Frontend can POST /setup with { orgId, agentName } to complete onboarding
+ *   - Bridge auto-registers with Swarm hub and starts message routing
  *
  * Environment Variables:
  *   SWARM_HUB_URL          — Swarm hub (default: https://swarmprotocol.fun)
- *   SWARM_ORG_ID           — Organization ID on Swarm hub (required for registration)
+ *   SWARM_ORG_ID           — Organization ID on Swarm hub (optional — can be set via /setup)
  *   SWARM_AGENT_NAME       — Bridge agent name on Swarm (default: "ProofOfClaw Bridge")
  *   SWARM_AGENT_TYPE       — Agent type (default: "Coordinator")
  *   DM3_DELIVERY_URL       — DM3 delivery service (default: http://localhost:3001)
@@ -177,26 +182,29 @@ function saveConfig(config) {
   writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + "\n");
 }
 
-async function registerWithSwarm(publicKey) {
+async function registerWithSwarm(publicKey, orgId, agentName) {
+  const hubUrl = SWARM_HUB_URL;
+  const resolvedOrgId = orgId || SWARM_ORG_ID;
+  const resolvedName = agentName || SWARM_AGENT_NAME;
+
   const existing = loadConfig();
-  if (existing?.agentId && !REGISTER_ONLY) {
+  if (existing?.agentId && !REGISTER_ONLY && !orgId) {
     log("REG", `Already registered as "${existing.agentName}" (${existing.agentId})`);
     return existing;
   }
 
-  if (!SWARM_ORG_ID) {
-    log("REG", "SWARM_ORG_ID required for registration. Set it in .env or pass --org");
-    if (!existing) process.exit(1);
-    return existing;
+  if (!resolvedOrgId) {
+    log("REG", "No org ID — bridge will start in setup mode. Use POST /setup to configure.");
+    return null;
   }
 
-  log("REG", `Registering bridge with ${SWARM_HUB_URL}...`);
+  log("REG", `Registering bridge with ${hubUrl}...`);
 
   const body = {
     publicKey,
-    agentName: SWARM_AGENT_NAME,
+    agentName: resolvedName,
     agentType: SWARM_AGENT_TYPE,
-    orgId: SWARM_ORG_ID,
+    orgId: resolvedOrgId,
     skills: [
       { id: "dm3-bridge", name: "DM3 Message Bridge", type: "skill" },
       { id: "proofclaw", name: "Proof of Claw Integration", type: "skill" },
@@ -207,7 +215,7 @@ async function registerWithSwarm(publicKey) {
     ...(existing?.agentId ? { existingAgentId: existing.agentId } : {}),
   };
 
-  const resp = await fetch(`${SWARM_HUB_URL}/api/v1/register`, {
+  const resp = await fetch(`${hubUrl}/api/v1/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -217,15 +225,15 @@ async function registerWithSwarm(publicKey) {
     const err = await resp.json().catch(() => ({}));
     log("REG", `Registration failed (${resp.status}): ${err.error || "Unknown"}`);
     if (existing) return existing;
-    process.exit(1);
+    return null;
   }
 
   const data = await resp.json();
   const config = {
-    hubUrl: SWARM_HUB_URL,
-    orgId: SWARM_ORG_ID,
+    hubUrl,
+    orgId: resolvedOrgId,
     agentId: data.agentId,
-    agentName: data.agentName || SWARM_AGENT_NAME,
+    agentName: data.agentName || resolvedName,
     agentType: SWARM_AGENT_TYPE,
     asn: data.asn || null,
     registeredAt: Date.now(),
@@ -236,6 +244,43 @@ async function registerWithSwarm(publicKey) {
   if (data.asn) log("REG", `ASN: ${data.asn}`);
 
   return config;
+}
+
+/** Start the live bridge connections (called after successful registration) */
+function startBridgeConnections(config, privateKeyPem) {
+  connectToDm3();
+  connectToSwarmHub(config, privateKeyPem);
+  // Auto-discover POC agent profiles from delivery service
+  autoDiscoverAgents();
+  log("BRIDGE", "Message routing active");
+}
+
+/** Poll DM3 delivery service for registered profiles and auto-subscribe */
+async function autoDiscoverAgents() {
+  // The identity map already has persisted mappings — subscribe to all of them
+  for (const ensName of ensToSwarm.keys()) {
+    subscribeDm3(ensName);
+  }
+
+  // Also try to discover agents by checking common ENS patterns from the POC agent API
+  // If a POC agent is running, we can query it for its ENS name
+  const agentPorts = [8420, 8421, 8422, 8423, 8424];
+  for (const port of agentPorts) {
+    try {
+      const resp = await fetch(`http://localhost:${port}/api/status`, {
+        signal: AbortSignal.timeout(1000),
+      });
+      if (!resp.ok) continue;
+      const status = await resp.json();
+      if (status.ens_name && !ensToSwarm.has(status.ens_name)) {
+        registerMapping(status.ens_name, null, null);
+        subscribeDm3(status.ens_name);
+        log("DISCOVER", `Found POC agent: ${status.ens_name} on port ${port}`);
+      }
+    } catch {
+      // Agent not running on this port
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -643,24 +688,48 @@ function resolveSwarmSenderToEns(data) {
 // Health / Status HTTP Server
 // ---------------------------------------------------------------------------
 
+// Track setup state — the keypair is always available, config may be null
+let bridgeKeypair = null;
+let bridgeConfig = null;
+
 function startHealthServer() {
   const server = http.createServer((req, res) => {
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+    // CORS preflight
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    // --- GET /health — status + setup state ---
     if (req.url === "/health") {
+      const config = bridgeConfig || loadConfig();
       res.writeHead(200);
       res.end(JSON.stringify({
-        status: "ok",
+        status: config ? "running" : "setup_required",
+        setupComplete: !!config,
         uptime: process.uptime(),
         swarmConnected,
         dm3Connected,
         identityMappings: ensToSwarm.size,
         swarmChannels: swarmChannels.size,
+        hubUrl: SWARM_HUB_URL,
+        ...(config ? {
+          agentId: config.agentId,
+          agentName: config.agentName,
+          orgId: config.orgId,
+          asn: config.asn,
+        } : {}),
       }));
       return;
     }
 
+    // --- GET /mappings — identity map ---
     if (req.url === "/mappings") {
       res.writeHead(200);
       res.end(JSON.stringify({
@@ -670,7 +739,56 @@ function startHealthServer() {
       return;
     }
 
-    // POST /register-agent — dynamically register an ENS ↔ Swarm mapping
+    // --- POST /setup — onboarding: register bridge with Swarm hub ---
+    // Called by frontend during org creation to connect POC to Swarm.
+    // Body: { orgId: string, agentName?: string, hubUrl?: string }
+    // Returns: { ok, agentId, agentName, asn, orgId }
+    if (req.method === "POST" && req.url === "/setup") {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", async () => {
+        try {
+          const { orgId, agentName, hubUrl } = JSON.parse(body);
+          if (!orgId) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: "orgId is required" }));
+            return;
+          }
+
+          const { publicKey, privateKey } = bridgeKeypair || ensureKeypair();
+
+          const config = await registerWithSwarm(publicKey, orgId, agentName || undefined);
+          if (!config) {
+            res.writeHead(502);
+            res.end(JSON.stringify({ error: "Registration with Swarm hub failed" }));
+            return;
+          }
+
+          bridgeConfig = config;
+
+          // Start live connections if not already running
+          if (!swarmConnected) {
+            startBridgeConnections(config, privateKey);
+          }
+
+          res.writeHead(200);
+          res.end(JSON.stringify({
+            ok: true,
+            agentId: config.agentId,
+            agentName: config.agentName,
+            orgId: config.orgId,
+            asn: config.asn,
+            hubUrl: config.hubUrl,
+          }));
+        } catch (e) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
+
+    // --- POST /register-agent — map ENS name to Swarm agent/channel ---
     if (req.method === "POST" && req.url === "/register-agent") {
       let body = "";
       req.on("data", (chunk) => { body += chunk; });
@@ -683,7 +801,6 @@ function startHealthServer() {
             return;
           }
           registerMapping(ensName, agentId || null, channelId || null);
-          // Subscribe to DM3 messages for this agent
           subscribeDm3(ensName);
           res.writeHead(201);
           res.end(JSON.stringify({ ok: true, ensName, agentId, channelId }));
@@ -700,10 +817,11 @@ function startHealthServer() {
   });
 
   server.listen(BRIDGE_PORT, () => {
-    log("HTTP", `Health server on http://localhost:${BRIDGE_PORT}`);
-    log("HTTP", `  GET  /health          — bridge status`);
+    log("HTTP", `Bridge API on http://localhost:${BRIDGE_PORT}`);
+    log("HTTP", `  GET  /health          — status + setup state`);
+    log("HTTP", `  POST /setup           — onboard: { orgId, agentName? }`);
     log("HTTP", `  GET  /mappings        — identity mappings`);
-    log("HTTP", `  POST /register-agent  — register ENS ↔ Swarm mapping`);
+    log("HTTP", `  POST /register-agent  — map ENS ↔ Swarm agent`);
   });
 }
 
@@ -712,35 +830,57 @@ function startHealthServer() {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  log("INIT", "ProofOfClaw ↔ Swarm Protocol Bridge starting...");
+  log("INIT", "ProofOfClaw <> Swarm Protocol Bridge starting...");
   log("INIT", `Hub:     ${SWARM_HUB_URL}`);
   log("INIT", `DM3:     ${DM3_DELIVERY_URL}`);
   log("INIT", `Port:    ${BRIDGE_PORT}`);
 
   // 1. Generate or load Ed25519 keypair
-  const { publicKey, privateKey } = ensureKeypair();
+  bridgeKeypair = ensureKeypair();
+  const { publicKey, privateKey } = bridgeKeypair;
 
   // 2. Load identity mappings
   loadIdentityMap();
 
-  // 3. Register with Swarm hub
-  const config = await registerWithSwarm(publicKey);
+  // 3. Try to register with Swarm hub (returns null if no orgId configured)
+  bridgeConfig = await registerWithSwarm(publicKey);
 
   if (REGISTER_ONLY) {
+    if (!bridgeConfig) {
+      log("INIT", "Registration failed — no org ID. Pass --org <orgId>");
+      process.exit(1);
+    }
     log("INIT", "Registration complete (--register-only). Exiting.");
     process.exit(0);
   }
 
-  // 4. Start health server
+  // 4. Always start the HTTP API (setup + health + mappings)
   startHealthServer();
 
-  // 5. Connect to DM3 delivery service
-  connectToDm3();
+  // 5. If already configured, start live connections immediately
+  if (bridgeConfig) {
+    startBridgeConnections(bridgeConfig, privateKey);
+    log("INIT", "Bridge running. Press Ctrl+C to stop.");
+  } else {
+    log("INIT", "");
+    log("INIT", "=== SETUP MODE ===");
+    log("INIT", "Bridge is waiting for configuration.");
+    log("INIT", "");
+    log("INIT", "Option 1: Use the ProofOfClaw frontend (recommended)");
+    log("INIT", "  - Open the dashboard and complete the Swarm connection step");
+    log("INIT", "");
+    log("INIT", "Option 2: Use curl");
+    log("INIT", `  curl -X POST http://localhost:${BRIDGE_PORT}/setup \\`);
+    log("INIT", `    -H 'Content-Type: application/json' \\`);
+    log("INIT", `    -d '{"orgId": "YOUR_ORG_ID"}'`);
+    log("INIT", "");
+    log("INIT", "To get an org ID:");
+    log("INIT", "  1. Go to swarmprotocol.fun and create/join an organization");
+    log("INIT", "  2. Copy the org ID from the URL or settings page");
+    log("INIT", "");
+  }
 
-  // 6. Connect to Swarm hub WebSocket
-  connectToSwarmHub(config, privateKey);
-
-  // 7. Graceful shutdown
+  // 6. Graceful shutdown
   for (const signal of ["SIGINT", "SIGTERM"]) {
     process.on(signal, () => {
       log("SHUTDOWN", `Received ${signal}, closing connections...`);
@@ -751,8 +891,6 @@ async function main() {
       process.exit(0);
     });
   }
-
-  log("INIT", "Bridge running. Press Ctrl+C to stop.");
 }
 
 main().catch((err) => {

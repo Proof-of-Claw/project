@@ -43,7 +43,7 @@ The success screen shows the exact `cargo run` command pre-filled with your conf
 ```bash
 cd agent && \
 AGENT_ID=my-agent \
-ENS_NAME=my-agent.proofclaw.eth \
+ENS_NAME=my-agent.proofofclaw.eth \
 PRIVATE_KEY=0x... \
 RPC_URL=https://eth-sepolia.g.alchemy.com/v2/... \
 ZERO_G_INDEXER_RPC=https://indexer-storage-testnet.0g.ai \
@@ -244,7 +244,7 @@ cd zkvm && cargo build --release
 
 ```bash
 # Terminal 1: Start the agent
-cd agent && AGENT_ID=my-agent ENS_NAME=my-agent.proofclaw.eth \
+cd agent && AGENT_ID=my-agent ENS_NAME=my-agent.proofofclaw.eth \
   PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
   RPC_URL=https://eth-sepolia.g.alchemy.com/v2/demo \
   ZERO_G_INDEXER_RPC=https://indexer-storage-testnet.0g.ai \

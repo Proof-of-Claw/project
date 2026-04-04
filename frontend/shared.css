@@ -760,9 +760,64 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 }
 
 /* ================================================================
+   MOBILE HAMBURGER BUTTON (sidebar pages)
+   ================================================================ */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.mobile-menu-btn:hover {
+  color: var(--cyan);
+  border-color: var(--border-cyan);
+}
+
+/* Mobile sidebar overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 299;
+}
+
+.sidebar-overlay.active {
+  display: block;
+}
+
+/* ================================================================
+   LANDING NAV — MOBILE
+   ================================================================ */
+@media (max-width: 768px) {
+  .landing-nav {
+    padding: 0.75rem 1rem;
+  }
+  .landing-nav .nav-links {
+    display: none;
+  }
+  .landing-nav .nav-actions .nav-badge:not(:first-child) {
+    display: none;
+  }
+}
+
+/* ================================================================
    RESPONSIVE - MOBILE SIDEBAR
    ================================================================ */
 @media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+  }
   .sidebar {
     transform: translateX(-100%);
     z-index: 300;
@@ -775,8 +830,48 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
   }
   .topbar {
     left: 0 !important;
+    padding: 0 1rem;
   }
   .sidebar-toggle {
     display: none;
+  }
+  /* Cards */
+  .card {
+    padding: 1rem;
+  }
+  /* Modals */
+  .modal-overlay {
+    padding: 20px 12px;
+  }
+  .modal {
+    max-width: 100%;
+    border-radius: 12px;
+  }
+  .modal-header {
+    padding: 16px 18px;
+  }
+  .modal-body {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 0 0.75rem;
+    height: 52px;
+  }
+  .topbar-title {
+    font-size: 0.95rem;
+  }
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+  .badge {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.6rem;
+  }
+  .modal-header h2 {
+    font-size: 16px;
   }
 }
