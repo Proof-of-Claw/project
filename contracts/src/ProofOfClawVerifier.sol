@@ -14,8 +14,8 @@ interface IEIP8004Integration {
 }
 
 contract ProofOfClawVerifier {
-    IRiscZeroVerifier public immutable verifier;
-    bytes32 public immutable imageId;
+    IRiscZeroVerifier public verifier;
+    bytes32 public imageId;
 
     /// @notice Contract deployer — only address that can configure integrations
     address public immutable owner;
@@ -64,6 +64,9 @@ contract ProofOfClawVerifier {
     error AgentNotActive();
     error AgentAlreadyExists();
 
+    event VerifierUpdated(address oldVerifier, address newVerifier);
+    event ImageIdUpdated(bytes32 oldImageId, bytes32 newImageId);
+
     constructor(IRiscZeroVerifier _verifier, bytes32 _imageId) {
         verifier = _verifier;
         imageId = _imageId;
@@ -72,6 +75,25 @@ contract ProofOfClawVerifier {
 
     /// @notice Set the EIP-8004 integration contract address
     /// @dev Called once after deployment. Only callable by owner when not yet set.
+    /// @notice Update the RISC Zero verifier contract address
+    /// @param newVerifier Address of the new IRiscZeroVerifier implementation
+    function updateVerifier(address newVerifier) external {
+        if (msg.sender != owner) revert Unauthorized();
+        require(newVerifier != address(0), "Zero address");
+        address oldVerifier = address(verifier);
+        verifier = IRiscZeroVerifier(newVerifier);
+        emit VerifierUpdated(oldVerifier, newVerifier);
+    }
+
+    /// @notice Update the RISC Zero guest image ID
+    /// @param newImageId New guest program image ID
+    function updateImageId(bytes32 newImageId) external {
+        if (msg.sender != owner) revert Unauthorized();
+        bytes32 oldImageId = imageId;
+        imageId = newImageId;
+        emit ImageIdUpdated(oldImageId, newImageId);
+    }
+
     function setEIP8004Integration(address _eip8004) external {
         if (msg.sender != owner) revert Unauthorized();
         require(address(eip8004) == address(0), "Already set");
