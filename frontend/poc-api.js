@@ -177,7 +177,7 @@ const PocAPI = (() => {
           <p class="poc-modal-desc">Enter the API endpoint of your running Proof of Claw agent runtime.</p>
           <div class="poc-form-group">
             <label>Agent API URL</label>
-            <input type="text" id="poc-connect-url" placeholder="http://localhost:8420" value="http://localhost:8420">
+            <input type="text" id="poc-connect-url" placeholder="http://localhost:8420" value="">
             <div class="poc-form-hint">Default port is 8420. Set API_PORT env var to change.</div>
           </div>
           <div id="poc-connect-error" class="poc-error" style="display:none;"></div>
@@ -204,6 +204,15 @@ const PocAPI = (() => {
     document.getElementById('poc-connect-success').style.display = 'none';
     document.getElementById('poc-btn-connect').disabled = false;
     document.getElementById('poc-btn-connect').textContent = 'Connect';
+
+    // Auto-fill URL when running on localhost; otherwise leave empty so user must provide it
+    const urlInput = document.getElementById('poc-connect-url');
+    if (!urlInput.value) {
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+        urlInput.value = 'http://localhost:8420';
+      }
+    }
   }
   function hideConnectModal() {
     const m = document.getElementById('poc-connect-modal');
@@ -218,6 +227,13 @@ const PocAPI = (() => {
 
     errEl.style.display = 'none';
     succEl.style.display = 'none';
+
+    if (!url) {
+      errEl.textContent = 'Please enter your agent API URL.';
+      errEl.style.display = 'block';
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = 'Connecting...';
 

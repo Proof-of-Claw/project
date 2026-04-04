@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Documentation — Proof of Claw</title>
 <meta name="description" content="Technical documentation for Proof of Claw — Provable Private Agent Framework. Architecture, integration guides, API reference, and deployment.">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"></noscript>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -31,6 +34,8 @@
   --font-mono: 'JetBrains Mono', monospace;
 }
 
+html { scroll-behavior: smooth; }
+
 body {
   font-family: var(--font-mono);
   background: var(--bg-primary);
@@ -47,9 +52,11 @@ body::after {
   background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
   pointer-events: none;
   z-index: 9999;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
-/* NAV */
+/* ========== NAVIGATION ========== */
 nav {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -62,6 +69,8 @@ nav {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
+  will-change: transform;
+  contain: layout style;
 }
 
 .nav-logo {
@@ -94,6 +103,8 @@ nav {
 }
 .nav-links a:hover, .nav-links a.active { color: var(--cyan); }
 
+.nav-actions { display: flex; gap: 0.75rem; align-items: center; }
+
 .nav-badge {
   padding: 0.35rem 0.9rem;
   border: 1px solid var(--border-cyan);
@@ -108,82 +119,230 @@ nav {
 }
 .nav-badge:hover { background: rgba(0, 229, 255, 0.25); box-shadow: 0 0 20px rgba(0, 229, 255, 0.15); }
 
-/* LAYOUT */
-.docs-wrapper {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 0;
-  min-height: 100vh;
-  padding-top: 60px;
+/* Mobile menu toggle */
+.nav-hamburger {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.nav-hamburger:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* ========== HERO ========== */
+.docs-hero {
+  padding: 8rem 2rem 3rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.03) 0%, transparent 70%);
 }
 
+.docs-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.docs-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 3rem;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.docs-hero .subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 300;
+  max-width: 560px;
+  margin: 0 auto 2rem;
+  line-height: 1.7;
+}
+
+.docs-hero .hero-tags {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Search box */
+.docs-search-wrap {
+  max-width: 480px;
+  margin: 0 auto 1.5rem;
+  position: relative;
+}
+
+.docs-search {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.docs-search:focus {
+  outline: none;
+  border-color: var(--border-cyan);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.08);
+}
+
+.docs-search::placeholder { color: var(--text-dim); }
+
+.docs-search-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+/* ========== LAYOUT ========== */
+.docs-wrapper {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 0;
+  min-height: 100vh;
+}
+
+/* ========== SIDEBAR ========== */
 .sidebar {
   position: fixed;
   top: 60px;
   left: 0;
-  width: 260px;
+  width: 280px;
   height: calc(100vh - 60px);
   overflow-y: auto;
   border-right: 1px solid var(--border);
   background: var(--bg-secondary);
-  padding: 2rem 1.5rem;
+  padding: 1.5rem;
+  z-index: 50;
 }
 
-.sidebar-section { margin-bottom: 2rem; }
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 2px; }
+
+.sidebar-section { margin-bottom: 1.75rem; }
+
 .sidebar-label {
   font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: var(--text-dim);
-  margin-bottom: 0.75rem;
+  color: var(--cyan-dim);
+  margin-bottom: 0.6rem;
+  padding-left: 0.75rem;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-label::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--cyan-dim);
+  flex-shrink: 0;
 }
 
 .sidebar-link {
-  display: block;
-  padding: 0.4rem 0.75rem;
-  margin: 0.15rem 0;
-  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  margin: 0.1rem 0;
+  border-radius: 8px;
   text-decoration: none;
   color: var(--text-secondary);
   font-size: 0.78rem;
   transition: all 0.2s;
+  border-left: 2px solid transparent;
 }
-.sidebar-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
-.sidebar-link.active { color: var(--cyan); background: var(--cyan-glow); }
 
+.sidebar-link:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.04);
+  border-left-color: rgba(255,255,255,0.1);
+}
+
+.sidebar-link.active {
+  color: var(--cyan);
+  background: var(--cyan-glow);
+  border-left-color: var(--cyan);
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1rem 0;
+}
+
+/* ========== MAIN CONTENT ========== */
 .docs-content {
-  margin-left: 260px;
-  padding: 3rem 4rem 6rem;
-  max-width: 900px;
+  margin-left: 280px;
+  padding: 0 4rem 6rem;
+  max-width: 920px;
 }
 
-.docs-content h1 {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 2.2rem;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.03em;
-}
-
-.docs-content .subtitle {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 3rem;
-  font-weight: 300;
+/* Section anchors */
+.section-anchor {
+  scroll-margin-top: 80px;
 }
 
 .docs-content h2 {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.4rem;
-  margin: 3rem 0 1rem;
-  padding-top: 2rem;
+  font-size: 1.5rem;
+  margin: 3.5rem 0 1.25rem;
+  padding-top: 2.5rem;
   border-top: 1px solid var(--border);
   letter-spacing: -0.02em;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.docs-content h2:first-of-type { border-top: none; padding-top: 0; }
+.docs-content h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+
+.docs-content h2 .section-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.icon-cyan { background: var(--cyan-glow); border: 1px solid var(--border-cyan); }
+.icon-amber { background: var(--amber-glow); border: 1px solid rgba(255,179,0,0.2); }
+.icon-green { background: rgba(0,230,118,0.08); border: 1px solid rgba(0,230,118,0.2); }
+.icon-red { background: rgba(255,61,90,0.08); border: 1px solid rgba(255,61,90,0.2); }
 
 .docs-content h3 {
   font-family: var(--font-display);
@@ -219,31 +378,61 @@ nav {
   color: var(--cyan);
 }
 
+/* ========== CODE BLOCKS ========== */
 .code-block {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
   margin: 1.25rem 0 2rem;
+  transition: border-color 0.3s;
 }
+
+.code-block:hover { border-color: rgba(255,255,255,0.1); }
 
 .code-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: space-between;
   padding: 0.6rem 1rem;
   background: rgba(255,255,255,0.02);
   border-bottom: 1px solid var(--border);
 }
 
+.code-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .code-dots { display: flex; gap: 5px; }
-.code-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); }
+.code-dots span { width: 8px; height: 8px; border-radius: 50%; }
+.code-dots span:nth-child(1) { background: var(--red); opacity: 0.6; }
+.code-dots span:nth-child(2) { background: var(--amber); opacity: 0.6; }
+.code-dots span:nth-child(3) { background: var(--green); opacity: 0.6; }
 
 .code-filename {
   font-size: 0.7rem;
   color: var(--text-dim);
   letter-spacing: 0.03em;
 }
+
+.copy-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.6rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.copy-btn:hover { color: var(--cyan); border-color: var(--border-cyan); background: var(--cyan-glow); }
+.copy-btn.copied { color: var(--green); border-color: rgba(0,230,118,0.3); background: rgba(0,230,118,0.08); }
 
 .code-body {
   padding: 1.25rem 1.5rem;
@@ -264,6 +453,7 @@ nav {
 .code-body .cm { color: var(--text-dim); font-style: italic; }
 .code-body .op { color: var(--text-dim); }
 
+/* ========== TAGS ========== */
 .tag {
   display: inline-block;
   padding: 0.2rem 0.65rem;
@@ -280,16 +470,80 @@ nav {
 .tag-amber { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(255,179,0,0.2); }
 .tag-green { background: rgba(0,230,118,0.08); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
 
+/* ========== INFO BOXES ========== */
 .info-box {
   background: var(--bg-card);
   border: 1px solid var(--border-cyan);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 1.25rem 1.5rem;
   margin: 1.5rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.info-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--cyan);
+  border-radius: 0 2px 2px 0;
 }
 
 .info-box p { margin-bottom: 0; }
 
+/* ========== INTEGRATION CARDS ========== */
+.integration-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 2rem;
+  margin: 2rem 0;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.integration-card:hover {
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+}
+
+.integration-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.4;
+  filter: blur(60px);
+}
+
+.integration-card.card-cyan::after { background: rgba(0,229,255,0.08); }
+.integration-card.card-green::after { background: rgba(0,230,118,0.08); }
+.integration-card.card-amber::after { background: rgba(255,179,0,0.08); }
+
+.integration-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.integration-card .card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+/* ========== TABLES ========== */
 .table-wrap { overflow-x: auto; margin: 1.5rem 0; }
 
 table {
@@ -307,6 +561,7 @@ th {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  background: rgba(0, 229, 255, 0.03);
 }
 
 td {
@@ -315,13 +570,223 @@ td {
   color: var(--text-secondary);
 }
 
+tr:hover td { background: rgba(255,255,255,0.015); }
+
 .highlight { color: var(--cyan); }
 
-/* Responsive */
+/* ========== FLOW DIAGRAMS ========== */
+.flow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 1.5rem 0 2rem;
+}
+
+.flow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  position: relative;
+  padding: 0.75rem 0;
+}
+
+.flow-step::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 38px;
+  bottom: -6px;
+  width: 1px;
+  background: var(--border);
+}
+
+.flow-step:last-child::before { display: none; }
+
+.flow-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-cyan);
+  color: var(--cyan);
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.flow-step.flow-highlight .flow-num {
+  background: var(--cyan-glow);
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+}
+
+.flow-text {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding-top: 0.3rem;
+}
+
+/* ========== BOUNTY CARDS ========== */
+.bounty-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin: 2rem 0;
+}
+
+.bounty-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.bounty-card:hover {
+  border-color: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.bounty-sponsor {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.bounty-track {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.bounty-prize {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: var(--amber);
+  margin-bottom: 0.75rem;
+}
+
+.bounty-integration {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+/* ========== FOOTER ========== */
+.docs-footer {
+  margin-top: 5rem;
+  padding: 3rem 0;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  position: relative;
+}
+
+.docs-footer::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.footer-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.footer-text {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  margin-bottom: 0.3rem;
+}
+
+.footer-stack {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.footer-stack span {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* ========== ANIMATIONS ========== */
+.fade-in {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1100px) {
+  .docs-content { padding: 0 2.5rem 4rem; }
+}
+
 @media (max-width: 900px) {
+  .nav-links, .nav-actions { display: none; }
+  .nav-hamburger { display: flex; }
+  .nav-links.open, .nav-actions.open { display: flex; }
+
   .docs-wrapper { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
-  .docs-content { margin-left: 0; padding: 2rem 1.5rem 4rem; }
+  .sidebar {
+    display: none;
+    width: 100%;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    height: calc(100vh - 60px);
+    z-index: 90;
+  }
+  .sidebar.open { display: block; }
+  .docs-content { margin-left: 0; padding: 0 1.5rem 4rem; }
+  .docs-hero { padding: 7rem 1.5rem 2rem; }
+  .docs-hero h1 { font-size: 2rem; }
+  .bounty-grid { grid-template-columns: 1fr; }
+
+  .mobile-nav-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    top: 60px;
+    background: rgba(6,8,13,0.8);
+    z-index: 89;
+  }
+  .mobile-nav-overlay.open { display: block; }
+}
+
+@media (max-width: 600px) {
+  .docs-hero h1 { font-size: 1.6rem; }
+  .flow-step { gap: 0.6rem; }
 }
 </style>
 </head>
@@ -338,22 +803,45 @@ td {
     <li><a href="docs.html" class="active">Docs</a></li>
     <li><a href="agents.html">Agents</a></li>
     <li><a href="dashboard.html">Dashboard</a></li>
+    <li><a href="messages.html">Messages</a></li>
+    <li><a href="proofs.html">Proofs</a></li>
   </ul>
-  <div style="display: flex; gap: 0.75rem; align-items: center;">
+  <div class="nav-actions">
     <a href="agents.html" class="nav-badge">Launch App</a>
   </div>
+  <button class="nav-hamburger" onclick="toggleMobileMenu()" aria-label="Menu">&#9776;</button>
 </nav>
+
+<!-- HERO -->
+<div class="docs-hero">
+  <h1>Proof of <span class="highlight">Claw</span> Documentation</h1>
+  <p class="subtitle">Architecture, integration guides, API reference, and deployment for the Provable Private Agent Framework.</p>
+  <div class="docs-search-wrap">
+    <span class="docs-search-icon">&#x2315;</span>
+    <input type="text" class="docs-search" placeholder="Search documentation..." id="docsSearch">
+  </div>
+  <div class="hero-tags">
+    <span class="tag tag-cyan">Rust</span>
+    <span class="tag tag-cyan">0G</span>
+    <span class="tag tag-green">ENS</span>
+    <span class="tag tag-green">DM3</span>
+    <span class="tag tag-green">RISC Zero</span>
+    <span class="tag tag-amber">Ledger</span>
+    <span class="tag tag-amber">Swarm</span>
+  </div>
+</div>
 
 <div class="docs-wrapper">
 
 <!-- SIDEBAR -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-section">
     <div class="sidebar-label">Getting Started</div>
     <a href="#overview" class="sidebar-link active">Overview</a>
     <a href="#quick-start" class="sidebar-link">Quick Start</a>
     <a href="#prerequisites" class="sidebar-link">Prerequisites</a>
   </div>
+  <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Architecture</div>
     <a href="#architecture" class="sidebar-link">System Design</a>
@@ -361,6 +849,7 @@ td {
     <a href="#trust-tiers" class="sidebar-link">Trust Tiers</a>
     <a href="#data-flow" class="sidebar-link">Data Flow</a>
   </div>
+  <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Integrations</div>
     <a href="#0g-network" class="sidebar-link">0G Network</a>
@@ -369,16 +858,19 @@ td {
     <a href="#ledger" class="sidebar-link">Ledger DMK</a>
     <a href="#swarm" class="sidebar-link">Swarm Protocol</a>
   </div>
+  <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Smart Contracts</div>
     <a href="#contracts" class="sidebar-link">ProofOfClawVerifier</a>
     <a href="#clear-signing" class="sidebar-link">Clear Signing (ERC-7730)</a>
   </div>
+  <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Security</div>
     <a href="#security" class="sidebar-link">Threat Model</a>
     <a href="#safety-layer" class="sidebar-link">Safety Layer</a>
   </div>
+  <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Reference</div>
     <a href="#config" class="sidebar-link">Configuration</a>
@@ -387,49 +879,51 @@ td {
   </div>
 </aside>
 
+<div class="mobile-nav-overlay" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
+
 <!-- MAIN CONTENT -->
 <main class="docs-content">
 
-<h1>Proof of <span class="highlight">Claw</span> Documentation</h1>
-<p class="subtitle">Provable Private Agent Framework &mdash; ETHGlobal Cannes 2026</p>
-
 <!-- OVERVIEW -->
-<h2 id="overview">Overview</h2>
-<p>
+<h2 id="overview" class="section-anchor fade-in"><span class="section-icon icon-cyan">&#x2726;</span> Overview</h2>
+<p class="fade-in">
   Proof of Claw is a framework for running autonomous AI agents whose behavior is cryptographically provable, whose communication is end-to-end encrypted, and whose high-value actions require human approval via hardware signing.
 </p>
-<p>An agent built with Proof of Claw can:</p>
-<ul>
+<p class="fade-in">An agent built with Proof of Claw can:</p>
+<ul class="fade-in">
   <li>Reason privately using decentralized inference (<strong>0G Compute</strong>)</li>
   <li>Store persistent memory and execution traces on decentralized storage (<strong>0G Storage</strong>)</li>
   <li>Discover and message other agents via ENS-resolved encrypted channels (<strong>DM3</strong>)</li>
   <li>Prove to any on-chain verifier that it followed its declared policy (<strong>RISC Zero zkVM</strong>)</li>
   <li>Route high-value or out-of-policy actions to its owner's Ledger device for physical approval (<strong>Ledger DMK + Clear Signing</strong>)</li>
 </ul>
-<p>
+<p class="fade-in">
   The core agent runtime is adapted from <strong>IronClaw</strong>, a Rust-based OpenClaw reimplementation with WASM-sandboxed tool execution, capability-based permissions, and defense-in-depth security.
 </p>
 
-<div class="info-box">
+<div class="info-box fade-in">
   <p><strong>Tech Stack:</strong> Rust &middot; Tokio &middot; Wasmtime &middot; 0G Compute &middot; 0G Storage &middot; ENS &middot; DM3 &middot; RISC Zero &middot; Boundless &middot; Ledger DMK/DSK &middot; Solidity (Foundry) &middot; Swarm Protocol</p>
 </div>
 
 <!-- QUICK START -->
-<h2 id="quick-start">Quick Start</h2>
+<h2 id="quick-start" class="section-anchor fade-in"><span class="section-icon icon-green">&#x25B6;</span> Quick Start</h2>
 
-<h3 id="prerequisites">Prerequisites</h3>
-<ul>
+<h3 id="prerequisites" class="section-anchor fade-in">Prerequisites</h3>
+<ul class="fade-in">
   <li>Rust 1.75+</li>
   <li>Foundry (forge, cast)</li>
   <li>RISC Zero toolchain</li>
   <li>Node.js 18+ (for web UI, optional)</li>
 </ul>
 
-<h3>1. Build the Agent Runtime</h3>
-<div class="code-block">
+<h3 class="fade-in">1. Build the Agent Runtime</h3>
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">terminal</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">terminal</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre><span class="cm"># Build the Rust agent runtime</span>
@@ -438,11 +932,14 @@ td {
   </div>
 </div>
 
-<h3>2. Build RISC Zero Programs</h3>
-<div class="code-block">
+<h3 class="fade-in">2. Build RISC Zero Programs</h3>
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">terminal</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">terminal</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre><span class="cm"># Compile zkVM guest and host programs</span>
@@ -451,11 +948,14 @@ td {
   </div>
 </div>
 
-<h3>3. Deploy Smart Contracts</h3>
-<div class="code-block">
+<h3 class="fade-in">3. Deploy Smart Contracts</h3>
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">terminal</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">terminal</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre><span class="kw">cd</span> contracts
@@ -464,11 +964,14 @@ td {
   </div>
 </div>
 
-<h3>4. Run the Agent</h3>
-<div class="code-block">
+<h3 class="fade-in">4. Run the Agent</h3>
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">terminal</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">terminal</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre><span class="kw">cd</span> agent
@@ -477,14 +980,14 @@ td {
 </div>
 
 <!-- ARCHITECTURE -->
-<h2 id="architecture">Architecture</h2>
-<p>
+<h2 id="architecture" class="section-anchor fade-in"><span class="section-icon icon-cyan">&#x2B22;</span> Architecture</h2>
+<p class="fade-in">
   A layered design separating agent reasoning, integration services, and on-chain verification. Each layer assumes the layer below it may be compromised.
 </p>
 
-<h3 id="agent-core">Agent Core &mdash; IronClaw Runtime</h3>
-<p>The core agent is written in Rust and consists of three primary subsystems:</p>
-<div class="table-wrap">
+<h3 id="agent-core" class="section-anchor fade-in">Agent Core &mdash; IronClaw Runtime</h3>
+<p class="fade-in">The core agent is written in Rust and consists of three primary subsystems:</p>
+<div class="table-wrap fade-in">
 <table>
   <thead>
     <tr><th>Component</th><th>Path</th><th>Responsibility</th></tr>
@@ -503,8 +1006,8 @@ td {
 </table>
 </div>
 
-<h3 id="trust-tiers">Two-Tier Trust Model</h3>
-<div class="table-wrap">
+<h3 id="trust-tiers" class="section-anchor fade-in">Two-Tier Trust Model</h3>
+<div class="table-wrap fade-in">
 <table>
   <thead>
     <tr><th>Tier</th><th>Condition</th><th>Signing</th><th>Verification</th></tr>
@@ -526,45 +1029,55 @@ td {
 </table>
 </div>
 
-<h3 id="data-flow">Data Flow</h3>
-<h3>Autonomous Action Flow</h3>
-<ol>
-  <li>Agent receives message (user or DM3)</li>
-  <li>Intent router classifies action</li>
-  <li>0G Compute performs private inference inside TEE</li>
-  <li>Safety layer validates against declared policy</li>
-  <li>Tool execution in WASM sandbox</li>
-  <li>Execution trace stored on 0G Storage</li>
-  <li>RISC Zero proof generated via Boundless</li>
-  <li>Agent wallet submits proof + action to verifier contract</li>
-  <li>Contract verifies proof and executes action</li>
-</ol>
+<h3 id="data-flow" class="section-anchor fade-in">Data Flow</h3>
 
-<h3>Ledger-Gated Action Flow</h3>
-<ol>
-  <li>Steps 1&ndash;7 same as autonomous flow</li>
-  <li>RISC Zero proof indicates approval required</li>
-  <li>Contract emits <code>ApprovalRequired</code> event</li>
-  <li>Web UI alerts owner</li>
-  <li>Owner reviews on Ledger device (Clear Signing)</li>
-  <li>Owner physically approves</li>
-  <li>Ledger signs <code>approveAction()</code> transaction</li>
-  <li>Contract executes action</li>
-</ol>
-
-<!-- INTEGRATIONS -->
-<h2 id="0g-network">0G Network</h2>
-<p>
-  Every LLM call runs inside 0G's Sealed Inference TEE &mdash; prompts enter encrypted, operators cannot inspect them. Execution traces are stored on 0G Storage with content-addressable root hashes that anchor the provable chain.
-</p>
-<div class="info-box">
-  <p><span class="tag tag-cyan">0G Compute</span> <span class="tag tag-cyan">0G Storage</span> Private inference + decentralized trace storage</p>
+<h3 class="fade-in">Autonomous Action Flow</h3>
+<div class="flow-steps fade-in">
+  <div class="flow-step"><div class="flow-num">1</div><div class="flow-text">Agent receives message (user or DM3)</div></div>
+  <div class="flow-step"><div class="flow-num">2</div><div class="flow-text">Intent router classifies action</div></div>
+  <div class="flow-step"><div class="flow-num">3</div><div class="flow-text">0G Compute performs private inference inside TEE</div></div>
+  <div class="flow-step"><div class="flow-num">4</div><div class="flow-text">Safety layer validates against declared policy</div></div>
+  <div class="flow-step"><div class="flow-num">5</div><div class="flow-text">Tool execution in WASM sandbox</div></div>
+  <div class="flow-step"><div class="flow-num">6</div><div class="flow-text">Execution trace stored on 0G Storage</div></div>
+  <div class="flow-step"><div class="flow-num">7</div><div class="flow-text">RISC Zero proof generated via Boundless</div></div>
+  <div class="flow-step"><div class="flow-num">8</div><div class="flow-text">Agent wallet submits proof + action to verifier contract</div></div>
+  <div class="flow-step flow-highlight"><div class="flow-num">9</div><div class="flow-text">Contract verifies proof and executes action</div></div>
 </div>
 
-<div class="code-block">
+<h3 class="fade-in">Ledger-Gated Action Flow</h3>
+<div class="flow-steps fade-in">
+  <div class="flow-step"><div class="flow-num">1&ndash;7</div><div class="flow-text">Same as autonomous flow</div></div>
+  <div class="flow-step"><div class="flow-num">8</div><div class="flow-text">RISC Zero proof indicates approval required</div></div>
+  <div class="flow-step"><div class="flow-num">9</div><div class="flow-text">Contract emits <code>ApprovalRequired</code> event</div></div>
+  <div class="flow-step"><div class="flow-num">10</div><div class="flow-text">Web UI alerts owner</div></div>
+  <div class="flow-step"><div class="flow-num">11</div><div class="flow-text">Owner reviews on Ledger device (Clear Signing)</div></div>
+  <div class="flow-step"><div class="flow-num">12</div><div class="flow-text">Owner physically approves</div></div>
+  <div class="flow-step"><div class="flow-num">13</div><div class="flow-text">Ledger signs <code>approveAction()</code> transaction</div></div>
+  <div class="flow-step flow-highlight"><div class="flow-num">14</div><div class="flow-text">Contract executes action</div></div>
+</div>
+
+<!-- INTEGRATIONS -->
+<h2 id="0g-network" class="section-anchor fade-in"><span class="section-icon icon-cyan">&#x25C9;</span> 0G Network</h2>
+<div class="integration-card card-cyan fade-in">
+  <div class="card-header">
+    <div class="card-icon icon-cyan">&#x26A1;</div>
+    <div>
+      <span class="tag tag-cyan">0G Compute</span>
+      <span class="tag tag-cyan">0G Storage</span>
+    </div>
+  </div>
+  <p>
+    Every LLM call runs inside 0G's Sealed Inference TEE &mdash; prompts enter encrypted, operators cannot inspect them. Execution traces are stored on 0G Storage with content-addressable root hashes that anchor the provable chain.
+  </p>
+</div>
+
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">integrations/0g_compute.ts &mdash; Sealed Inference</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">integrations/0g_compute.ts &mdash; Sealed Inference</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre><span class="kw">import</span> { <span class="ty">createZGServingNetworkBroker</span> } <span class="kw">from</span> <span class="str">'@0glabs/0g-serving-broker'</span>;
@@ -587,18 +1100,27 @@ td {
   </div>
 </div>
 
-<h2 id="ens-dm3">ENS + DM3</h2>
-<p>
-  Agents register as ENS subnames (e.g. <code>alice-agent.proofclaw.eth</code>) with text records storing DM3 profiles, policy hashes, and RISC Zero image IDs. Inter-agent communication is end-to-end encrypted via the DM3 protocol.
-</p>
-<div class="info-box">
-  <p><span class="tag tag-green">ENS</span> <span class="tag tag-green">DM3</span> Agent identity resolution + encrypted inter-agent messaging</p>
+<h2 id="ens-dm3" class="section-anchor fade-in"><span class="section-icon icon-green">&#x2709;</span> ENS + DM3</h2>
+<div class="integration-card card-green fade-in">
+  <div class="card-header">
+    <div class="card-icon icon-green">&#x1F310;</div>
+    <div>
+      <span class="tag tag-green">ENS</span>
+      <span class="tag tag-green">DM3</span>
+    </div>
+  </div>
+  <p>
+    Agents register as ENS subnames (e.g. <code>alice-agent.proofclaw.eth</code>) with text records storing DM3 profiles, policy hashes, and RISC Zero image IDs. Inter-agent communication is end-to-end encrypted via the DM3 protocol.
+  </p>
 </div>
 
-<div class="code-block">
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">integrations/dm3_messaging.ts &mdash; E2E Encrypted Agent Chat</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">integrations/dm3_messaging.ts &mdash; E2E Encrypted Agent Chat</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre><span class="kw">import</span> { <span class="ty">createEnvelop</span> } <span class="kw">from</span> <span class="str">'@dm3-org/dm3-lib'</span>;
@@ -627,18 +1149,27 @@ td {
   </div>
 </div>
 
-<h2 id="risc-zero">RISC Zero + Boundless</h2>
-<p>
-  The execution trace &mdash; 0G TEE attestation, tool invocations, safety checks &mdash; is fed into a RISC Zero zkVM guest program. Proof generation is outsourced to the Boundless decentralized prover network. The receipt lands on-chain for anyone to verify.
-</p>
-<div class="info-box">
-  <p><span class="tag tag-green">RISC Zero</span> <span class="tag tag-green">Boundless</span> ZK proof of policy compliance</p>
+<h2 id="risc-zero" class="section-anchor fade-in"><span class="section-icon icon-green">&#x2731;</span> RISC Zero + Boundless</h2>
+<div class="integration-card card-green fade-in">
+  <div class="card-header">
+    <div class="card-icon icon-green">&#x2713;</div>
+    <div>
+      <span class="tag tag-green">RISC Zero</span>
+      <span class="tag tag-green">Boundless</span>
+    </div>
+  </div>
+  <p>
+    The execution trace &mdash; 0G TEE attestation, tool invocations, safety checks &mdash; is fed into a RISC Zero zkVM guest program. Proof generation is outsourced to the Boundless decentralized prover network. The receipt lands on-chain for anyone to verify.
+  </p>
 </div>
 
-<div class="code-block">
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">guest/src/main.rs &mdash; RISC Zero zkVM Guest</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">guest/src/main.rs &mdash; RISC Zero zkVM Guest</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre><span class="cm">// Runs inside RISC Zero zkVM &mdash; produces cryptographic receipt</span>
@@ -668,18 +1199,27 @@ td {
   </div>
 </div>
 
-<h2 id="ledger">Ledger DMK &mdash; Hardware Approval</h2>
-<p>
-  High-value actions route to the owner's Ledger device via DMK/DSK. ERC-7730 Clear Signing metadata renders human-readable transaction details directly on the device &mdash; not raw hex.
-</p>
-<div class="info-box">
-  <p><span class="tag tag-amber">Ledger DMK</span> <span class="tag tag-amber">Clear Signing</span> Physical human-in-the-loop approval for high-value agent actions</p>
+<h2 id="ledger" class="section-anchor fade-in"><span class="section-icon icon-amber">&#x26BF;</span> Ledger DMK &mdash; Hardware Approval</h2>
+<div class="integration-card card-amber fade-in">
+  <div class="card-header">
+    <div class="card-icon icon-amber">&#x1F512;</div>
+    <div>
+      <span class="tag tag-amber">Ledger DMK</span>
+      <span class="tag tag-amber">Clear Signing</span>
+    </div>
+  </div>
+  <p>
+    High-value actions route to the owner's Ledger device via DMK/DSK. ERC-7730 Clear Signing metadata renders human-readable transaction details directly on the device &mdash; not raw hex.
+  </p>
 </div>
 
-<div class="code-block">
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">integrations/ledger_approval.ts &mdash; Clear Signing</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">integrations/ledger_approval.ts &mdash; Clear Signing</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre><span class="kw">import</span> { <span class="ty">DeviceManagementKitBuilder</span> } <span class="kw">from</span> <span class="str">'@ledgerhq/device-management-kit'</span>;
@@ -702,33 +1242,41 @@ td {
   </div>
 </div>
 
-<h2 id="swarm">Swarm Protocol</h2>
-<p>
-  Proof of Claw agents can register with the Swarm Protocol network for multi-agent coordination. Agents advertise their capabilities (zk-verify, policy-check, swap, transfer) and can be discovered and orchestrated by other Swarm-connected agents.
-</p>
+<h2 id="swarm" class="section-anchor fade-in"><span class="section-icon icon-green">&#x2B2F;</span> Swarm Protocol</h2>
+<div class="integration-card card-green fade-in">
+  <div class="card-header">
+    <div class="card-icon icon-green">&#x2B2F;</div>
+    <div>
+      <span class="tag tag-green">Swarm</span>
+    </div>
+  </div>
+  <p>
+    Proof of Claw agents can register with the Swarm Protocol network for multi-agent coordination. Agents advertise their capabilities (zk-verify, policy-check, swap, transfer) and can be discovered and orchestrated by other Swarm-connected agents.
+  </p>
+</div>
 
 <!-- SMART CONTRACTS -->
-<h2 id="contracts">Smart Contracts</h2>
+<h2 id="contracts" class="section-anchor fade-in"><span class="section-icon icon-amber">&#x2B22;</span> Smart Contracts</h2>
 
-<h3>ProofOfClawVerifier</h3>
-<p>The on-chain verifier contract handles:</p>
-<ul>
+<h3 class="fade-in">ProofOfClawVerifier</h3>
+<p class="fade-in">The on-chain verifier contract handles:</p>
+<ul class="fade-in">
   <li>Agent registration with policy commitment (policy hash)</li>
   <li>RISC Zero proof verification via the on-chain verifier</li>
   <li>Autonomous vs Ledger-gated execution routing</li>
   <li>Action execution with on-chain enforcement</li>
 </ul>
 
-<h3 id="clear-signing">Clear Signing (ERC-7730)</h3>
-<p>
+<h3 id="clear-signing" class="section-anchor fade-in">Clear Signing (ERC-7730)</h3>
+<p class="fade-in">
   ERC-7730 metadata stored at <code>contracts/clear-signing/proofofclaw.json</code> enables the Ledger device to render human-readable action descriptions instead of raw calldata. The owner sees exactly what the agent wants to do before physically approving.
 </p>
 
 <!-- SECURITY -->
-<h2 id="security">Security &amp; Threat Model</h2>
-<p>Every layer assumes the layer below it is compromised.</p>
+<h2 id="security" class="section-anchor fade-in"><span class="section-icon icon-red">&#x26A0;</span> Security &amp; Threat Model</h2>
+<p class="fade-in">Every layer assumes the layer below it is compromised.</p>
 
-<div class="table-wrap">
+<div class="table-wrap fade-in">
 <table>
   <thead>
     <tr><th>Threat</th><th>Mitigation</th></tr>
@@ -744,9 +1292,9 @@ td {
 </table>
 </div>
 
-<h3 id="safety-layer">Safety Layer</h3>
-<p>The safety subsystem provides defense-in-depth:</p>
-<ul>
+<h3 id="safety-layer" class="section-anchor fade-in">Safety Layer</h3>
+<p class="fade-in">The safety subsystem provides defense-in-depth:</p>
+<ul class="fade-in">
   <li><strong>Policy Engine</strong> &mdash; Enforces declared agent policy rules, validates tool invocations against allowlists</li>
   <li><strong>Content Sanitizer</strong> &mdash; Strips potentially malicious content from inputs and outputs</li>
   <li><strong>Injection Detector</strong> &mdash; Detects and blocks prompt injection attempts before they reach the LLM</li>
@@ -754,13 +1302,16 @@ td {
 </ul>
 
 <!-- CONFIG -->
-<h2 id="config">Configuration</h2>
-<p>Create a <code>.env</code> file in the agent directory:</p>
+<h2 id="config" class="section-anchor fade-in"><span class="section-icon icon-cyan">&#x2699;</span> Configuration</h2>
+<p class="fade-in">Create a <code>.env</code> file in the agent directory:</p>
 
-<div class="code-block">
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">.env</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">.env</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre>AGENT_ID=alice-agent
@@ -775,7 +1326,7 @@ MAX_VALUE_AUTONOMOUS_WEI=1000000000000000000</pre>
   </div>
 </div>
 
-<div class="table-wrap">
+<div class="table-wrap fade-in">
 <table>
   <thead>
     <tr><th>Variable</th><th>Description</th></tr>
@@ -795,11 +1346,14 @@ MAX_VALUE_AUTONOMOUS_WEI=1000000000000000000</pre>
 </div>
 
 <!-- REPO STRUCTURE -->
-<h2 id="repo-structure">Repository Structure</h2>
-<div class="code-block">
+<h2 id="repo-structure" class="section-anchor fade-in"><span class="section-icon icon-cyan">&#x2302;</span> Repository Structure</h2>
+<div class="code-block fade-in">
   <div class="code-header">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <div class="code-filename">project layout</div>
+    <div class="code-header-left">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-filename">project layout</div>
+    </div>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
   </div>
   <div class="code-body">
 <pre>proof-of-claw/
@@ -831,45 +1385,59 @@ MAX_VALUE_AUTONOMOUS_WEI=1000000000000000000</pre>
 </div>
 
 <!-- BOUNTIES -->
-<h2 id="bounties">Target Bounties</h2>
-<div class="table-wrap">
-<table>
-  <thead>
-    <tr><th>Sponsor</th><th>Track</th><th>Prize</th><th>Integration</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>0G</strong></td>
-      <td>Best OpenClaw Agent on 0G</td>
-      <td>$6,000</td>
-      <td>0G Compute (inference), 0G Storage (memory + traces)</td>
-    </tr>
-    <tr>
-      <td><strong>ENS</strong></td>
-      <td>Best ENS Integration for AI Agents</td>
-      <td>$5,000</td>
-      <td>ENS subnames for agent identity, DM3 for encrypted messaging</td>
-    </tr>
-    <tr>
-      <td><strong>Ledger</strong></td>
-      <td>AI Agents x Ledger</td>
-      <td>$6,000</td>
-      <td>Ledger DMK/DSK for human approval, Clear Signing (ERC-7730)</td>
-    </tr>
-  </tbody>
-</table>
+<h2 id="bounties" class="section-anchor fade-in"><span class="section-icon icon-amber">&#x2605;</span> Target Bounties</h2>
+
+<div class="bounty-grid fade-in">
+  <div class="bounty-card">
+    <div class="bounty-sponsor" style="color: var(--cyan);">0G</div>
+    <div class="bounty-track">Best OpenClaw Agent on 0G</div>
+    <div class="bounty-prize">$6,000</div>
+    <div class="bounty-integration">0G Compute (inference), 0G Storage (memory + traces)</div>
+  </div>
+  <div class="bounty-card">
+    <div class="bounty-sponsor" style="color: var(--green);">ENS</div>
+    <div class="bounty-track">Best ENS Integration for AI Agents</div>
+    <div class="bounty-prize">$5,000</div>
+    <div class="bounty-integration">ENS subnames for agent identity, DM3 for encrypted messaging</div>
+  </div>
+  <div class="bounty-card">
+    <div class="bounty-sponsor" style="color: var(--amber);">Ledger</div>
+    <div class="bounty-track">AI Agents x Ledger</div>
+    <div class="bounty-prize">$6,000</div>
+    <div class="bounty-integration">Ledger DMK/DSK for human approval, Clear Signing (ERC-7730)</div>
+  </div>
 </div>
 
-<div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center;">
-  <p style="color: var(--text-dim); font-size: 0.75rem;">Proof of Claw &mdash; Provable Private Agent Framework &mdash; ETHGlobal Cannes 2026</p>
-  <p style="color: var(--text-dim); font-size: 0.7rem; margin-top: 0.5rem;">Built with IronClaw &middot; 0G &middot; ENS &middot; DM3 &middot; RISC Zero &middot; Ledger &middot; Swarm</p>
+<!-- FOOTER -->
+<div class="docs-footer">
+  <div class="footer-logo">Proof of Claw</div>
+  <div class="footer-text">Provable Private Agent Framework</div>
+  <div class="footer-stack">
+    <span>IronClaw</span>
+    <span>0G</span>
+    <span>ENS</span>
+    <span>DM3</span>
+    <span>RISC Zero</span>
+    <span>Ledger</span>
+    <span>Swarm</span>
+  </div>
 </div>
 
 </main>
 </div>
 
-<!-- Sidebar active link tracking -->
 <script>
+// Copy button
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('pre').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Sidebar active link tracking
 (function() {
   const links = document.querySelectorAll('.sidebar-link');
   const sections = [];
@@ -891,6 +1459,50 @@ MAX_VALUE_AUTONOMOUS_WEI=1000000000000000000</pre>
   window.addEventListener('scroll', updateActive, { passive: true });
   updateActive();
 })();
+
+// Fade-in on scroll
+(function() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+})();
+
+// Search
+document.getElementById('docsSearch').addEventListener('input', function(e) {
+  const query = e.target.value.toLowerCase().trim();
+  const sections = document.querySelectorAll('.docs-content h2, .docs-content h3, .docs-content p, .docs-content li, .docs-content td');
+
+  if (!query) {
+    sections.forEach(el => { el.style.opacity = ''; });
+    return;
+  }
+
+  sections.forEach(el => {
+    const match = el.textContent.toLowerCase().includes(query);
+    el.style.opacity = match ? '1' : '0.3';
+  });
+});
+
+// Mobile menu toggle
+function toggleMobileMenu() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('mobileOverlay').classList.toggle('open');
+}
+
+// Close mobile menu on link click
+document.querySelectorAll('.sidebar-link').forEach(link => {
+  link.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('mobileOverlay').classList.remove('open');
+  });
+});
 </script>
 
 </body>
