@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Proof of Claw — Provable Private Agent Framework</title>
 <meta name="description" content="Autonomous AI agents with cryptographically provable behavior, end-to-end encrypted communication, and hardware-signed human approval. ETHGlobal Cannes 2026.">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"></noscript>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -42,7 +45,7 @@ body {
   font-size: 14px;
 }
 
-/* Scanline overlay */
+/* Scanline overlay — GPU-promoted, reduced z-index */
 body::after {
   content: '';
   position: fixed;
@@ -50,6 +53,8 @@ body::after {
   background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px);
   pointer-events: none;
   z-index: 9999;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* ========== NAVIGATION ========== */
@@ -61,9 +66,12 @@ nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(6, 8, 13, 0.85);
-  backdrop-filter: blur(20px);
+  background: rgba(6, 8, 13, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
+  will-change: transform;
+  contain: layout style;
 }
 
 .nav-logo {
@@ -176,8 +184,7 @@ nav {
   display: none;
   position: fixed;
   top: 60px; left: 0; right: 0; bottom: 0;
-  background: rgba(6, 8, 13, 0.97);
-  backdrop-filter: blur(20px);
+  background: rgba(6, 8, 13, 0.98);
   z-index: 99;
   flex-direction: column;
   align-items: center;
@@ -475,6 +482,8 @@ section {
   position: relative;
   z-index: 1;
   padding: 6rem 2rem;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
 }
 
 .section-inner {
@@ -766,8 +775,7 @@ section {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1.5rem;
-  background: rgba(15, 21, 32, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 21, 32, 0.85);
 }
 
 .arch-layer-title {
@@ -1395,6 +1403,9 @@ footer {
 }
 
 /* ========== FADE IN ========== */
+/* GPU-promote animated elements */
+.feature-card, .arch-module, .team-card { contain: content; }
+
 .fade-in {
   opacity: 0;
   transform: translateY(16px);
@@ -2046,11 +2057,15 @@ footer {
 
 <!-- ========== SCRIPTS ========== -->
 <script>
-// ===== HERO PARTICLE CANVAS =====
+// ===== HERO PARTICLE CANVAS (optimized) =====
 (function() {
   const canvas = document.getElementById('hero-canvas');
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { alpha: true });
   let w, h, nodes = [], mouse = { x: -1000, y: -1000 };
+  let animId = null, isVisible = true;
+  const EDGE_DIST = 180;
+  const EDGE_DIST_SQ = EDGE_DIST * EDGE_DIST;
+  const CELL_SIZE = EDGE_DIST;
 
   function resize() {
     w = canvas.width = canvas.parentElement.offsetWidth;
@@ -2060,7 +2075,7 @@ footer {
   function init() {
     resize();
     nodes = [];
-    const count = Math.min(60, Math.floor((w * h) / 18000));
+    const count = Math.min(50, Math.floor((w * h) / 22000));
     for (let i = 0; i < count; i++) {
       nodes.push({
         x: Math.random() * w,
@@ -2074,61 +2089,101 @@ footer {
   }
 
   function draw() {
+    if (!isVisible) return;
     ctx.clearRect(0, 0, w, h);
 
-    // Draw edges
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const dx = nodes[i].x - nodes[j].x;
-        const dy = nodes[i].y - nodes[j].y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 180) {
-          const alpha = (1 - dist / 180) * 0.15;
-          ctx.strokeStyle = nodes[i].type === 'amber' || nodes[j].type === 'amber'
-            ? 'rgba(255, 179, 0, ' + alpha + ')'
-            : 'rgba(0, 229, 255, ' + alpha + ')';
-          ctx.lineWidth = 0.5;
-          ctx.beginPath();
-          ctx.moveTo(nodes[i].x, nodes[i].y);
-          ctx.lineTo(nodes[j].x, nodes[j].y);
-          ctx.stroke();
+    // Grid-based spatial lookup for edges
+    var cols = Math.ceil(w / CELL_SIZE) + 1;
+    var grid = {};
+    for (var i = 0; i < nodes.length; i++) {
+      var cx = (nodes[i].x / CELL_SIZE) | 0;
+      var cy = (nodes[i].y / CELL_SIZE) | 0;
+      var key = cx + ',' + cy;
+      if (!grid[key]) grid[key] = [];
+      grid[key].push(i);
+    }
+
+    // Draw edges — only check neighboring cells
+    ctx.lineWidth = 0.5;
+    for (var i = 0; i < nodes.length; i++) {
+      var ni = nodes[i];
+      var cx = (ni.x / CELL_SIZE) | 0;
+      var cy = (ni.y / CELL_SIZE) | 0;
+      for (var dx = -1; dx <= 1; dx++) {
+        for (var dy = -1; dy <= 1; dy++) {
+          var neighbors = grid[(cx + dx) + ',' + (cy + dy)];
+          if (!neighbors) continue;
+          for (var k = 0; k < neighbors.length; k++) {
+            var j = neighbors[k];
+            if (j <= i) continue;
+            var nj = nodes[j];
+            var ex = ni.x - nj.x;
+            var ey = ni.y - nj.y;
+            var distSq = ex * ex + ey * ey;
+            if (distSq < EDGE_DIST_SQ) {
+              var alpha = (1 - Math.sqrt(distSq) / EDGE_DIST) * 0.15;
+              ctx.strokeStyle = ni.type === 'amber' || nj.type === 'amber'
+                ? 'rgba(255,179,0,' + alpha + ')'
+                : 'rgba(0,229,255,' + alpha + ')';
+              ctx.beginPath();
+              ctx.moveTo(ni.x, ni.y);
+              ctx.lineTo(nj.x, nj.y);
+              ctx.stroke();
+            }
+          }
         }
       }
     }
 
-    // Draw nodes
-    nodes.forEach(function(n) {
+    // Draw nodes + move
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
       var dx = mouse.x - n.x;
       var dy = mouse.y - n.y;
-      var dist = Math.sqrt(dx * dx + dy * dy);
-      var glow = dist < 200 ? (1 - dist / 200) * 0.5 : 0;
+      var distSq = dx * dx + dy * dy;
+      var glow = distSq < 40000 ? (1 - Math.sqrt(distSq) / 200) * 0.5 : 0;
 
-      var color = n.type === 'amber' ? [255, 179, 0] : [0, 229, 255];
-      var baseAlpha = 0.6 + glow;
+      var color = n.type === 'amber' ? '255,179,0' : '0,229,255';
 
       ctx.beginPath();
       ctx.arc(n.x, n.y, n.r + glow * 3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(' + color[0] + ', ' + color[1] + ', ' + color[2] + ', ' + baseAlpha + ')';
+      ctx.fillStyle = 'rgba(' + color + ',' + (0.6 + glow) + ')';
       ctx.fill();
 
       if (glow > 0.1) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r + glow * 8, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(' + color[0] + ', ' + color[1] + ', ' + color[2] + ', ' + (glow * 0.15) + ')';
+        ctx.fillStyle = 'rgba(' + color + ',' + (glow * 0.15) + ')';
         ctx.fill();
       }
 
-      // Move
       n.x += n.vx;
       n.y += n.vy;
       if (n.x < 0 || n.x > w) n.vx *= -1;
       if (n.y < 0 || n.y > h) n.vy *= -1;
-    });
+    }
 
-    requestAnimationFrame(draw);
+    animId = requestAnimationFrame(draw);
   }
 
-  window.addEventListener('resize', function() { resize(); });
+  // Pause when tab hidden or hero off-screen
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) { isVisible = false; }
+    else { isVisible = true; if (!animId) draw(); }
+  });
+
+  var heroObserver = new IntersectionObserver(function(entries) {
+    isVisible = entries[0].isIntersecting;
+    if (isVisible && !animId) draw();
+    if (!isVisible && animId) { cancelAnimationFrame(animId); animId = null; }
+  }, { threshold: 0 });
+  heroObserver.observe(canvas.parentElement);
+
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() { resize(); }, 150);
+  });
   canvas.parentElement.addEventListener('mousemove', function(e) {
     var rect = canvas.getBoundingClientRect();
     mouse.x = e.clientX - rect.left;
