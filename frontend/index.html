@@ -1752,6 +1752,8 @@ footer {
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
     <li><a href="#architecture">Architecture</a></li>
+    <li><a href="docs.html">Docs</a></li>
+    <li><a href="#swarm-connect">Swarm</a></li>
     <li><a href="#bounties">Bounties</a></li>
   </ul>
   <div class="nav-actions">
@@ -1767,6 +1769,7 @@ footer {
 <div class="mobile-menu">
   <a href="#features">Features</a>
   <a href="#architecture">Architecture</a>
+  <a href="docs.html">Documentation</a>
   <a href="#swarm-connect">Swarm Connect</a>
   <a href="#bounties">Bounties</a>
   <a href="agents.html">Launch App</a>
@@ -1835,6 +1838,10 @@ footer {
       <a href="#" class="sponsor-logo">
         <span class="sp-icon">L</span>
         Ledger
+      </a>
+      <a href="https://github.com/EcosystemNetwork/Swarm" class="sponsor-logo">
+        <span class="sp-icon">S</span>
+        Swarm
       </a>
     </div>
   </div>
@@ -2499,12 +2506,12 @@ After executing any Swarm task, generate a RISC Zero ZK proof of your execution 
   <p class="footer-sub">Provable Private Agent Framework — ETHGlobal Cannes 2026</p>
   <div class="footer-links">
     <a href="#">GitHub</a>
-    <a href="#">Documentation</a>
+    <a href="docs.html">Documentation</a>
     <a href="dashboard.html">Dashboard</a>
     <a href="deploy.html">Deploy</a>
     <a href="#how-its-made">How It's Made</a>
   </div>
-  <p class="footer-copy">Built with IronClaw &middot; 0G &middot; ENS &middot; DM3 &middot; RISC Zero &middot; Ledger</p>
+  <p class="footer-copy">Built with IronClaw &middot; 0G &middot; ENS &middot; DM3 &middot; RISC Zero &middot; Ledger &middot; Swarm</p>
 </footer>
 
 <!-- ========== SCRIPTS ========== -->
@@ -2774,6 +2781,190 @@ var fadeObserver = new IntersectionObserver(function(entries) {
 }, { threshold: 0.1 });
 
 document.querySelectorAll('.fade-in').forEach(function(el) { fadeObserver.observe(el); });
+
+// ===== SWARM CONNECT =====
+var SwarmConnect = (function() {
+  var state = JSON.parse(localStorage.getItem('swarm_connection') || 'null');
+
+  function openModal() {
+    document.getElementById('swarm-modal').classList.add('active');
+    clearStatus();
+  }
+
+  function closeModal() {
+    document.getElementById('swarm-modal').classList.remove('active');
+  }
+
+  function clearStatus() {
+    var el = document.getElementById('swarm-status');
+    el.className = 'swarm-modal-status';
+    el.textContent = '';
+  }
+
+  function showStatus(msg, type) {
+    var el = document.getElementById('swarm-status');
+    el.className = 'swarm-modal-status ' + type;
+    el.textContent = msg;
+  }
+
+  // Generate Ed25519 keypair using Web Crypto API
+  async function generateKeypair() {
+    var keyPair = await crypto.subtle.generateKey(
+      { name: 'Ed25519' },
+      true,
+      ['sign', 'verify']
+    );
+    var publicKeyRaw = await crypto.subtle.exportKey('raw', keyPair.publicKey);
+    var privateKeyPkcs8 = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+    return {
+      publicKey: btoa(String.fromCharCode.apply(null, new Uint8Array(publicKeyRaw))),
+      privateKeyPkcs8: privateKeyPkcs8,
+      keyPair: keyPair
+    };
+  }
+
+  // Sign a message with Ed25519
+  async function signMessage(privateKey, message) {
+    var enc = new TextEncoder();
+    var signature = await crypto.subtle.sign(
+      { name: 'Ed25519' },
+      privateKey,
+      enc.encode(message)
+    );
+    return btoa(String.fromCharCode.apply(null, new Uint8Array(signature)));
+  }
+
+  async function register() {
+    var hubUrl = document.getElementById('swarm-hub-url').value.replace(/\/+$/, '');
+    var agentName = document.getElementById('swarm-agent-name').value.trim();
+    var orgId = document.getElementById('swarm-org-id').value.trim();
+    var skillsRaw = document.getElementById('swarm-agent-skills').value.trim();
+    var bio = document.getElementById('swarm-agent-bio').value.trim();
+
+    if (!hubUrl || !agentName || !orgId) {
+      showStatus('Please fill in Hub URL, Agent Name, and Organization ID.', 'error');
+      return;
+    }
+
+    var skills = skillsRaw.split(',').map(function(s) {
+      var id = s.trim().toLowerCase().replace(/\s+/g, '-');
+      return { id: id, name: s.trim(), type: 'skill' };
+    }).filter(function(s) { return s.id; });
+
+    showStatus('Generating Ed25519 keypair...', 'success');
+
+    try {
+      var keys = await generateKeypair();
+
+      showStatus('Registering with Swarm hub...', 'success');
+
+      var regPayload = {
+        publicKey: keys.publicKey,
+        agentName: agentName,
+        agentType: 'ProofOfClaw',
+        orgId: orgId,
+        skills: skills,
+        bio: bio || 'Proof of Claw verified agent'
+      };
+
+      var response = await fetch(hubUrl + '/api/v1/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(regPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Registration failed: ' + response.status + ' ' + response.statusText);
+      }
+
+      var data = await response.json();
+      var agentId = data.agentId;
+
+      // Save connection state
+      state = {
+        hubUrl: hubUrl,
+        agentId: agentId,
+        agentName: agentName,
+        orgId: orgId,
+        publicKey: keys.publicKey,
+        registeredAt: Date.now()
+      };
+      localStorage.setItem('swarm_connection', JSON.stringify(state));
+
+      showStatus(
+        'Connected! Agent ID: ' + agentId +
+        (data.asn ? ' | ASN: ' + data.asn : '') +
+        '. Your agent is now registered on the Swarm network.',
+        'success'
+      );
+
+      // Attempt WebSocket connection
+      try {
+        var ts = Date.now().toString();
+        var sig = await signMessage(keys.keyPair.privateKey, 'WS:connect:' + agentId + ':' + ts);
+        var wsUrl = hubUrl.replace(/^http/, 'ws') + '/ws/agents/' + agentId + '?sig=' + encodeURIComponent(sig) + '&ts=' + ts;
+
+        var ws = new WebSocket(wsUrl);
+        ws.onopen = function() {
+          showStatus(
+            'Connected! Agent ID: ' + agentId +
+            '. WebSocket connection established. Your agent is live on the Swarm network.',
+            'success'
+          );
+        };
+        ws.onerror = function() {
+          // WebSocket optional — HTTP polling still works
+          showStatus(
+            'Registered! Agent ID: ' + agentId +
+            '. WebSocket unavailable — agent can use HTTP polling at ' + hubUrl + '/api/v1/messages',
+            'success'
+          );
+        };
+      } catch (wsErr) {
+        // Non-critical: registration succeeded
+      }
+
+    } catch (err) {
+      showStatus('Error: ' + err.message, 'error');
+    }
+  }
+
+  function copyPrompt(btn) {
+    var promptEl = document.getElementById('swarm-agent-prompt');
+    var text = promptEl.textContent || promptEl.innerText;
+
+    // Replace placeholder values with any configured values
+    if (state) {
+      text = text.replace(/\{HUB_URL\}/g, state.hubUrl || 'hub.swarmprotocol.ai');
+    }
+
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  // Close modal on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Close modal on overlay click
+  document.getElementById('swarm-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  return {
+    openModal: openModal,
+    closeModal: closeModal,
+    register: register,
+    copyPrompt: copyPrompt
+  };
+})();
 </script>
 
 </body>

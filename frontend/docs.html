@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentation — Proof of Claw</title>
+<meta name="description" content="Technical documentation for Proof of Claw — Provable Private Agent Framework. Architecture, integration guides, API reference, and deployment.">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-primary: #06080d;
+  --bg-secondary: #0c1018;
+  --bg-card: #0f1520;
+  --bg-card-hover: #141c2a;
+  --cyan: #00e5ff;
+  --cyan-dim: #00a3b5;
+  --cyan-glow: rgba(0, 229, 255, 0.15);
+  --amber: #ffb300;
+  --amber-dim: #c68a00;
+  --amber-glow: rgba(255, 179, 0, 0.12);
+  --red: #ff3d5a;
+  --green: #00e676;
+  --text-primary: #e8ecf4;
+  --text-secondary: #8892a4;
+  --text-dim: #4a5568;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-cyan: rgba(0, 229, 255, 0.2);
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--font-mono);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-size: 14px;
+  overflow-x: hidden;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(6, 8, 13, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.nav-logo .claw-icon { width: 32px; height: 32px; position: relative; }
+.nav-logo .claw-icon::before { content: '\29C1'; font-size: 28px; color: var(--cyan); filter: drop-shadow(0 0 8px var(--cyan)); }
+
+.nav-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a {
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transition: color 0.3s;
+  font-weight: 500;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--cyan); }
+
+.nav-badge {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border-cyan);
+  border-radius: 100px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--cyan);
+  background: var(--cyan-glow);
+  text-decoration: none;
+  transition: all 0.3s;
+}
+.nav-badge:hover { background: rgba(0, 229, 255, 0.25); box-shadow: 0 0 20px rgba(0, 229, 255, 0.15); }
+
+/* LAYOUT */
+.docs-wrapper {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 0;
+  min-height: 100vh;
+  padding-top: 60px;
+}
+
+.sidebar {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  width: 260px;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-secondary);
+  padding: 2rem 1.5rem;
+}
+
+.sidebar-section { margin-bottom: 2rem; }
+.sidebar-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  margin: 0.15rem 0;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  transition: all 0.2s;
+}
+.sidebar-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+.sidebar-link.active { color: var(--cyan); background: var(--cyan-glow); }
+
+.docs-content {
+  margin-left: 260px;
+  padding: 3rem 4rem 6rem;
+  max-width: 900px;
+}
+
+.docs-content h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.03em;
+}
+
+.docs-content .subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 3rem;
+  font-weight: 300;
+}
+
+.docs-content h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.4rem;
+  margin: 3rem 0 1rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  letter-spacing: -0.02em;
+}
+
+.docs-content h2:first-of-type { border-top: none; padding-top: 0; }
+
+.docs-content h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 2rem 0 0.75rem;
+  color: var(--text-primary);
+}
+
+.docs-content p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.8;
+  margin-bottom: 1.25rem;
+  font-weight: 300;
+}
+
+.docs-content ul, .docs-content ol {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.8;
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.docs-content li { margin-bottom: 0.4rem; }
+
+.docs-content code {
+  background: rgba(0, 229, 255, 0.08);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: var(--cyan);
+}
+
+.code-block {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1.25rem 0 2rem;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.code-dots { display: flex; gap: 5px; }
+.code-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); }
+
+.code-filename {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+}
+
+.code-body {
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+}
+
+.code-body pre {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.code-body .kw { color: var(--cyan); }
+.code-body .fn { color: var(--amber); }
+.code-body .ty { color: var(--green); }
+.code-body .str { color: #f48fb1; }
+.code-body .cm { color: var(--text-dim); font-style: italic; }
+.code-body .op { color: var(--text-dim); }
+
+.tag {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-right: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.tag-cyan { background: var(--cyan-glow); color: var(--cyan); border: 1px solid rgba(0,229,255,0.2); }
+.tag-amber { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(255,179,0,0.2); }
+.tag-green { background: rgba(0,230,118,0.08); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+
+.info-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-cyan);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.info-box p { margin-bottom: 0; }
+
+.table-wrap { overflow-x: auto; margin: 1.5rem 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-cyan);
+  color: var(--cyan);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.highlight { color: var(--cyan); }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .docs-wrapper { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .docs-content { margin-left: 0; padding: 2rem 1.5rem 4rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <span class="claw-icon"></span>
+    <span class="nav-title">Proof of Claw</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="docs.html" class="active">Docs</a></li>
+    <li><a href="agents.html">Agents</a></li>
+    <li><a href="dashboard.html">Dashboard</a></li>
+  </ul>
+  <div style="display: flex; gap: 0.75rem; align-items: center;">
+    <a href="agents.html" class="nav-badge">Launch App</a>
+  </div>
+</nav>
+
+<div class="docs-wrapper">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Getting Started</div>
+    <a href="#overview" class="sidebar-link active">Overview</a>
+    <a href="#quick-start" class="sidebar-link">Quick Start</a>
+    <a href="#prerequisites" class="sidebar-link">Prerequisites</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Architecture</div>
+    <a href="#architecture" class="sidebar-link">System Design</a>
+    <a href="#agent-core" class="sidebar-link">Agent Core</a>
+    <a href="#trust-tiers" class="sidebar-link">Trust Tiers</a>
+    <a href="#data-flow" class="sidebar-link">Data Flow</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Integrations</div>
+    <a href="#0g-network" class="sidebar-link">0G Network</a>
+    <a href="#ens-dm3" class="sidebar-link">ENS + DM3</a>
+    <a href="#risc-zero" class="sidebar-link">RISC Zero</a>
+    <a href="#ledger" class="sidebar-link">Ledger DMK</a>
+    <a href="#swarm" class="sidebar-link">Swarm Protocol</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Smart Contracts</div>
+    <a href="#contracts" class="sidebar-link">ProofOfClawVerifier</a>
+    <a href="#clear-signing" class="sidebar-link">Clear Signing (ERC-7730)</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Security</div>
+    <a href="#security" class="sidebar-link">Threat Model</a>
+    <a href="#safety-layer" class="sidebar-link">Safety Layer</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Reference</div>
+    <a href="#config" class="sidebar-link">Configuration</a>
+    <a href="#repo-structure" class="sidebar-link">Repository Structure</a>
+    <a href="#bounties" class="sidebar-link">Target Bounties</a>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="docs-content">
+
+<h1>Proof of <span class="highlight">Claw</span> Documentation</h1>
+<p class="subtitle">Provable Private Agent Framework &mdash; ETHGlobal Cannes 2026</p>
+
+<!-- OVERVIEW -->
+<h2 id="overview">Overview</h2>
+<p>
+  Proof of Claw is a framework for running autonomous AI agents whose behavior is cryptographically provable, whose communication is end-to-end encrypted, and whose high-value actions require human approval via hardware signing.
+</p>
+<p>An agent built with Proof of Claw can:</p>
+<ul>
+  <li>Reason privately using decentralized inference (<strong>0G Compute</strong>)</li>
+  <li>Store persistent memory and execution traces on decentralized storage (<strong>0G Storage</strong>)</li>
+  <li>Discover and message other agents via ENS-resolved encrypted channels (<strong>DM3</strong>)</li>
+  <li>Prove to any on-chain verifier that it followed its declared policy (<strong>RISC Zero zkVM</strong>)</li>
+  <li>Route high-value or out-of-policy actions to its owner's Ledger device for physical approval (<strong>Ledger DMK + Clear Signing</strong>)</li>
+</ul>
+<p>
+  The core agent runtime is adapted from <strong>IronClaw</strong>, a Rust-based OpenClaw reimplementation with WASM-sandboxed tool execution, capability-based permissions, and defense-in-depth security.
+</p>
+
+<div class="info-box">
+  <p><strong>Tech Stack:</strong> Rust &middot; Tokio &middot; Wasmtime &middot; 0G Compute &middot; 0G Storage &middot; ENS &middot; DM3 &middot; RISC Zero &middot; Boundless &middot; Ledger DMK/DSK &middot; Solidity (Foundry) &middot; Swarm Protocol</p>
+</div>
+
+<!-- QUICK START -->
+<h2 id="quick-start">Quick Start</h2>
+
+<h3 id="prerequisites">Prerequisites</h3>
+<ul>
+  <li>Rust 1.75+</li>
+  <li>Foundry (forge, cast)</li>
+  <li>RISC Zero toolchain</li>
+  <li>Node.js 18+ (for web UI, optional)</li>
+</ul>
+
+<h3>1. Build the Agent Runtime</h3>
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">terminal</div>
+  </div>
+  <div class="code-body">
+<pre><span class="cm"># Build the Rust agent runtime</span>
+<span class="kw">cd</span> agent
+<span class="fn">cargo</span> build --release</pre>
+  </div>
+</div>
+
+<h3>2. Build RISC Zero Programs</h3>
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">terminal</div>
+  </div>
+  <div class="code-body">
+<pre><span class="cm"># Compile zkVM guest and host programs</span>
+<span class="kw">cd</span> zkvm
+<span class="fn">cargo</span> build --release</pre>
+  </div>
+</div>
+
+<h3>3. Deploy Smart Contracts</h3>
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">terminal</div>
+  </div>
+  <div class="code-body">
+<pre><span class="kw">cd</span> contracts
+<span class="fn">forge</span> build
+<span class="fn">forge</span> script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast</pre>
+  </div>
+</div>
+
+<h3>4. Run the Agent</h3>
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">terminal</div>
+  </div>
+  <div class="code-body">
+<pre><span class="kw">cd</span> agent
+<span class="fn">cargo</span> run</pre>
+  </div>
+</div>
+
+<!-- ARCHITECTURE -->
+<h2 id="architecture">Architecture</h2>
+<p>
+  A layered design separating agent reasoning, integration services, and on-chain verification. Each layer assumes the layer below it may be compromised.
+</p>
+
+<h3 id="agent-core">Agent Core &mdash; IronClaw Runtime</h3>
+<p>The core agent is written in Rust and consists of three primary subsystems:</p>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Component</th><th>Path</th><th>Responsibility</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Agent Loop</td><td><code>agent/src/core/agent.rs</code></td><td>Main event loop, message handling, intent routing, job coordination</td></tr>
+    <tr><td>Intent Router</td><td><code>agent/src/core/intent_router.rs</code></td><td>Classifies incoming messages into actionable intents</td></tr>
+    <tr><td>Job Scheduler</td><td><code>agent/src/core/job_scheduler.rs</code></td><td>Manages asynchronous task execution</td></tr>
+    <tr><td>Tool Registry</td><td><code>agent/src/tools/registry.rs</code></td><td>Available tools and their metadata</td></tr>
+    <tr><td>WASM Sandbox</td><td><code>agent/src/tools/sandbox.rs</code></td><td>Isolated execution environment for untrusted tools</td></tr>
+    <tr><td>Capabilities</td><td><code>agent/src/tools/capabilities.rs</code></td><td>Permission and rate limit enforcement</td></tr>
+    <tr><td>Policy Engine</td><td><code>agent/src/safety/policy_engine.rs</code></td><td>Enforces declared agent policy rules</td></tr>
+    <tr><td>Content Sanitizer</td><td><code>agent/src/safety/sanitizer.rs</code></td><td>Removes malicious content from inputs/outputs</td></tr>
+    <tr><td>Injection Detector</td><td><code>agent/src/safety/injection_detector.rs</code></td><td>Detects prompt injection attempts</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="trust-tiers">Two-Tier Trust Model</h3>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Tier</th><th>Condition</th><th>Signing</th><th>Verification</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="tag tag-cyan">Autonomous</span></td>
+      <td>Action value &lt; threshold</td>
+      <td>Agent server wallet</td>
+      <td>RISC Zero proof on-chain</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-amber">Ledger-Gated</span></td>
+      <td>Value &ge; threshold or escalation</td>
+      <td>Owner's Ledger device</td>
+      <td>RISC Zero + Ledger approval</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="data-flow">Data Flow</h3>
+<h3>Autonomous Action Flow</h3>
+<ol>
+  <li>Agent receives message (user or DM3)</li>
+  <li>Intent router classifies action</li>
+  <li>0G Compute performs private inference inside TEE</li>
+  <li>Safety layer validates against declared policy</li>
+  <li>Tool execution in WASM sandbox</li>
+  <li>Execution trace stored on 0G Storage</li>
+  <li>RISC Zero proof generated via Boundless</li>
+  <li>Agent wallet submits proof + action to verifier contract</li>
+  <li>Contract verifies proof and executes action</li>
+</ol>
+
+<h3>Ledger-Gated Action Flow</h3>
+<ol>
+  <li>Steps 1&ndash;7 same as autonomous flow</li>
+  <li>RISC Zero proof indicates approval required</li>
+  <li>Contract emits <code>ApprovalRequired</code> event</li>
+  <li>Web UI alerts owner</li>
+  <li>Owner reviews on Ledger device (Clear Signing)</li>
+  <li>Owner physically approves</li>
+  <li>Ledger signs <code>approveAction()</code> transaction</li>
+  <li>Contract executes action</li>
+</ol>
+
+<!-- INTEGRATIONS -->
+<h2 id="0g-network">0G Network</h2>
+<p>
+  Every LLM call runs inside 0G's Sealed Inference TEE &mdash; prompts enter encrypted, operators cannot inspect them. Execution traces are stored on 0G Storage with content-addressable root hashes that anchor the provable chain.
+</p>
+<div class="info-box">
+  <p><span class="tag tag-cyan">0G Compute</span> <span class="tag tag-cyan">0G Storage</span> Private inference + decentralized trace storage</p>
+</div>
+
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">integrations/0g_compute.ts &mdash; Sealed Inference</div>
+  </div>
+  <div class="code-body">
+<pre><span class="kw">import</span> { <span class="ty">createZGServingNetworkBroker</span> } <span class="kw">from</span> <span class="str">'@0glabs/0g-serving-broker'</span>;
+
+<span class="cm">// Initialize broker with agent's wallet</span>
+<span class="kw">const</span> broker <span class="op">=</span> <span class="kw">await</span> <span class="fn">createZGServingNetworkBroker</span>(wallet);
+<span class="kw">const</span> services <span class="op">=</span> <span class="kw">await</span> broker.inference.<span class="fn">listService</span>();
+<span class="kw">const</span> teeProvider <span class="op">=</span> services.<span class="fn">find</span>(s <span class="op">=></span> s.verifiability <span class="op">===</span> <span class="str">'TeeML'</span>);
+
+<span class="cm">// OpenAI-compatible call through TEE</span>
+<span class="kw">const</span> headers <span class="op">=</span> <span class="kw">await</span> broker.inference.<span class="fn">getRequestHeaders</span>(teeProvider.provider, prompt);
+<span class="kw">const</span> response <span class="op">=</span> <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`${endpoint}/chat/completions`</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>, ...headers },
+  body: <span class="ty">JSON</span>.<span class="fn">stringify</span>({ messages, model }),
+});
+
+<span class="cm">// Verify TEE attestation</span>
+<span class="kw">const</span> verified <span class="op">=</span> <span class="kw">await</span> broker.inference.<span class="fn">verifyResponse</span>(response);</pre>
+  </div>
+</div>
+
+<h2 id="ens-dm3">ENS + DM3</h2>
+<p>
+  Agents register as ENS subnames (e.g. <code>alice-agent.proofclaw.eth</code>) with text records storing DM3 profiles, policy hashes, and RISC Zero image IDs. Inter-agent communication is end-to-end encrypted via the DM3 protocol.
+</p>
+<div class="info-box">
+  <p><span class="tag tag-green">ENS</span> <span class="tag tag-green">DM3</span> Agent identity resolution + encrypted inter-agent messaging</p>
+</div>
+
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">integrations/dm3_messaging.ts &mdash; E2E Encrypted Agent Chat</div>
+  </div>
+  <div class="code-body">
+<pre><span class="kw">import</span> { <span class="ty">createEnvelop</span> } <span class="kw">from</span> <span class="str">'@dm3-org/dm3-lib'</span>;
+
+<span class="cm">// Publish DM3 profile to ENS text record</span>
+<span class="kw">await</span> ensContract.<span class="fn">setText</span>(
+  <span class="fn">namehash</span>(<span class="str">'alice-agent.proofclaw.eth'</span>),
+  <span class="str">'eth.dm3.profile'</span>,
+  <span class="fn">toDataURI</span>(deliveryServiceProfile)
+);
+
+<span class="cm">// Send encrypted message to another agent</span>
+<span class="kw">async function</span> <span class="fn">sendAgentMessage</span>(recipientEns, message) {
+  <span class="kw">const</span> recipientProfile <span class="op">=</span> <span class="kw">await</span> <span class="fn">resolveDm3Profile</span>(recipientEns);
+  <span class="kw">const</span> { encryptedEnvelope } <span class="op">=</span> <span class="kw">await</span> <span class="fn">createEnvelop</span>(
+    <span class="ty">JSON</span>.<span class="fn">stringify</span>(message),
+    keys.signingKey,
+    recipientProfile.publicEncryptionKey,
+    recipientProfile.deliveryServiceUrl
+  );
+  <span class="kw">await</span> <span class="fn">fetch</span>(recipientProfile.deliveryServiceUrl, {
+    method: <span class="str">'POST'</span>,
+    body: <span class="ty">JSON</span>.<span class="fn">stringify</span>(<span class="fn">createJsonRpcCallSubmitMessage</span>(encryptedEnvelope)),
+  });
+}</pre>
+  </div>
+</div>
+
+<h2 id="risc-zero">RISC Zero + Boundless</h2>
+<p>
+  The execution trace &mdash; 0G TEE attestation, tool invocations, safety checks &mdash; is fed into a RISC Zero zkVM guest program. Proof generation is outsourced to the Boundless decentralized prover network. The receipt lands on-chain for anyone to verify.
+</p>
+<div class="info-box">
+  <p><span class="tag tag-green">RISC Zero</span> <span class="tag tag-green">Boundless</span> ZK proof of policy compliance</p>
+</div>
+
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">guest/src/main.rs &mdash; RISC Zero zkVM Guest</div>
+  </div>
+  <div class="code-body">
+<pre><span class="cm">// Runs inside RISC Zero zkVM &mdash; produces cryptographic receipt</span>
+<span class="kw">fn</span> <span class="fn">main</span>() {
+    <span class="kw">let</span> trace: <span class="ty">ExecutionTrace</span> <span class="op">=</span> risc0_zkvm::guest::env::<span class="fn">read</span>();
+    <span class="kw">let</span> policy: <span class="ty">AgentPolicy</span> <span class="op">=</span> risc0_zkvm::guest::env::<span class="fn">read</span>();
+
+    <span class="cm">// Verify every tool invocation against declared policy</span>
+    <span class="kw">let mut</span> all_passed <span class="op">=</span> <span class="kw">true</span>;
+    <span class="kw">for</span> invocation <span class="kw">in</span> &amp;trace.tool_invocations {
+        <span class="kw">if</span> !policy.allowed_tools.<span class="fn">contains</span>(&amp;invocation.tool_name) {
+            all_passed <span class="op">=</span> <span class="kw">false</span>;
+        }
+    }
+
+    <span class="cm">// Check if Ledger approval is required</span>
+    <span class="kw">let</span> requires_approval <span class="op">=</span> trace.<span class="fn">action_value</span>() &gt; policy.max_value_autonomous;
+
+    <span class="cm">// Public output &mdash; anyone can verify on-chain</span>
+    risc0_zkvm::guest::env::<span class="fn">commit</span>(&amp;<span class="ty">VerifiedOutput</span> {
+        agent_id: trace.agent_id,
+        all_checks_passed: all_passed,
+        requires_ledger_approval: requires_approval,
+        output_commitment: trace.output_commitment,
+    });
+}</pre>
+  </div>
+</div>
+
+<h2 id="ledger">Ledger DMK &mdash; Hardware Approval</h2>
+<p>
+  High-value actions route to the owner's Ledger device via DMK/DSK. ERC-7730 Clear Signing metadata renders human-readable transaction details directly on the device &mdash; not raw hex.
+</p>
+<div class="info-box">
+  <p><span class="tag tag-amber">Ledger DMK</span> <span class="tag tag-amber">Clear Signing</span> Physical human-in-the-loop approval for high-value agent actions</p>
+</div>
+
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">integrations/ledger_approval.ts &mdash; Clear Signing</div>
+  </div>
+  <div class="code-body">
+<pre><span class="kw">import</span> { <span class="ty">DeviceManagementKitBuilder</span> } <span class="kw">from</span> <span class="str">'@ledgerhq/device-management-kit'</span>;
+<span class="kw">import</span> { <span class="ty">SignerEthBuilder</span> } <span class="kw">from</span> <span class="str">'@ledgerhq/device-signer-kit-ethereum'</span>;
+
+<span class="cm">// Initialize Ledger DMK + Ethereum signer</span>
+<span class="kw">const</span> dmk <span class="op">=</span> <span class="kw">new</span> <span class="ty">DeviceManagementKitBuilder</span>()
+  .<span class="fn">addTransport</span>(webHidTransportFactory).<span class="fn">build</span>();
+<span class="kw">const</span> sessionId <span class="op">=</span> <span class="kw">await</span> dmk.<span class="fn">connect</span>({ deviceId });
+<span class="kw">const</span> signerEth <span class="op">=</span> <span class="kw">new</span> <span class="ty">SignerEthBuilder</span>({ dmk, sessionId }).<span class="fn">build</span>();
+
+<span class="cm">// When agent action exceeds autonomous threshold:</span>
+<span class="kw">async function</span> <span class="fn">requestLedgerApproval</span>(action, proofReceipt) {
+  <span class="kw">const</span> signature <span class="op">=</span> <span class="kw">await</span> signerEth.<span class="fn">signTransaction</span>({
+    to: VERIFIER_ADDRESS,
+    data: <span class="fn">encodeApproveAction</span>(action.agentId, action.outputCommitment),
+  });
+  <span class="kw">return</span> signature;
+}</pre>
+  </div>
+</div>
+
+<h2 id="swarm">Swarm Protocol</h2>
+<p>
+  Proof of Claw agents can register with the Swarm Protocol network for multi-agent coordination. Agents advertise their capabilities (zk-verify, policy-check, swap, transfer) and can be discovered and orchestrated by other Swarm-connected agents.
+</p>
+
+<!-- SMART CONTRACTS -->
+<h2 id="contracts">Smart Contracts</h2>
+
+<h3>ProofOfClawVerifier</h3>
+<p>The on-chain verifier contract handles:</p>
+<ul>
+  <li>Agent registration with policy commitment (policy hash)</li>
+  <li>RISC Zero proof verification via the on-chain verifier</li>
+  <li>Autonomous vs Ledger-gated execution routing</li>
+  <li>Action execution with on-chain enforcement</li>
+</ul>
+
+<h3 id="clear-signing">Clear Signing (ERC-7730)</h3>
+<p>
+  ERC-7730 metadata stored at <code>contracts/clear-signing/proofofclaw.json</code> enables the Ledger device to render human-readable action descriptions instead of raw calldata. The owner sees exactly what the agent wants to do before physically approving.
+</p>
+
+<!-- SECURITY -->
+<h2 id="security">Security &amp; Threat Model</h2>
+<p>Every layer assumes the layer below it is compromised.</p>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Threat</th><th>Mitigation</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Agent acts outside policy</td><td>RISC Zero proof fails; action blocked on-chain. No proof = no action.</td></tr>
+    <tr><td>Inference tampering</td><td>0G Compute TEE attestation signs every response. Tampered data produces an invalid proof.</td></tr>
+    <tr><td>Message interception</td><td>DM3 end-to-end encryption with keys from ENS profiles. Delivery service never sees plaintext.</td></tr>
+    <tr><td>Identity spoofing</td><td>ENS ownership tied to Ledger EOA.</td></tr>
+    <tr><td>High-value action without consent</td><td>Physical Ledger approval required. Owner sees human-readable Clear Signing display.</td></tr>
+    <tr><td>Prompt injection</td><td>Safety layer runs in proven execution trace. Injection detector + content sanitizer.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="safety-layer">Safety Layer</h3>
+<p>The safety subsystem provides defense-in-depth:</p>
+<ul>
+  <li><strong>Policy Engine</strong> &mdash; Enforces declared agent policy rules, validates tool invocations against allowlists</li>
+  <li><strong>Content Sanitizer</strong> &mdash; Strips potentially malicious content from inputs and outputs</li>
+  <li><strong>Injection Detector</strong> &mdash; Detects and blocks prompt injection attempts before they reach the LLM</li>
+  <li><strong>WASM Sandbox</strong> &mdash; Untrusted tools execute in isolated Wasmtime containers with capability-based permissions</li>
+</ul>
+
+<!-- CONFIG -->
+<h2 id="config">Configuration</h2>
+<p>Create a <code>.env</code> file in the agent directory:</p>
+
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">.env</div>
+  </div>
+  <div class="code-body">
+<pre>AGENT_ID=alice-agent
+ENS_NAME=alice.proofclaw.eth
+PRIVATE_KEY=0x...
+RPC_URL=https://eth-sepolia.g.alchemy.com/v2/...
+ZERO_G_INDEXER_RPC=https://indexer-storage-testnet.0g.ai
+ZERO_G_COMPUTE_ENDPOINT=https://broker-testnet.0g.ai
+DM3_DELIVERY_SERVICE_URL=http://localhost:3001
+ALLOWED_TOOLS=swap_tokens,transfer,query
+MAX_VALUE_AUTONOMOUS_WEI=1000000000000000000</pre>
+  </div>
+</div>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>AGENT_ID</code></td><td>Unique agent identifier</td></tr>
+    <tr><td><code>ENS_NAME</code></td><td>Agent's ENS subname for identity and DM3 messaging</td></tr>
+    <tr><td><code>PRIVATE_KEY</code></td><td>Agent server wallet private key</td></tr>
+    <tr><td><code>RPC_URL</code></td><td>Ethereum RPC endpoint</td></tr>
+    <tr><td><code>ZERO_G_INDEXER_RPC</code></td><td>0G Storage indexer endpoint</td></tr>
+    <tr><td><code>ZERO_G_COMPUTE_ENDPOINT</code></td><td>0G Compute broker endpoint</td></tr>
+    <tr><td><code>DM3_DELIVERY_SERVICE_URL</code></td><td>DM3 delivery service for encrypted messaging</td></tr>
+    <tr><td><code>ALLOWED_TOOLS</code></td><td>Comma-separated list of permitted tools</td></tr>
+    <tr><td><code>MAX_VALUE_AUTONOMOUS_WEI</code></td><td>Threshold above which Ledger approval is required (in wei)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- REPO STRUCTURE -->
+<h2 id="repo-structure">Repository Structure</h2>
+<div class="code-block">
+  <div class="code-header">
+    <div class="code-dots"><span></span><span></span><span></span></div>
+    <div class="code-filename">project layout</div>
+  </div>
+  <div class="code-body">
+<pre>proof-of-claw/
+├── agent/                      <span class="cm"># Rust agent runtime</span>
+│   └── src/
+│       ├── core/               <span class="cm"># Agent loop, intent router, job scheduler</span>
+│       ├── tools/              <span class="cm"># WASM sandbox, tool registry, capabilities</span>
+│       ├── safety/             <span class="cm"># Policy engine, sanitizer, injection detector</span>
+│       └── integrations/       <span class="cm"># 0G, ENS/DM3, Ledger integrations</span>
+├── zkvm/                       <span class="cm"># RISC Zero zkVM programs</span>
+│   ├── guest/                  <span class="cm"># Guest program (policy verification)</span>
+│   └── host/                   <span class="cm"># Host program (proof generation)</span>
+├── contracts/                  <span class="cm"># Solidity smart contracts</span>
+│   ├── src/
+│   │   └── ProofOfClawVerifier.sol
+│   ├── clear-signing/
+│   │   └── proofofclaw.json    <span class="cm"># ERC-7730 metadata</span>
+│   └── script/Deploy.s.sol
+├── frontend/                   <span class="cm"># Web UI</span>
+│   ├── index.html              <span class="cm"># Landing page</span>
+│   ├── docs.html               <span class="cm"># Documentation (this page)</span>
+│   ├── agents.html             <span class="cm"># Agent management</span>
+│   ├── dashboard.html          <span class="cm"># Monitoring dashboard</span>
+│   ├── deploy.html             <span class="cm"># Agent deployment</span>
+│   ├── messages.html           <span class="cm"># DM3 message viewer</span>
+│   └── proofs.html             <span class="cm"># ZK proof explorer</span>
+└── spec.md                     <span class="cm"># Full technical specification</span></pre>
+  </div>
+</div>
+
+<!-- BOUNTIES -->
+<h2 id="bounties">Target Bounties</h2>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Sponsor</th><th>Track</th><th>Prize</th><th>Integration</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>0G</strong></td>
+      <td>Best OpenClaw Agent on 0G</td>
+      <td>$6,000</td>
+      <td>0G Compute (inference), 0G Storage (memory + traces)</td>
+    </tr>
+    <tr>
+      <td><strong>ENS</strong></td>
+      <td>Best ENS Integration for AI Agents</td>
+      <td>$5,000</td>
+      <td>ENS subnames for agent identity, DM3 for encrypted messaging</td>
+    </tr>
+    <tr>
+      <td><strong>Ledger</strong></td>
+      <td>AI Agents x Ledger</td>
+      <td>$6,000</td>
+      <td>Ledger DMK/DSK for human approval, Clear Signing (ERC-7730)</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center;">
+  <p style="color: var(--text-dim); font-size: 0.75rem;">Proof of Claw &mdash; Provable Private Agent Framework &mdash; ETHGlobal Cannes 2026</p>
+  <p style="color: var(--text-dim); font-size: 0.7rem; margin-top: 0.5rem;">Built with IronClaw &middot; 0G &middot; ENS &middot; DM3 &middot; RISC Zero &middot; Ledger &middot; Swarm</p>
+</div>
+
+</main>
+</div>
+
+<!-- Sidebar active link tracking -->
+<script>
+(function() {
+  const links = document.querySelectorAll('.sidebar-link');
+  const sections = [];
+  links.forEach(link => {
+    const id = link.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) sections.push({ el, link });
+  });
+
+  function updateActive() {
+    let current = sections[0];
+    for (const s of sections) {
+      if (s.el.getBoundingClientRect().top <= 120) current = s;
+    }
+    links.forEach(l => l.classList.remove('active'));
+    if (current) current.link.classList.add('active');
+  }
+
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+})();
+</script>
+
+</body>
+</html>
