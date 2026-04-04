@@ -1353,10 +1353,13 @@
     <a href="proofs.html">
       <span class="nav-icon">&#x2731;</span> Proofs
     </a>
+    <a href="soul-vault.html">
+      <span class="nav-icon">&#x2B23;</span> Soul Vault
+    </a>
   </nav>
   <div class="sidebar-bottom">
     <div id="poc-connection-slot"></div>
-    <button class="btn-new-agent" onclick="openWizard()">+ New Agent</button>
+    <a href="soul-vault.html" class="btn-new-agent">+ New Agent</a>
     <a href="index.html" class="back-link btn-home">Back to Home</a>
   </div>
 </aside>
@@ -1383,7 +1386,7 @@
     <button class="filter-btn" data-filter="busy" onclick="setFilter('busy', this)">Busy</button>
     <button class="filter-btn" data-filter="offline" onclick="setFilter('offline', this)">Offline</button>
     <button class="btn-new-agent-top" onclick="lookupENS()" style="background:transparent;border:1px solid var(--border-cyan);color:var(--cyan);">Lookup ENS</button>
-    <button class="btn-new-agent-top" onclick="openWizard()">New Agent +</button>
+    <a href="soul-vault.html" class="btn-new-agent-top">New Agent +</a>
   </div>
 
   <!-- Agent Grid -->
@@ -1394,7 +1397,7 @@
     <div class="empty-icon">&#x27C1;</div>
     <h2>No agents deployed yet</h2>
     <p>Deploy your first autonomous AI agent with cryptographic proof of behavior.</p>
-    <button class="btn-deploy-first" onclick="openWizard()">Deploy Your First Agent</button>
+    <a href="soul-vault.html" class="btn-deploy-first" style="display:inline-block;text-decoration:none;">Deploy Your First Agent</a>
   </div>
 
 </main>
@@ -1733,8 +1736,8 @@ function renderAgents() {
           <div class="agent-ens">${esc(a.ens)}</div>
           <div class="agent-meta">
             <span class="type-badge">${esc(a.type)}</span>
-            <span class="status-dot ${a.status}"></span>
-            <span class="status-label">${a.status}</span>
+            <span class="status-dot ${esc(a.status)}"></span>
+            <span class="status-label">${esc(a.status)}</span>
           </div>
         </div>
       </div>
@@ -1806,7 +1809,7 @@ function openProfile(agentId) {
       <div class="profile-info">
         <h3>${esc(a.name)}</h3>
         <div class="ens">${esc(a.ens)}</div>
-        <div style="margin-top:4px;"><span class="type-badge">${esc(a.type)}</span> <span class="status-dot ${a.status}" style="display:inline-block;vertical-align:middle;margin-left:6px;"></span> <span class="status-label" style="font-size:11px;">${a.status}</span></div>
+        <div style="margin-top:4px;"><span class="type-badge">${esc(a.type)}</span> <span class="status-dot ${esc(a.status)}" style="display:inline-block;vertical-align:middle;margin-left:6px;"></span> <span class="status-label" style="font-size:11px;">${esc(a.status)}</span></div>
       </div>
     </div>
     ${a.description ? `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">${esc(a.description)}</p>` : ''}
