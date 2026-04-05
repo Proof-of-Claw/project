@@ -972,13 +972,16 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 let ledgerConnected = false;
 let simulatedMode = false;
 let pendingActions = [];
-let approvalHistory = [];
+// Approval history persisted in localStorage so it survives page reloads.
+let approvalHistory = (() => {
+  try { return JSON.parse(localStorage.getItem('poc_approval_history') || '[]'); } catch { return []; }
+})();
 let currentSigningAction = null;
 
-// =====================================================
-// MOCK DATA (used when API is unavailable)
-// =====================================================
-const MOCK_PENDING = [
+// One EIP-712 live-demo item shown when the API is unavailable so the
+// Ledger signing flow can be tested without a running backend.
+// All other mock pending actions have been removed — real actions come from /api/pending-actions.
+const LIVE_DEMO_PENDING = [
   {
     id: 'act-live-eip712',
     agentId: 'proof-of-claw',
@@ -996,77 +999,6 @@ const MOCK_PENDING = [
     timestamp: Date.now(),
     isLiveDemo: true,
   },
-  {
-    id: 'act-001',
-    agentId: 'agent-7f3a',
-    agentName: 'DeFi Sentinel',
-    ens: 'defi-sentinel.poc.eth',
-    type: 'swap',
-    description: 'Swap 2.5 ETH for USDC on Uniswap V3',
-    valueEth: '2.500',
-    valueUsd: '4,825.00',
-    to: '0x68b3...E5F2 (Uniswap Router)',
-    gasLimit: '250,000',
-    chain: 'Ethereum Mainnet',
-    policyCheck: 'passed',
-    zkProof: 'verified',
-    timestamp: Date.now() - 120000,
-  },
-  {
-    id: 'act-002',
-    agentId: 'agent-b91c',
-    agentName: 'Yield Optimizer',
-    ens: 'yield-opt.poc.eth',
-    type: 'transfer',
-    description: 'Transfer 5.0 ETH to treasury multisig',
-    valueEth: '5.000',
-    valueUsd: '9,650.00',
-    to: '0x1a2b...9C4D (Treasury)',
-    gasLimit: '21,000',
-    chain: 'Ethereum Mainnet',
-    policyCheck: 'passed',
-    zkProof: 'pending',
-    timestamp: Date.now() - 300000,
-  },
-  {
-    id: 'act-003',
-    agentId: 'agent-d42e',
-    agentName: 'Bridge Bot',
-    ens: 'bridge-bot.poc.eth',
-    type: 'bridge',
-    description: 'Bridge 1.2 ETH to Arbitrum via Stargate',
-    valueEth: '1.200',
-    valueUsd: '2,316.00',
-    to: '0x5f3c...A1B8 (Stargate Router)',
-    gasLimit: '350,000',
-    chain: 'Ethereum -> Arbitrum',
-    policyCheck: 'passed',
-    zkProof: 'verified',
-    timestamp: Date.now() - 600000,
-  },
-  {
-    id: 'act-004',
-    agentId: 'agent-7f3a',
-    agentName: 'DeFi Sentinel',
-    ens: 'defi-sentinel.poc.eth',
-    type: 'stake',
-    description: 'Stake 10.0 ETH on Lido',
-    valueEth: '10.000',
-    valueUsd: '19,300.00',
-    to: '0x3e40...7D9F (Lido Staking)',
-    gasLimit: '180,000',
-    chain: 'Ethereum Mainnet',
-    policyCheck: 'failed',
-    zkProof: 'verified',
-    timestamp: Date.now() - 900000,
-  },
-];
-
-const MOCK_HISTORY = [
-  { time: '2 hours ago', agent: 'DeFi Sentinel', action: 'Swap', value: '1.2 ETH', result: 'approved', txHash: '0x8a3f...c21b' },
-  { time: '5 hours ago', agent: 'Yield Optimizer', action: 'Transfer', value: '3.0 ETH', result: 'approved', txHash: '0x12ab...f4e8' },
-  { time: '8 hours ago', agent: 'Bridge Bot', action: 'Bridge', value: '0.5 ETH', result: 'rejected', txHash: '---' },
-  { time: '1 day ago', agent: 'DeFi Sentinel', action: 'Swap', value: '0.8 ETH', result: 'approved', txHash: '0x6d1e...a9c3' },
 ];
 
 // =====================================================
@@ -1253,9 +1185,9 @@ async function loadPendingActions() {
     // API not available
   }
 
-  // Fallback to mock data — clearly labeled so users don't sign real txs for fake actions
-  pendingActions = MOCK_PENDING.map(a => ({ ...a, _isMock: true }));
-  showToast('&#x26A0;&#xFE0F; API unavailable \u2014 showing demo data (signatures are no-ops)', 'warn', 6000);
+  // API unavailable — show empty state with EIP-712 live demo only
+  pendingActions = LIVE_DEMO_PENDING.map(a => ({ ...a, _isMock: true }));
+  showToast('&#x26A0;&#xFE0F; API unavailable \u2014 showing EIP-712 demo only. Start your agent at http://localhost:8082', 'warn', 7000);
   renderPendingActions();
 }
 
@@ -1429,6 +1361,8 @@ async function confirmSign() {
       result: 'approved',
       txHash: txHash || sigDisplay,
     });
+    // Persist real history to localStorage
+    localStorage.setItem('poc_approval_history', JSON.stringify(approvalHistory.slice(0, 50)));
 
     pendingActions = pendingActions.filter(a => a.id !== action.id);
     renderPendingActions();
@@ -1471,6 +1405,8 @@ function rejectAction(actionId) {
     result: 'rejected',
     txHash: '---',
   });
+  // Persist real history to localStorage
+  localStorage.setItem('poc_approval_history', JSON.stringify(approvalHistory.slice(0, 50)));
 
   pendingActions = pendingActions.filter(a => a.id !== actionId);
   renderPendingActions();
@@ -1501,9 +1437,16 @@ function closeModalOutside(e) {
 // =====================================================
 function renderHistory() {
   const tbody = document.getElementById('history-body');
-  const data = approvalHistory.length > 0 ? [...approvalHistory, ...MOCK_HISTORY] : MOCK_HISTORY;
 
-  tbody.innerHTML = data.map(h => {
+  if (approvalHistory.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="6" style="text-align:center; color: var(--text-dim); padding: 2rem;">' +
+      'No approval history yet. Approve or reject actions above to see them here.' +
+      '</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = approvalHistory.map(h => {
     const resultClass = h.result === 'approved' ? 'result-approved' : 'result-rejected';
     return (
       '<tr>' +
