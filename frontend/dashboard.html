@@ -2293,6 +2293,7 @@ async function loadWalletINFTs() {
 
   showINFTsSection(true);
   var content = document.getElementById('infts-content');
+  if (!content) return;
   content.innerHTML = '<div class="infts-loading"><div class="spinner"></div>Fetching iNFTs from chain...</div>';
 
   try {
