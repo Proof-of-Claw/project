@@ -20,7 +20,6 @@
     { id: 'auth-modules', href: 'auth-modules.html', icon: '🔒', label: 'Auth Modules'  },
     { id: 'messages',     href: 'messages.html',     icon: '✉',  label: 'Messages'      },
     { id: 'proofs',       href: 'proofs.html',       icon: '✱',  label: 'Proofs'        },
-    { id: 'docs',          href: 'docs.html',          icon: '📄', label: 'Docs'          },
     { id: 'kanban',       href: 'kanban.html',       icon: '▪',  label: 'Kanban'        },
     { id: 'soul-vault',   href: 'soul-vault.html',   icon: '⬡',  label: 'Soul Vault'    },
     { id: 'approve',      href: 'approve.html',      icon: '✔',  label: 'Approve'       },
@@ -188,6 +187,9 @@
     div.className = 'sidebar-bottom';
     div.innerHTML = `
       <div id="poc-connection-slot"></div>
+      <a href="docs.html" class="btn-docs${pageId === 'docs' ? ' active' : ''}">
+        <span class="nav-icon">📄</span> Docs
+      </a>
       <a href="${pageId === 'agents' ? '#' : 'agents.html'}"
          id="sidebar-new-agent-btn"
          class="btn-new-agent">+ New Agent</a>
