@@ -1279,6 +1279,22 @@ function updateFromStatus(status) {
     document.getElementById('stat-proofs').textContent = st.proofs_generated || 0;
     document.getElementById('stat-verified').textContent = st.proofs_verified || 0;
   }
+
+  // Wallet balance
+  if (status.wallet_balance_wei !== undefined) {
+    updateBalance(status.wallet_balance_wei);
+  }
+
+  // Pending Ledger approvals from live API
+  if (typeof status.pending_approvals === 'number' && status.pending_approvals > 0) {
+    var countEl = document.getElementById('pending-count');
+    if (countEl) countEl.textContent = status.pending_approvals;
+    showPendingApproval();
+  }
+
+  // Live connection indicator
+  var liveRow = document.getElementById('metric-live-row');
+  if (liveRow) liveRow.style.display = 'flex';
 }
 
 function updateFromActivity(actData) {
@@ -1558,13 +1574,12 @@ function seedActivity() {
   addActivity('message', 'DM3 Message Sent', 'To ' + ens + ' \u2022 25 min ago');
 }
 
-// =====================================================
-// SIMULATIONS
-// =====================================================
+// scheduleSimulations — show pending Ledger approval after 3s
+// (signing uses real WebHID via dashConfirmSign, not a stub)
 function scheduleSimulations() {
-  // Show pending Ledger approval after 3 seconds
+  // Pending Ledger approval
   activityTimers.push(setTimeout(function() {
-    showPendingApproval();
+    if (currentAgent) showPendingApproval();
   }, 3000));
 
   // Add proof activity after 8 seconds
