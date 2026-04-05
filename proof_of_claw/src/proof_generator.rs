@@ -10,6 +10,7 @@
 use crate::config::AgentConfig;
 use crate::types::{ExecutionTrace, ProofReceipt, VerifiedOutput};
 use anyhow::{Context, Result};
+#[cfg(feature = "client")]
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts};
 use serde::{Deserialize, Serialize};
 
@@ -88,12 +89,27 @@ fn bytes32_to_hex(bytes: &[u8; 32]) -> String {
 }
 
 fn convert_trace(trace: &ExecutionTrace) -> ZkExecutionTrace {
+    // Extract action_value from the trace's tool invocations.
+    // Each invocation's params may carry a "value" field (wei). Sum them.
     let action_value: u64 = trace
         .tool_invocations
         .iter()
-        .filter(|inv| inv.tool_name.contains("swap") || inv.tool_name.contains("transfer"))
-        .map(|_| 1_000_000_000_000_000_000u64)
-        .sum();
+        .filter_map(|inv| {
+            // Parse the output_hash as a hex-encoded wei value when the tool
+            // is a value-bearing action (swap, transfer, bridge, send).
+            let name = inv.tool_name.to_lowercase();
+            if name.contains("swap") || name.contains("transfer")
+                || name.contains("bridge") || name.contains("send")
+            {
+                // The input_hash field encodes the action value in hex when set
+                // by the execution runtime. Fall back to 0 for legacy traces.
+                let stripped = inv.input_hash.trim_start_matches("0x");
+                u64::from_str_radix(stripped, 16).ok()
+            } else {
+                None
+            }
+        })
+        .fold(0u64, u64::saturating_add);
 
     ZkExecutionTrace {
         agent_id: trace.agent_id.clone(),
@@ -234,6 +250,9 @@ impl ProofGenerator {
     }
 
     /// Generate a proof using the local RISC Zero prover.
+    ///
+    /// Requires the `client` feature of `risc0-zkvm`.
+    #[cfg(feature = "client")]
     async fn generate_proof_local(&self, trace: &ExecutionTrace) -> Result<ProofReceipt> {
         tracing::info!("Generating proof via local RISC Zero prover");
 
@@ -279,6 +298,16 @@ impl ProofGenerator {
             seal,
             image_id: self.image_id.clone(),
         })
+    }
+
+    /// Stub for local proof generation when `client` feature is not enabled.
+    #[cfg(not(feature = "client"))]
+    async fn generate_proof_local(&self, _trace: &ExecutionTrace) -> Result<ProofReceipt> {
+        anyhow::bail!(
+            "Local RISC Zero proving requires the `client` feature. \
+             Enable it with: proof_of_claw = {{ features = [\"client\"] }}, \
+             or use Boundless proving instead."
+        )
     }
 
     /// Generate a proof via the Boundless proving marketplace.
@@ -405,7 +434,7 @@ impl ProofGenerator {
             let digest = risc0_zkvm::sha::Digest::from(image_id_bytes);
             real_receipt
                 .verify(digest)
-                .context("RISC Zero receipt verification failed")?;
+                .map_err(|e| anyhow::anyhow!("RISC Zero receipt verification failed: {e:?}"))?;
         }
 
         // Decode the journal as ZkVerifiedOutput

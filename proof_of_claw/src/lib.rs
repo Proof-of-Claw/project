@@ -46,10 +46,6 @@ pub mod ironclaw_adapter;
 // Re-exports for convenience
 pub use config::{AgentConfig, PolicyConfig};
 pub use injection_detector::InjectionDetector;
-pub use ironclaw_adapter::{
-    InferenceAttestationHook, InjectionDetectionHook, IronClawAdapter, PolicyEnforcementHook,
-    ProofGenerationHook, SessionState,
-};
 pub use policy_engine::PolicyEngine;
 pub use proof_generator::ProofGenerator;
 pub use registry::{compute_capability_hash, Tool, ToolRegistry};
@@ -63,5 +59,6 @@ pub use types::{
 // Ironclaw integration - only available with ironclaw feature
 #[cfg(feature = "ironclaw")]
 pub use ironclaw_adapter::{
-    InjectionDetectionHook, IronClawAdapter, PolicyEnforcementHook, ProofGenerationHook,
+    InferenceAttestationHook, InjectionDetectionHook, IronClawAdapter, PolicyEnforcementHook,
+    ProofGenerationHook, SessionState,
 };

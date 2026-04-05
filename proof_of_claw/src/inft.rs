@@ -218,6 +218,8 @@ impl INFTClient {
                 risc_zero_image_id: String::new(),
                 encrypted_uri: String::new(),
                 metadata_hash: String::new(),
+                soul_backup_hash: String::new(),
+                soul_backup_uri: String::new(),
                 ens_name: String::new(),
                 reputation_score: 0,
                 total_proofs: 0,
@@ -226,19 +228,24 @@ impl INFTClient {
             }));
         }
 
+        // ABI layout matches AgentINFT struct:
+        //   owner, agentId, policyHash, riscZeroImageId, encryptedURI, metadataHash,
+        //   soulBackupHash, soulBackupURI, ensName, reputationScore, totalProofs, mintedAt, active
         let tokens = ethers::abi::decode(
             &[
-                ethers::abi::ParamType::Uint(256),
-                ethers::abi::ParamType::Address,
-                ethers::abi::ParamType::FixedBytes(32),
-                ethers::abi::ParamType::FixedBytes(32),
-                ethers::abi::ParamType::String,
-                ethers::abi::ParamType::FixedBytes(32),
-                ethers::abi::ParamType::String,
-                ethers::abi::ParamType::Uint(256),
-                ethers::abi::ParamType::Uint(256),
-                ethers::abi::ParamType::Uint(256),
-                ethers::abi::ParamType::Bool,
+                ethers::abi::ParamType::Address,        // 0: owner
+                ethers::abi::ParamType::FixedBytes(32),  // 1: agentId
+                ethers::abi::ParamType::FixedBytes(32),  // 2: policyHash
+                ethers::abi::ParamType::FixedBytes(32),  // 3: riscZeroImageId
+                ethers::abi::ParamType::String,          // 4: encryptedURI
+                ethers::abi::ParamType::FixedBytes(32),  // 5: metadataHash
+                ethers::abi::ParamType::FixedBytes(32),  // 6: soulBackupHash
+                ethers::abi::ParamType::String,          // 7: soulBackupURI
+                ethers::abi::ParamType::String,          // 8: ensName
+                ethers::abi::ParamType::Uint(256),       // 9: reputationScore
+                ethers::abi::ParamType::Uint(256),       // 10: totalProofs
+                ethers::abi::ParamType::Uint(256),       // 11: mintedAt
+                ethers::abi::ParamType::Bool,            // 12: active
             ],
             &data_bytes,
         )
@@ -246,7 +253,7 @@ impl INFTClient {
 
         Ok(Some(INFTData {
             token_id,
-            owner: tokens[1].clone().into_address()
+            owner: tokens[0].clone().into_address()
                 .map(|a| format!("0x{}", hex::encode(a.as_bytes())))
                 .unwrap_or_default(),
             agent_id: agent_hash,
@@ -260,11 +267,15 @@ impl INFTClient {
             metadata_hash: tokens[5].clone().into_fixed_bytes()
                 .map(|b| format!("0x{}", hex::encode(b)))
                 .unwrap_or_default(),
-            ens_name: tokens[6].clone().into_string().unwrap_or_default(),
-            reputation_score: tokens[7].clone().into_uint().unwrap_or_default().as_u64(),
-            total_proofs: tokens[8].clone().into_uint().unwrap_or_default().as_u64(),
-            minted_at: tokens[9].clone().into_uint().unwrap_or_default().as_u64(),
-            active: tokens[10].clone().into_bool().unwrap_or(true),
+            soul_backup_hash: tokens[6].clone().into_fixed_bytes()
+                .map(|b| format!("0x{}", hex::encode(b)))
+                .unwrap_or_default(),
+            soul_backup_uri: tokens[7].clone().into_string().unwrap_or_default(),
+            ens_name: tokens[8].clone().into_string().unwrap_or_default(),
+            reputation_score: tokens[9].clone().into_uint().unwrap_or_default().as_u64(),
+            total_proofs: tokens[10].clone().into_uint().unwrap_or_default().as_u64(),
+            minted_at: tokens[11].clone().into_uint().unwrap_or_default().as_u64(),
+            active: tokens[12].clone().into_bool().unwrap_or(true),
         }))
     }
 
