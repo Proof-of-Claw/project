@@ -121,9 +121,10 @@
 /* ========== LAYOUT ========== */
 .docs-wrapper {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: var(--sidebar-width, 280px) 1fr;
   gap: 0;
   min-height: 100vh;
+  transition: grid-template-columns 0.3s ease;
 }
 
 /* ========== SIDEBAR ========== */
@@ -131,18 +132,54 @@
   position: fixed;
   top: 60px;
   left: 0;
-  width: 280px;
+  width: var(--sidebar-width, 280px);
   height: calc(100vh - 60px);
   overflow-y: auto;
+  overflow-x: hidden;
   border-right: 1px solid var(--border);
   background: var(--bg-secondary);
   padding: 1.5rem;
   z-index: 50;
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 56px;
+  padding: 1rem 0.5rem;
 }
 
 .sidebar::-webkit-scrollbar { width: 4px; }
 .sidebar::-webkit-scrollbar-track { background: transparent; }
 .sidebar::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 2px; }
+
+/* Collapse toggle */
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-bottom: 1rem;
+  margin-left: auto;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+}
+
+.sidebar-toggle:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: var(--cyan-glow);
+}
+
+.sidebar.collapsed .sidebar-toggle {
+  margin: 0 auto 1rem;
+}
 
 .sidebar-section { margin-bottom: 1.75rem; }
 
@@ -157,6 +194,16 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+.sidebar.collapsed .sidebar-label {
+  opacity: 0;
+  height: 0;
+  margin: 0;
+  overflow: hidden;
 }
 
 .sidebar-label::before {
@@ -180,7 +227,36 @@
   font-size: 0.78rem;
   transition: all 0.2s;
   border-left: 2px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
 }
+
+.sidebar-link .link-icon {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.sidebar-link .link-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s, width 0.3s;
+}
+
+.sidebar.collapsed .sidebar-link {
+  padding: 0.5rem;
+  justify-content: center;
+  border-left: none;
+}
+
+.sidebar.collapsed .sidebar-link .link-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-divider { margin: 0.5rem 0; }
 
 .sidebar-link:hover {
   color: var(--text-primary);
@@ -188,10 +264,38 @@
   border-left-color: rgba(255,255,255,0.1);
 }
 
+.sidebar.collapsed .sidebar-link:hover { border-left-color: transparent; }
+
 .sidebar-link.active {
   color: var(--cyan);
   background: var(--cyan-glow);
   border-left-color: var(--cyan);
+}
+
+.sidebar.collapsed .sidebar-link.active { border-left-color: transparent; }
+
+/* Tooltip on collapsed hover */
+.sidebar.collapsed .sidebar-link {
+  position: relative;
+}
+
+.sidebar.collapsed .sidebar-link:hover::after {
+  content: attr(data-title);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  padding: 0.35rem 0.65rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .sidebar-divider {
@@ -204,6 +308,79 @@
 .docs-content {
   padding: 0 4rem 6rem;
   max-width: 920px;
+  transition: margin-left 0.3s ease;
+}
+
+/* ========== COLLAPSIBLE SECTIONS ========== */
+.doc-section {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.doc-section:last-child { border-bottom: none; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 2rem 0 1rem;
+  user-select: none;
+}
+
+.section-header:hover .section-chevron { color: var(--cyan); }
+
+.section-chevron {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  transition: transform 0.3s ease, color 0.2s;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+.doc-section.collapsed .section-chevron {
+  transform: rotate(-90deg);
+}
+
+.section-body {
+  max-height: 10000px;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+  opacity: 1;
+}
+
+.doc-section.collapsed .section-body {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+/* Expand/collapse all controls */
+.section-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  justify-content: flex-end;
+}
+
+.section-controls button {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.section-controls button:hover {
+  border-color: var(--border-cyan);
+  color: var(--cyan);
+  background: var(--cyan-glow);
 }
 
 /* Section anchors */
@@ -744,19 +921,24 @@ tr:hover td { background: rgba(255,255,255,0.015); }
   .nav-hamburger { display: flex; }
   .nav-links.open, .nav-actions.open { display: flex; }
 
-  .docs-wrapper { grid-template-columns: 1fr; }
+  .docs-wrapper { grid-template-columns: 1fr !important; }
   .sidebar {
     display: none;
-    width: 100%;
+    width: 100% !important;
     position: fixed;
     top: 60px;
     left: 0;
     right: 0;
     height: calc(100vh - 60px);
     z-index: 90;
+    padding: 1.5rem !important;
   }
   .sidebar.open { display: block; }
-  .docs-content { margin-left: 0; padding: 0 1.5rem 4rem; }
+  .sidebar .sidebar-toggle { display: none; }
+  .sidebar.collapsed .sidebar-label { opacity: 1; height: auto; margin-bottom: 0.6rem; }
+  .sidebar.collapsed .sidebar-link .link-text { opacity: 1; width: auto; }
+  .sidebar.collapsed .sidebar-link { justify-content: flex-start; padding: 0.45rem 0.75rem; }
+  .docs-content { margin-left: 0 !important; padding: 0 1.5rem 4rem; }
   .docs-hero { padding: 7rem 1.5rem 2rem; }
   .docs-hero h1 { font-size: 2rem; }
   .bounty-grid { grid-template-columns: 1fr; }
@@ -834,55 +1016,51 @@ tr:hover td { background: rgba(255,255,255,0.015); }
 
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar" role="navigation" aria-label="Documentation sections">
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" title="Collapse sidebar">&#x2039;</button>
   <div class="sidebar-section">
     <div class="sidebar-label">Getting Started</div>
-    <a href="#overview" class="sidebar-link active">Overview</a>
-    <a href="#quick-start" class="sidebar-link">Quick Start</a>
-    <a href="#prerequisites" class="sidebar-link">Prerequisites</a>
+    <a href="#overview" class="sidebar-link active" data-title="Overview"><span class="link-icon">&#x2726;</span><span class="link-text">Overview</span></a>
+    <a href="#quick-start" class="sidebar-link" data-title="Quick Start"><span class="link-icon">&#x25B6;</span><span class="link-text">Quick Start</span></a>
   </div>
   <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Architecture</div>
-    <a href="#architecture" class="sidebar-link">System Design</a>
-    <a href="#agent-core" class="sidebar-link">Agent Core</a>
-    <a href="#trust-tiers" class="sidebar-link">Trust Tiers</a>
-    <a href="#data-flow" class="sidebar-link">Data Flow</a>
+    <a href="#architecture" class="sidebar-link" data-title="System Design"><span class="link-icon">&#x2B22;</span><span class="link-text">System Design</span></a>
+    <a href="#data-flow" class="sidebar-link" data-title="Data Flow"><span class="link-icon">&#x21C6;</span><span class="link-text">Data Flow</span></a>
   </div>
   <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Integrations</div>
-    <a href="#0g-network" class="sidebar-link">0G Network</a>
-    <a href="#ens-dm3" class="sidebar-link">ENS + DM3</a>
-    <a href="#risc-zero" class="sidebar-link">RISC Zero</a>
-    <a href="#ledger" class="sidebar-link">Ledger DMK</a>
-
+    <a href="#0g-network" class="sidebar-link" data-title="0G Network"><span class="link-icon">&#x25C9;</span><span class="link-text">0G Network</span></a>
+    <a href="#ens-dm3" class="sidebar-link" data-title="ENS + DM3"><span class="link-icon">&#x2709;</span><span class="link-text">ENS + DM3</span></a>
+    <a href="#risc-zero" class="sidebar-link" data-title="RISC Zero"><span class="link-icon">&#x2731;</span><span class="link-text">RISC Zero</span></a>
+    <a href="#ledger" class="sidebar-link" data-title="Ledger DMK"><span class="link-icon">&#x26BF;</span><span class="link-text">Ledger DMK</span></a>
   </div>
   <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Smart Contracts</div>
-    <a href="#contracts" class="sidebar-link">ProofOfClawVerifier</a>
-    <a href="#clear-signing" class="sidebar-link">Clear Signing (ERC-7730)</a>
+    <a href="#contracts" class="sidebar-link" data-title="Contracts"><span class="link-icon">&#x2B22;</span><span class="link-text">ProofOfClawVerifier</span></a>
+    <a href="#clear-signing" class="sidebar-link" data-title="Clear Signing"><span class="link-icon">&#x270D;</span><span class="link-text">Clear Signing (7730)</span></a>
   </div>
   <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Security</div>
-    <a href="#security" class="sidebar-link">Threat Model</a>
-    <a href="#safety-layer" class="sidebar-link">Safety Layer</a>
+    <a href="#security" class="sidebar-link" data-title="Threat Model"><span class="link-icon">&#x26A0;</span><span class="link-text">Threat Model</span></a>
+    <a href="#safety-layer" class="sidebar-link" data-title="Safety Layer"><span class="link-icon">&#x1F6E1;</span><span class="link-text">Safety Layer</span></a>
   </div>
   <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Reference</div>
-    <a href="#agent-api-spec" class="sidebar-link">Agent API Spec</a>
-    <a href="#config" class="sidebar-link">Configuration</a>
-    <a href="#repo-structure" class="sidebar-link">Repository Structure</a>
-    <a href="#bounties" class="sidebar-link">Target Bounties</a>
+    <a href="#agent-api-spec" class="sidebar-link" data-title="API Spec"><span class="link-icon">&#x2B23;</span><span class="link-text">Agent API Spec</span></a>
+    <a href="#config" class="sidebar-link" data-title="Configuration"><span class="link-icon">&#x2699;</span><span class="link-text">Configuration</span></a>
+    <a href="#repo-structure" class="sidebar-link" data-title="Repo Structure"><span class="link-icon">&#x2302;</span><span class="link-text">Repository Structure</span></a>
+    <a href="#bounties" class="sidebar-link" data-title="Bounties"><span class="link-icon">&#x2605;</span><span class="link-text">Target Bounties</span></a>
   </div>
   <div class="sidebar-divider"></div>
   <div class="sidebar-section">
     <div class="sidebar-label">Status</div>
-    <a href="#status" class="sidebar-link">What's Working</a>
-    <a href="#incomplete" class="sidebar-link">What's Incomplete</a>
-    <a href="#roadmap" class="sidebar-link">Roadmap</a>
+    <a href="#status" class="sidebar-link" data-title="Working"><span class="link-icon">&#x2714;</span><span class="link-text">What's Working</span></a>
+    <a href="#incomplete" class="sidebar-link" data-title="Incomplete"><span class="link-icon">&#x26A0;</span><span class="link-text">What's Incomplete</span></a>
   </div>
 </aside>
 
@@ -890,6 +1068,10 @@ tr:hover td { background: rgba(255,255,255,0.015); }
 
 <!-- MAIN CONTENT -->
 <main class="docs-content" role="main">
+<div class="section-controls">
+  <button onclick="expandAllSections()">Expand All</button>
+  <button onclick="collapseAllSections()">Collapse All</button>
+</div>
 
 <!-- OVERVIEW -->
 <h2 id="overview" class="section-anchor fade-in"><span class="section-icon icon-cyan">&#x2726;</span> Overview</h2>
@@ -1776,6 +1958,11 @@ API_PORT=8420</pre>
     <span class="status-name">ENS Resolver (JS)</span>
     <span class="status-detail">Real on-chain resolution via RPC, multi-network support (Sepolia, Mainnet, 0G).</span>
   </div>
+  <div class="status-row">
+    <span class="status-badge working">Working</span>
+    <span class="status-name">Server Key Security</span>
+    <span class="status-detail">Startup requires real PRIVATE_KEY &mdash; no hardcoded demo private key fallback.</span>
+  </div>
 </div>
 
 <h2 id="incomplete" class="section-anchor fade-in"><span class="section-icon icon-amber">&#x26A0;</span> What's Incomplete</h2>
@@ -1811,36 +1998,32 @@ API_PORT=8420</pre>
     <span class="status-name">Job Scheduler</span>
     <span class="status-detail">Basic HashMap-based tracking with no persistence. State lost on restart.</span>
   </div>
+  <div class="status-row">
+    <span class="status-badge missing">Missing</span>
+    <span class="status-name">E2E Integration Test</span>
+    <span class="status-detail">End-to-end test pipeline: agent &rarr; 0G Storage &rarr; RISC Zero proof &rarr; on-chain verification.</span>
+  </div>
+  <div class="status-row">
+    <span class="status-badge missing">Missing</span>
+    <span class="status-name">Multi-Chain Deployment</span>
+    <span class="status-detail">Deployment scripts and ERC-7730 metadata for chains beyond 0G Galileo.</span>
+  </div>
+  <div class="status-row">
+    <span class="status-badge partial">Polling</span>
+    <span class="status-name">Agent Dashboard Updates</span>
+    <span class="status-detail">Currently uses HTTP polling. Real-time WebSocket push not yet implemented.</span>
+  </div>
+  <div class="status-row">
+    <span class="status-badge missing">Missing</span>
+    <span class="status-name">DM3 Delivery Node</span>
+    <span class="status-detail">DM3 delivery service node setup for production message relay.</span>
+  </div>
+  <div class="status-row">
+    <span class="status-badge missing">Missing</span>
+    <span class="status-name">IronClaw Integration Tests</span>
+    <span class="status-detail">Full integration mode testing for the IronClaw runtime.</span>
+  </div>
 </div>
-
-<h2 id="roadmap" class="section-anchor fade-in"><span class="section-icon icon-cyan">&#x2692;</span> Roadmap</h2>
-
-<h3 class="fade-in">High Priority</h3>
-<ul class="todo-list fade-in">
-  <li><del><span class="todo-priority high">High</span> Implement Ledger DMK/DSK approval flow</del> Done &mdash; real APDU via coins-ledger</li>
-  <li><span class="todo-priority high">High</span> Write Foundry contract tests (<code>contracts/test/</code>)</li>
-  <li><del><span class="todo-priority high">High</span> Wire RISC Zero host to accept real execution traces from the agent</del> Done</li>
-  <li><del><span class="todo-priority high">High</span> Deploy contracts to testnet and update ERC-7730 metadata with real addresses</del> Done &mdash; 5 contracts on 0G Galileo</li>
-  <li><del><span class="todo-priority high">High</span> Production RISC Zero proof generation via Boundless</del> Done &mdash; real Groth16 verifier + local/Boundless proving</li>
-  <li><del><span class="todo-priority high">High</span> Remove hardcoded demo private key fallback in server</del> Done &mdash; startup requires real PRIVATE_KEY</li>
-</ul>
-
-<h3 class="fade-in">Medium Priority</h3>
-<ul class="todo-list fade-in">
-  <li><span class="todo-priority medium">Med</span> Add <code>safeTransferFrom</code> ERC-721 receiver validation to ProofOfClawINFT</li>
-  <li><span class="todo-priority medium">Med</span> Optimize <code>balanceOf()</code> with owner-to-tokenIds mapping in ProofOfClawINFT</li>
-  <li><span class="todo-priority medium">Med</span> Complete ERC-7730 Clear Signing metadata for all contract methods</li>
-  <li><span class="todo-priority medium">Med</span> Add persistent storage for job scheduler (currently in-memory)</li>
-  <li><span class="todo-priority medium">Med</span> End-to-end integration test: agent &rarr; 0G &rarr; RISC Zero &rarr; on-chain verification</li>
-</ul>
-
-<h3 class="fade-in">Nice to Have</h3>
-<ul class="todo-list fade-in">
-  <li><span class="todo-priority nice">Nice</span> Multi-chain deployment scripts and ERC-7730 metadata</li>
-  <li><span class="todo-priority nice">Nice</span> Agent dashboard real-time WebSocket updates (currently polling)</li>
-  <li><span class="todo-priority nice">Nice</span> DM3 delivery service node setup and documentation</li>
-  <li><span class="todo-priority nice">Nice</span> IronClaw full integration mode testing</li>
-</ul>
 
 <!-- FOOTER -->
 <div class="docs-footer">
@@ -1874,7 +2057,87 @@ function copyCode(btn) {
   });
 }
 
-// Sidebar active link tracking
+// ── Sidebar Collapse ────────────────────────────────────────────────
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const docsWrapper = document.querySelector('.docs-wrapper');
+
+// Restore saved state
+if (localStorage.getItem('poc-sidebar-collapsed') === '1') {
+  sidebar.classList.add('collapsed');
+  sidebarToggle.innerHTML = '&#x203A;';
+  sidebarToggle.title = 'Expand sidebar';
+  document.documentElement.style.setProperty('--sidebar-width', '56px');
+}
+
+sidebarToggle.addEventListener('click', () => {
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  sidebarToggle.innerHTML = isCollapsed ? '&#x203A;' : '&#x2039;';
+  sidebarToggle.title = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '56px' : '280px');
+  localStorage.setItem('poc-sidebar-collapsed', isCollapsed ? '1' : '0');
+});
+
+// ── Dynamic Section Wrapping ────────────────────────────────────────
+// Wrap each h2 + its following content into collapsible .doc-section divs
+(function wrapSections() {
+  const main = document.querySelector('.docs-content');
+  const h2s = Array.from(main.querySelectorAll('h2.section-anchor'));
+
+  h2s.forEach(h2 => {
+    const section = document.createElement('div');
+    section.className = 'doc-section';
+    section.dataset.sectionId = h2.id;
+
+    // Create header wrapper
+    const header = document.createElement('div');
+    header.className = 'section-header';
+
+    // Add chevron
+    const chevron = document.createElement('span');
+    chevron.className = 'section-chevron';
+    chevron.innerHTML = '&#x25BC;';
+
+    // Create body wrapper
+    const body = document.createElement('div');
+    body.className = 'section-body';
+
+    // Insert section before the h2
+    h2.parentNode.insertBefore(section, h2);
+
+    // Move h2 into header
+    header.appendChild(h2);
+    header.appendChild(chevron);
+    section.appendChild(header);
+
+    // Move siblings until next h2 or doc-section into body
+    let next = section.nextSibling;
+    while (next) {
+      const following = next.nextSibling;
+      if (next.nodeType === 1 && (next.tagName === 'H2' || next.classList?.contains('doc-section') || next.classList?.contains('docs-footer'))) break;
+      body.appendChild(next);
+      next = following;
+    }
+
+    section.appendChild(body);
+
+    // Toggle on header click
+    header.addEventListener('click', () => {
+      section.classList.toggle('collapsed');
+    });
+  });
+})();
+
+// Expand / Collapse All
+function expandAllSections() {
+  document.querySelectorAll('.doc-section').forEach(s => s.classList.remove('collapsed'));
+}
+
+function collapseAllSections() {
+  document.querySelectorAll('.doc-section').forEach(s => s.classList.add('collapsed'));
+}
+
+// ── Sidebar Active Link Tracking ────────────────────────────────────
 (function() {
   const links = document.querySelectorAll('.sidebar-link');
   const sections = [];
@@ -1897,7 +2160,7 @@ function copyCode(btn) {
   updateActive();
 })();
 
-// Fade-in on scroll
+// ── Fade-in on Scroll ───────────────────────────────────────────────
 (function() {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -1911,23 +2174,49 @@ function copyCode(btn) {
   document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 })();
 
-// Search
+// ── Search with Auto-expand ─────────────────────────────────────────
 document.getElementById('docsSearch').addEventListener('input', function(e) {
   const query = e.target.value.toLowerCase().trim();
-  const sections = document.querySelectorAll('.docs-content h2, .docs-content h3, .docs-content p, .docs-content li, .docs-content td');
+  const allElements = document.querySelectorAll('.docs-content h2, .docs-content h3, .docs-content p, .docs-content li, .docs-content td');
+  const allSections = document.querySelectorAll('.doc-section');
 
   if (!query) {
-    sections.forEach(el => { el.style.opacity = ''; });
+    allElements.forEach(el => { el.style.opacity = ''; });
     return;
   }
 
-  sections.forEach(el => {
-    const match = el.textContent.toLowerCase().includes(query);
-    el.style.opacity = match ? '1' : '0.3';
+  // Reset all opacities
+  allElements.forEach(el => { el.style.opacity = '0.2'; });
+
+  // Find and highlight matches, auto-expand their parent sections
+  const matchedSections = new Set();
+  allElements.forEach(el => {
+    if (el.textContent.toLowerCase().includes(query)) {
+      el.style.opacity = '1';
+      // Find parent .doc-section and expand it
+      const parentSection = el.closest('.doc-section');
+      if (parentSection) {
+        matchedSections.add(parentSection);
+        parentSection.classList.remove('collapsed');
+      }
+    }
   });
 });
 
-// Mobile menu toggle
+// ── Sidebar link: expand target section + scroll ────────────────────
+document.querySelectorAll('.sidebar-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    const id = link.getAttribute('href').slice(1);
+    const section = document.querySelector(`.doc-section[data-section-id="${id}"]`);
+    if (section) section.classList.remove('collapsed');
+
+    // Close mobile menu
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('mobileOverlay').classList.remove('open');
+  });
+});
+
+// ── Mobile Menu Toggle ──────────────────────────────────────────────
 function toggleMobileMenu() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('mobileOverlay').classList.toggle('open');
@@ -1935,14 +2224,6 @@ function toggleMobileMenu() {
   var expanded = btn.getAttribute('aria-expanded') === 'true';
   btn.setAttribute('aria-expanded', String(!expanded));
 }
-
-// Close mobile menu on link click
-document.querySelectorAll('.sidebar-link').forEach(link => {
-  link.addEventListener('click', () => {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('mobileOverlay').classList.remove('open');
-  });
-});
 </script>
 
 </body>
