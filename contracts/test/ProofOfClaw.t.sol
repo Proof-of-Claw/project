@@ -389,10 +389,17 @@ contract ProofOfClawVerifierTest is Test {
         bytes32 policyHash = keccak256("policy-auto");
         verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
 
+        // Build action first so outputCommitment = keccak256(action) (binding check)
+        bytes memory action = abi.encode(
+            address(target),
+            uint256(0),
+            abi.encodeCall(DummyTarget.ping, ())
+        );
+
         ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
             agentId: "agent-auto",
             policyHash: policyHash,
-            outputCommitment: keccak256("output"),
+            outputCommitment: keccak256(action),
             allChecksPassed: true,
             requiresLedgerApproval: false,
             actionValue: 0
@@ -400,11 +407,6 @@ contract ProofOfClawVerifierTest is Test {
 
         bytes memory journalData = abi.encode(output);
         bytes memory seal = hex"00";
-        bytes memory action = abi.encode(
-            address(target),
-            uint256(0),
-            abi.encodeCall(DummyTarget.ping, ())
-        );
 
         vm.prank(agentWallet);
         verifierContract.verifyAndExecute(seal, journalData, action);
@@ -965,20 +967,44 @@ contract ProofOfClawVerifierSecurityTest is Test {
     MockRiscZeroVerifier mockVerifier;
     bytes32 constant IMG_ID = bytes32(uint256(1));
     address agentWallet = address(0xABCD);
+    uint256 ownerPk = 0xA11CE;
     address owner;
 
     function setUp() public {
-        owner = address(this);
+        owner = vm.addr(ownerPk);
+        vm.startPrank(owner);
         mockVerifier = new MockRiscZeroVerifier();
         verifierContract = new ProofOfClawVerifier(IRiscZeroVerifier(address(mockVerifier)), IMG_ID);
+        vm.stopPrank();
+    }
+
+    /// @dev Helper: sign an ActionApproval with the owner's private key via EIP-712.
+    function _signApproval(bytes32 agentId, bytes32 outputCommitment, uint256 actionValue)
+        internal view returns (uint8 v, bytes32 r, bytes32 s)
+    {
+        bytes32 domainSeparator = keccak256(abi.encode(
+            verifierContract.DOMAIN_TYPEHASH(),
+            keccak256("ProofOfClaw"),
+            keccak256("1"),
+            block.chainid,
+            address(verifierContract)
+        ));
+        bytes32 structHash = keccak256(abi.encode(
+            verifierContract.APPROVAL_TYPEHASH(),
+            agentId, outputCommitment, actionValue
+        ));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        (v, r, s) = vm.sign(ownerPk, digest);
     }
 
     function test_setAllowedTarget() public {
+        vm.startPrank(owner);
         verifierContract.setAllowedTarget(address(0x123), true);
         assertTrue(verifierContract.allowedTargets(address(0x123)));
 
         verifierContract.setAllowedTarget(address(0x123), false);
         assertFalse(verifierContract.allowedTargets(address(0x123)));
+        vm.stopPrank();
     }
 
     function test_setAllowedTarget_nonOwnerReverts() public {
@@ -993,12 +1019,15 @@ contract ProofOfClawVerifierSecurityTest is Test {
 
         bytes32 agentId = keccak256("agent-nowhite");
         bytes32 policyHash = keccak256("policy-nowhite");
+        vm.prank(owner);
         verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
+
+        bytes memory action = abi.encode(address(target), uint256(0), abi.encodeCall(DummyTarget.ping, ()));
 
         ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
             agentId: "agent-nowhite",
             policyHash: policyHash,
-            outputCommitment: keccak256("output"),
+            outputCommitment: keccak256(action),
             allChecksPassed: true,
             requiresLedgerApproval: false,
             actionValue: 0
@@ -1006,7 +1035,6 @@ contract ProofOfClawVerifierSecurityTest is Test {
 
         bytes memory journalData = abi.encode(output);
         bytes memory seal = hex"00";
-        bytes memory action = abi.encode(address(target), uint256(0), abi.encodeCall(DummyTarget.ping, ()));
 
         vm.prank(agentWallet);
         vm.expectRevert(ProofOfClawVerifier.TargetNotAllowed.selector);
@@ -1015,16 +1043,21 @@ contract ProofOfClawVerifierSecurityTest is Test {
 
     function test_approveAction_flow() public {
         DummyTarget target = new DummyTarget();
+        vm.prank(owner);
         verifierContract.setAllowedTarget(address(target), true);
 
         bytes32 agentId = keccak256("agent-approve");
         bytes32 policyHash = keccak256("policy-approve");
+        bytes32 outputCommitment = keccak256("output-approve");
+        vm.prank(owner);
         verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
+
+        bytes memory action = abi.encode(address(target), uint256(0), abi.encodeCall(DummyTarget.ping, ()));
 
         ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
             agentId: "agent-approve",
             policyHash: policyHash,
-            outputCommitment: keccak256("output-approve"),
+            outputCommitment: outputCommitment,
             allChecksPassed: true,
             requiresLedgerApproval: true,
             actionValue: 1 ether
@@ -1034,46 +1067,55 @@ contract ProofOfClawVerifierSecurityTest is Test {
         bytes memory seal = hex"00";
 
         // Submit for approval (anyone can call when ledger approval required)
-        verifierContract.verifyAndExecute(seal, journalData, hex"");
+        verifierContract.verifyAndExecute(seal, journalData, action);
 
-        // Owner approves
-        bytes memory action = abi.encode(address(target), uint256(0), abi.encodeCall(DummyTarget.ping, ()));
-        verifierContract.approveAction(agentId, keccak256("output-approve"), action);
+        // Owner signs via EIP-712 and approves
+        (uint8 v, bytes32 r, bytes32 s) = _signApproval(agentId, outputCommitment, 1 ether);
+        vm.prank(owner);
+        verifierContract.approveAction(agentId, outputCommitment, action, v, r, s);
 
         assertTrue(target.pinged());
     }
 
     function test_approveAction_rejectsAlreadyExecuted() public {
         DummyTarget target = new DummyTarget();
+        vm.prank(owner);
         verifierContract.setAllowedTarget(address(target), true);
 
         bytes32 agentId = keccak256("agent-replay");
         bytes32 policyHash = keccak256("policy-replay");
+        bytes32 outputCommitment = keccak256("output-replay");
+        vm.prank(owner);
         verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
+
+        bytes memory action = abi.encode(address(target), uint256(0), abi.encodeCall(DummyTarget.ping, ()));
 
         ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
             agentId: "agent-replay",
             policyHash: policyHash,
-            outputCommitment: keccak256("output-replay"),
+            outputCommitment: outputCommitment,
             allChecksPassed: true,
             requiresLedgerApproval: true,
             actionValue: 1 ether
         });
 
         bytes memory journalData = abi.encode(output);
-        verifierContract.verifyAndExecute(hex"00", journalData, hex"");
+        verifierContract.verifyAndExecute(hex"00", journalData, action);
 
-        bytes memory action = abi.encode(address(target), uint256(0), abi.encodeCall(DummyTarget.ping, ()));
-        verifierContract.approveAction(agentId, keccak256("output-replay"), action);
+        (uint8 v, bytes32 r, bytes32 s) = _signApproval(agentId, outputCommitment, 1 ether);
+        vm.prank(owner);
+        verifierContract.approveAction(agentId, outputCommitment, action, v, r, s);
 
         // Try to approve again — should revert
+        vm.prank(owner);
         vm.expectRevert(ProofOfClawVerifier.ActionNotPending.selector);
-        verifierContract.approveAction(agentId, keccak256("output-replay"), action);
+        verifierContract.approveAction(agentId, outputCommitment, action, v, r, s);
     }
 
     function test_replayPrevention_rejectsDuplicateActionId() public {
         bytes32 agentId = keccak256("agent-dup");
         bytes32 policyHash = keccak256("policy-dup");
+        vm.prank(owner);
         verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
 
         ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
@@ -1093,15 +1135,17 @@ contract ProofOfClawVerifierSecurityTest is Test {
         verifierContract.verifyAndExecute(hex"00", journalData, hex"");
     }
 
-    function test_approveAction_nonOwnerReverts() public {
+    function test_approveAction_invalidSignatureReverts() public {
         bytes32 agentId = keccak256("agent-auth");
         bytes32 policyHash = keccak256("policy-auth");
+        bytes32 outputCommitment = keccak256("output-auth");
+        vm.prank(owner);
         verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
 
         ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
             agentId: "agent-auth",
             policyHash: policyHash,
-            outputCommitment: keccak256("output-auth"),
+            outputCommitment: outputCommitment,
             allChecksPassed: true,
             requiresLedgerApproval: true,
             actionValue: 0
@@ -1109,16 +1153,46 @@ contract ProofOfClawVerifierSecurityTest is Test {
 
         verifierContract.verifyAndExecute(hex"00", abi.encode(output), hex"");
 
-        vm.prank(address(0xDEAD));
-        vm.expectRevert(ProofOfClawVerifier.Unauthorized.selector);
-        verifierContract.approveAction(agentId, keccak256("output-auth"), hex"");
+        // Sign with a different key — should be rejected
+        uint256 wrongPk = 0xBAD;
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(wrongPk, keccak256("garbage"));
+        vm.expectRevert(ProofOfClawVerifier.InvalidSignature.selector);
+        verifierContract.approveAction(agentId, outputCommitment, hex"", v, r, s);
+    }
+
+    function test_approveAction_expiredReverts() public {
+        bytes32 agentId = keccak256("agent-expiry");
+        bytes32 policyHash = keccak256("policy-expiry");
+        bytes32 outputCommitment = keccak256("output-expiry");
+        vm.prank(owner);
+        verifierContract.registerAgent(agentId, policyHash, 1 ether, agentWallet);
+
+        ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
+            agentId: "agent-expiry",
+            policyHash: policyHash,
+            outputCommitment: outputCommitment,
+            allChecksPassed: true,
+            requiresLedgerApproval: true,
+            actionValue: 1 ether
+        });
+
+        verifierContract.verifyAndExecute(hex"00", abi.encode(output), hex"");
+
+        // Warp past the 24h expiry
+        vm.warp(block.timestamp + 25 hours);
+
+        (uint8 v, bytes32 r, bytes32 s) = _signApproval(agentId, outputCommitment, 1 ether);
+        vm.prank(owner);
+        vm.expectRevert(ProofOfClawVerifier.ActionExpired.selector);
+        verifierContract.approveAction(agentId, outputCommitment, hex"", v, r, s);
     }
 
     function test_updateAgentPolicy() public {
         bytes32 agentId = keccak256("agent-policy");
+        vm.startPrank(owner);
         verifierContract.registerAgent(agentId, keccak256("old"), 1 ether, agentWallet);
-
         verifierContract.updateAgentPolicy(agentId, keccak256("new"), 2 ether);
+        vm.stopPrank();
 
         (bytes32 storedPolicy, uint256 storedMax,,,) = verifierContract.agents(agentId);
         assertEq(storedPolicy, keccak256("new"));

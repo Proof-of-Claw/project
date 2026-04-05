@@ -215,10 +215,13 @@ memory:
   });
   const metaUpload = await uploadTo0G(metadata, 'agent metadata');
 
-  // Step 3: Mint iNFT on Sepolia
+  // Step 3: Compute soulBackupHash as keccak256 of the content (matches Solidity contract)
+  const soulBackupHashBytes = keccak256(stringToBytes(soulBackup));
+
+  // Step 4: Mint iNFT on Sepolia
   const storageURI = `0g://${metaUpload.rootHash}`;
   const soulBackupURI = `0g://${soulUpload.rootHash}`;
-  const result = await mintINFT(metaUpload.rootHash, storageURI, soulUpload.rootHash, soulBackupURI);
+  const result = await mintINFT(metaUpload.rootHash, storageURI, soulBackupHashBytes, soulBackupURI);
 
   console.log('\n══════════════════════════════════════════');
   console.log('DONE');

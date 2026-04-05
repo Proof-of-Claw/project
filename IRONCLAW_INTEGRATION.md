@@ -78,12 +78,14 @@ ExecutionTrace {
 
 ### 2. LLM Provider Interception
 
-All LLM calls are routed through 0G Compute:
+All LLM calls are routed through 0G Compute. The adapter resolves the
+broker endpoint to discover an available serving node, then sends
+OpenAI-compatible requests to `/v1/chat/completions`:
 
 ```rust
 impl ProofOfClawHooks {
     async fn on_llm_call(&self, prompt: &str) -> Result<String> {
-        // Route to 0G Compute instead of OpenAI/Anthropic
+        // Broker resolves serving node → /v1/chat/completions
         self.adapter.intercept_llm_call(prompt).await
     }
 }
@@ -122,7 +124,8 @@ impl ProofOfClawHooks {
         // Convert trace
         let proof_trace = self.adapter.convert_trace(trace, agent_id);
         
-        // Store on 0G Storage
+        // Compute content hash (SHA-256) and verify indexer connectivity
+        // Full 0G Storage segment upload is handled by the TS SDK (CLI/frontend)
         let trace_hash = self.adapter.store_trace(&proof_trace).await?;
         
         // Generate RISC Zero proof
@@ -143,8 +146,8 @@ impl ProofOfClawHooks {
 ## What We Add to IronClaw
 
 🔐 **Provable Execution** - RISC Zero zkVM proofs of policy compliance  
-🔒 **Private Inference** - 0G Compute  
-📦 **Decentralized Storage** - 0G Storage for execution traces  
+🔒 **Private Inference** - 0G Compute (broker → serving node discovery → OpenAI-compatible API)  
+📦 **Decentralized Storage** - 0G Storage (TS SDK for uploads, Rust for content hashing + indexer retrieval)  
 💬 **Encrypted Messaging** - DM3 protocol for inter-agent communication  
 🔑 **Hardware Approval** - Ledger device integration for high-value actions  
 ⛓️ **On-chain Verification** - Smart contract proof verification  
@@ -157,8 +160,8 @@ impl ProofOfClawHooks {
 | Tool Capabilities | ✅ CapabilitiesFile | ✅ CapabilitiesFile | Compatible |
 | Safety Layer | ✅ Pattern detection | ✅ Pattern detection | Compatible |
 | Execution Traces | ✅ JSON format | ✅ Extended format | Adapter layer |
-| LLM Provider | ✅ OpenAI/Anthropic | ✅ 0G Compute | Hook intercept |
-| Storage | ✅ PostgreSQL | ✅ 0G Storage | Parallel storage |
+| LLM Provider | ✅ OpenAI/Anthropic | ✅ 0G Compute (broker resolution → serving node) | Hook intercept |
+| Storage | ✅ PostgreSQL | ✅ 0G Storage (TS SDK uploads + Rust content hashing) | Parallel storage |
 | Messaging | ✅ HTTP/WebSocket | ✅ DM3 encrypted | Additional channel |
 | Verification | ❌ None | ✅ RISC Zero + on-chain | New feature |
 

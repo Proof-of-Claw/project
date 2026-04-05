@@ -22,6 +22,7 @@ export class AgentRegistrationManager {
   constructor() {
     this.registrations = new Map();
     this.listeners = new Map();
+    this._cachedKeyMaterial = null;
   }
 
   /**
@@ -104,6 +105,11 @@ export class AgentRegistrationManager {
     try {
       const network = session.config.network.includes('mainnet') ? 'mainnet' : session.config.network.includes('sepolia') ? 'sepolia' : 'testnet';
       const config = ZERO_G_CONFIG[network];
+
+      // Guard: reject mainnet until storage flow contract is deployed
+      if (!config.storage || !config.storage.flowContract) {
+        throw new Error(`0G Storage flow contract not configured for ${network}. Use sepolia or testnet.`);
+      }
 
       // Encrypt metadata with wallet-derived key
       const encryptedData = await this.encryptMetadata(metadata, session.config);
@@ -217,10 +223,12 @@ export class AgentRegistrationManager {
       // Generate DM3 profile keys
       const dm3Profile = await this.generateDM3Profile(config, walletClient);
       
-      // Store DM3 profile in ENS text record or directly
+      // Store DM3 profile (including private keys for the agent to use)
       session.results.dm3 = {
         publicEncryptionKey: dm3Profile.publicEncryptionKey,
+        privateEncryptionKey: dm3Profile.privateEncryptionKey,
         publicSigningKey: dm3Profile.publicSigningKey,
+        privateSigningKey: dm3Profile.privateSigningKey,
         deliveryServiceUrl: dm3Profile.deliveryServiceUrl,
         ensName: config.ensName || config.ens,
         setup: true
@@ -298,7 +306,7 @@ export class AgentRegistrationManager {
       const network = session.config.network.includes('mainnet') ? 'mainnet' : session.config.network.includes('sepolia') ? 'sepolia' : 'testnet';
       const config = ZERO_G_CONFIG[network];
 
-      // Hash the soul backup (SHA-256 client-side, keccak256 on-chain)
+      // Hash the soul backup using keccak256 (matches Solidity's keccak256)
       const soulBackupHash = await this.hashContent(soulYaml);
 
       this.updateStatus(sessionId, 'uploading_soul', { upload: 25 });
@@ -579,7 +587,10 @@ export class AgentRegistrationManager {
       ['deriveBits']
     );
     const encPubRaw = await crypto.subtle.exportKey('raw', encKeyPair.publicKey);
+    const encPrivRaw = await crypto.subtle.exportKey('pkcs8', encKeyPair.privateKey);
     const publicEncryptionKey = '0x' + Array.from(new Uint8Array(encPubRaw))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    const privateEncryptionKey = '0x' + Array.from(new Uint8Array(encPrivRaw))
       .map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Generate real Ed25519 signing key pair via Web Crypto
@@ -589,12 +600,17 @@ export class AgentRegistrationManager {
       ['sign', 'verify']
     );
     const sigPubRaw = await crypto.subtle.exportKey('raw', sigKeyPair.publicKey);
+    const sigPrivRaw = await crypto.subtle.exportKey('pkcs8', sigKeyPair.privateKey);
     const publicSigningKey = '0x' + Array.from(new Uint8Array(sigPubRaw))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    const privateSigningKey = '0x' + Array.from(new Uint8Array(sigPrivRaw))
       .map(b => b.toString(16).padStart(2, '0')).join('');
 
     return {
       publicEncryptionKey,
+      privateEncryptionKey,
       publicSigningKey,
+      privateSigningKey,
       deliveryServiceUrl: DM3_CONFIG.defaultDeliveryService,
       ensName
     };

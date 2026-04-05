@@ -26,17 +26,35 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// Maximum age (in seconds) for session state entries before they are
+/// eligible for cleanup. Prevents unbounded memory growth if `SessionEnd`
+/// never fires (crash, timeout, disconnect).
+const SESSION_TTL_SECS: i64 = 3600; // 1 hour
+
 /// Per-session accumulated state — tool calls, policy results, and inference attestation.
 ///
 /// Keyed by `user_id` during tool calls (ironclaw's `ToolCall` event doesn't
 /// carry a session ID), then drained at `SessionEnd` which does carry one.
 /// A mapping from `user_id → session_id` is maintained so we can relocate
 /// state when the session ends.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SessionState {
     pub tool_calls: Vec<(String, serde_json::Value, serde_json::Value, bool)>,
     pub policy_results: Vec<PolicyResult>,
     pub inference_attestation: Option<String>,
+    /// Timestamp when this session state was created (for TTL cleanup).
+    pub created_at: i64,
+}
+
+impl Default for SessionState {
+    fn default() -> Self {
+        Self {
+            tool_calls: Vec::new(),
+            policy_results: Vec::new(),
+            inference_attestation: None,
+            created_at: chrono::Utc::now().timestamp(),
+        }
+    }
 }
 
 /// Full adapter — holds all POC components needed by the hooks.
@@ -107,12 +125,24 @@ impl IronClawAdapter {
 
     /// Drain and return the accumulated session state.
     /// Looks up by session_id first, then falls back to user_id.
+    /// Also evicts stale entries older than SESSION_TTL_SECS to prevent leaks.
     pub async fn take_session_state(
         &self,
         user_id: &str,
         session_id: &str,
     ) -> SessionState {
         let mut sessions = self.sessions.write().await;
+
+        // Evict stale sessions (TTL cleanup)
+        let now = chrono::Utc::now().timestamp();
+        sessions.retain(|_k, v| now - v.created_at < SESSION_TTL_SECS);
+
+        // Also clean stale user_session mappings
+        {
+            let mut user_sessions = self.user_sessions.write().await;
+            user_sessions.retain(|_k, sid| sessions.contains_key(sid));
+        }
+
         // Try session_id first, then user_id (tool calls are keyed by user_id)
         sessions
             .remove(session_id)

@@ -24,7 +24,7 @@ export const ZERO_G_CONFIG = {
   sepolia: {
     chainId: 11155111,
     name: 'Sepolia Testnet',
-    rpcUrl: '${e('SEPOLIA_RPC_URL', 'https://eth-sepolia.g.alchemy.com/v2/')}',
+    rpcUrl: '${e('SEPOLIA_RPC_URL', 'https://eth-sepolia.public.blastapi.io')}',
     explorer: 'https://sepolia.etherscan.io',
     currency: 'ETH',
     isTestnet: true,
@@ -78,22 +78,17 @@ export const ZERO_G_CONFIG = {
     explorer: 'https://chainscan.0g.ai',
     currency: 'OG',
     isTestnet: false,
+    // NOTE: Mainnet flow contract differs from testnet — update after mainnet deployment
     storage: {
       indexer: '${e('OG_MAINNET_STORAGE_INDEXER', 'https://indexer-storage.0g.ai')}',
       evmRpc: '${e('OG_MAINNET_RPC', 'https://evmrpc.0g.ai')}',
-      flowContract: '${e('ZG_FLOW_CONTRACT', '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296')}'
+      flowContract: null // Not yet deployed — guard against accidental use
     },
     compute: {
       endpoint: '${e('OG_MAINNET_COMPUTE', 'https://broker.0g.ai')}'
     },
-    contracts: {
-      agentRegistry: '${e('OG_MAINNET_VERIFIER_ADDRESS', '0x0000000000000000000000000000000000000000')}',
-      iNFT: '${e('OG_MAINNET_INFT_ADDRESS', '0x0000000000000000000000000000000000000000')}',
-      policyEngine: '${e('OG_MAINNET_VERIFIER_ADDRESS', '0x0000000000000000000000000000000000000000')}',
-      registry: '${e('OG_MAINNET_REGISTRY_ADDRESS', '0x0000000000000000000000000000000000000000')}',
-      swarm: '${e('OG_MAINNET_SWARM_ADDRESS', '0x0000000000000000000000000000000000000000')}',
-      registryAdapter: '${e('OG_MAINNET_REGISTRY_ADAPTER_ADDRESS', '0x0000000000000000000000000000000000000000')}'
-    }
+    // All null — mainnet contracts not yet deployed
+    contracts: null
   }
 };
 
@@ -165,10 +160,8 @@ export const Networks = {
     currency: ZERO_G_CONFIG.mainnet.currency,
     explorer: ZERO_G_CONFIG.mainnet.explorer,
     isTestnet: false,
-    contracts: {
-      inft: ZERO_G_CONFIG.mainnet.contracts.iNFT,
-      registry: ZERO_G_CONFIG.mainnet.contracts.registry
-    }
+    // Mainnet contracts not yet deployed
+    contracts: { inft: null, registry: null }
   }
 };
 

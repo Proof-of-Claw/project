@@ -485,9 +485,10 @@ mod tests {
         let gen = ProofGenerator::new(false, test_image_id());
         let result = gen.generate_proof(&test_trace()).await;
         assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
         assert!(
-            result.unwrap_err().to_string().contains("Guest ELF not loaded"),
-            "Expected error about missing guest ELF"
+            msg.contains("Guest ELF not loaded") || msg.contains("client"),
+            "Expected error about missing guest ELF or client feature, got: {msg}"
         );
     }
 

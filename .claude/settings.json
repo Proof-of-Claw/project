@@ -21,7 +21,13 @@
       "Bash(grep -n \"@media\" *.html)",
       "Read(//home/god/ProofOfClaw/**)",
       "Bash(grep -n \"0G\\\\|0g\\\\|ZeroG\\\\|zero_g\" /home/god/ProofOfClaw/ProofOfClaw/frontend/*.js /home/god/ProofOfClaw/ProofOfClaw/frontend/*.html)",
-      "Bash(node --check frontend/shared.js)"
+      "Bash(node --check frontend/shared.js)",
+      "Bash(cargo test:*)",
+      "Bash(grep \"^\\\\.env$\\\\|^\\\\.env \" /home/god/ProofOfClaw/ProofOfClaw/.gitignore)",
+      "Bash(node --check frontend/0g-registration.js)",
+      "Bash(node --check frontend/env-config.js)",
+      "Bash(node --check test-0g-mint.mjs)",
+      "Bash(node --check scripts/build-env.js)"
     ]
   }
 }

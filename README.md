@@ -361,29 +361,30 @@ PRIVATE_KEY=$PRIVATE_KEY forge script script/Deploy.s.sol \
 
 | Integration | Purpose | Status |
 |-------------|---------|--------|
-| **0G Compute** | Private LLM inference with attestation | Working — real HTTP + attestation extraction |
-| **0G Storage** | Decentralized execution trace storage | Working — real 0G SDK upload/retrieve with content hashing (local fallback when offline) |
+| **0G Compute** | Private LLM inference with attestation | Working — broker service discovery resolves serving nodes; OpenAI-compatible `/v1/chat/completions`; TEE attestation extraction |
+| **0G Storage** | Decentralized execution trace storage | Working — real `@0glabs/0g-ts-sdk` uploads (frontend + CLI); Rust module provides content-addressed hashing + indexer `getFileInfo` JSON-RPC retrieval |
 | **ENS** | Agent identity via subnames | Working — on-chain namehash + text records |
-| **DM3** | End-to-end encrypted messaging | Working — 3-tier resolution (ENS → HTTP → fallback) |
+| **DM3** | End-to-end encrypted messaging | Working — 3-tier resolution (ENS → HTTP → fallback); X25519/Ed25519 key pairs generated and persisted |
 | **RISC Zero** | ZK proofs of policy compliance | Working — Groth16 verifier deployed on-chain; local RISC Zero prover + Boundless marketplace; guest ELF required |
 | **Ledger** | Hardware-gated human approval | Working — real APDU communication via coins-ledger; EIP-712 signing; requires physical device |
 | **EIP-8004** | Trustless agent discovery & reputation | Working — identity, reputation, validation queries (contracts unaudited) |
-| **iNFT (ERC-7857)** | Agent identity NFT on 0G Chain | Working — minting with soul backup (AES-GCM encrypted SOUL.md on 0G, hash anchored on-chain) |
+| **iNFT (ERC-7857)** | Agent identity NFT on 0G Chain | Working — minting with soul backup; wallet-signature-derived AES-256-GCM encryption; keccak256 hash anchored on-chain |
 
 ### Live vs. Mocked
 
 | Component | Layer | Status | Notes |
 |-----------|-------|--------|-------|
-| **0G Compute** | Rust agent | **Live** | Real HTTP to 0G Compute broker; attestation extracted from response headers |
-| **0G Storage** | Rust agent | **Live** | Real 0G SDK upload/retrieve; local file fallback when offline |
+| **0G Compute** | Rust agent | **Live** | Broker resolution → serving node discovery → `/v1/chat/completions`; TEE attestation extracted from response metadata |
+| **0G Storage** | Frontend + CLI | **Live** | Real `@0glabs/0g-ts-sdk` uploads via Flow contract; `@0gfoundation/0g-ts-sdk` for Node file uploads |
+| **0G Storage** | Rust agent | **Content-addressed** | SHA-256 content hashing + indexer `getFileInfo` JSON-RPC retrieval; full segment upload requires TS SDK |
 | **ENS** | Frontend + Rust | **Live** | On-chain namehash resolution; text record read/write via viem |
-| **DM3** | Node.js daemon | **Live** | Real DM3 delivery service (Express + WebSocket); 3-tier resolution |
+| **DM3** | Node.js daemon | **Live** | Real DM3 delivery service (Express + WebSocket); 3-tier resolution; X25519+Ed25519 keys persisted |
 | **RISC Zero** | Rust prover | **Live** | Real Groth16 proofs via local prover or Boundless marketplace; guest ELF required |
 | **Ledger (Rust)** | Rust agent | **Live** | Real APDU via `coins-ledger` crate; EIP-712 typed data signing; physical Nano required |
 | **Ledger (Frontend)** | Browser UI | **Live with fallback** | Real WebHID transport (`@ledgerhq/hw-transport-webhid`); falls back to simulated mode if browser lacks WebHID support — labeled "(sim)" in UI |
 | **ERC-7730 Clear Signing** | Metadata | **Live** | `contracts/clear-signing/proofofclaw.json` defines human-readable Ledger display for all contract methods |
 | **EIP-8004** | Contracts | **Live** | Identity, reputation, and validation registries deployed on Sepolia + 0G; contracts unaudited |
-| **iNFT (ERC-7857)** | Full stack | **Live** | Mint with soul backup hash; AES-GCM encrypted SOUL.md uploaded to 0G Storage |
+| **iNFT (ERC-7857)** | Full stack | **Live** | Mint with soul backup; wallet-signature-derived AES-256-GCM encryption; keccak256 hash on-chain; mainnet contracts guarded |
 
 ## Supporting Services
 
@@ -408,12 +409,15 @@ cd 1claw-server && node server.js       # 1clawAI API on :3456
 | Threat | Mitigation |
 |--------|-----------|
 | Agent acts outside policy | RISC Zero proof fails; action blocked on-chain |
-| Inference tampering | 0G Compute attestation; signature in proof |
+| Inference tampering | 0G Compute TEE attestation; signature in proof |
 | Message interception | DM3 end-to-end encryption with keys from ENS profiles |
 | Identity spoofing | ENS ownership tied to Ledger EOA |
-| High-value action without consent | Physical Ledger approval with Clear Signing display |
+| High-value action without consent | Physical Ledger approval with EIP-712 Clear Signing display |
+| Metadata decryption by third party | AES-256-GCM key derived from wallet signature via PBKDF2 (only private key holder can decrypt) |
 | Prompt injection | Regex-based injection detector in execution trace *(basic — not adversarially robust)* |
 | Sybil agents / fake reputation | EIP-8004 Reputation Registry filtering by trusted reviewers |
+| Session state memory leak | 1-hour TTL cleanup evicts stale sessions in IronClaw adapter |
+| Accidental mainnet deployment | Mainnet contract addresses are null; guards throw before any mainnet transaction |
 
 ## Build Status
 
