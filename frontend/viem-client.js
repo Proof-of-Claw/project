@@ -5,6 +5,7 @@
 
 // Import viem from CDN (ES modules)
 import { createPublicClient, createWalletClient, custom, http, parseAbi, encodePacked, keccak256, stringToBytes } from 'https://esm.sh/viem@2.21.44';
+import { privateKeyToAccount } from 'https://esm.sh/viem@2.21.44/accounts';
 import { mainnet, sepolia } from 'https://esm.sh/viem@2.21.44/chains';
 import { CONTRACT_ADDRESSES, ZERO_G_CONFIG } from './env-config.js';
 
@@ -16,9 +17,11 @@ const CONTRACT_ABIS = {
   // ProofOfClawINFT - ERC-7857 Agent iNFT Contract
   inft: parseAbi([
     'function mint(bytes32 agentId, bytes32 policyHash, bytes32 riscZeroImageId, string calldata encryptedURI, bytes32 metadataHash, bytes32 soulBackupHash, string calldata soulBackupURI, string calldata ensName) external returns (uint256 tokenId)',
+    'function mintTo(address to, bytes32 agentId, bytes32 policyHash, bytes32 riscZeroImageId, string calldata encryptedURI, bytes32 metadataHash, bytes32 soulBackupHash, string calldata soulBackupURI, string calldata ensName) external returns (uint256 tokenId)',
     'function agentToToken(bytes32 agentId) external view returns (uint256)',
     'function agents(uint256 tokenId) external view returns (address owner, bytes32 agentId, bytes32 policyHash, bytes32 riscZeroImageId, string memory encryptedURI, bytes32 metadataHash, string memory ensName, uint256 reputationScore, uint256 totalProofs, uint256 mintedAt, bool active)',
     'function ownerOf(uint256 tokenId) external view returns (address)',
+    'function transferFrom(address from, address to, uint256 tokenId) external',
     'event AgentMinted(uint256 indexed tokenId, bytes32 indexed agentId, address indexed owner, string ensName)',
   ]),
 
@@ -199,7 +202,8 @@ export async function registerAgentOnchain(agentConfig) {
   const addresses = CONTRACT_ADDRESSES[network] || CONTRACT_ADDRESSES.sepolia;
 
   try {
-    // 1. Mint iNFT
+    // iNFT mints to the user's wallet (msg.sender) — user protects the valuable asset.
+    // The agent's dedicated wallet only holds the ENS name as an operating credential.
     const { request: mintRequest } = await publicClient.simulateContract({
       address: addresses.inft,
       abi: CONTRACT_ABIS.inft,
@@ -215,7 +219,7 @@ export async function registerAgentOnchain(agentConfig) {
       hash: mintTxHash,
     });
 
-    // Extract token ID from event logs (would parse actual event in production)
+    // Extract token ID from event logs
     const tokenId = mintReceipt.logs[0]?.topics[1] || '0';
 
     // 2. Register in EIP-8004 registry (if deployed)
@@ -380,6 +384,26 @@ export function getExplorerUrl(txHash, network = 'sepolia') {
   return `${base}/tx/${txHash}`;
 }
 
+// ═══════════════════════════════════════
+// AGENT WALLET GENERATION
+// ═══════════════════════════════════════
+
+/**
+ * Generate a dedicated wallet for an agent.
+ * Uses Web Crypto for 32 bytes of randomness, then derives the address via viem.
+ * The private key is returned so it can be encrypted and stored — it is NEVER logged.
+ * @returns {{ address: string, privateKey: string }}
+ */
+export function generateAgentWallet() {
+  const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+  const privateKey = '0x' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const account = privateKeyToAccount(privateKey);
+  return {
+    address: account.address,
+    privateKey,
+  };
+}
+
 // Make available globally for non-module scripts
 document.addEventListener('DOMContentLoaded', () => {
   window.PocViem = {
@@ -394,5 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
     switchNetwork,
     formatAddress,
     getExplorerUrl,
+    generateAgentWallet,
   };
 });

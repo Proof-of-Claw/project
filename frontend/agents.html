@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), bluetooth=(), hid=(), usb=(), serial=(), speech-synthesis=(), speech-recognition=()">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(self), geolocation=(), bluetooth=(), hid=(), usb=(), serial=(), speech-synthesis=(), speech-recognition=()">
 <title>Agents — Proof of Claw</title>
 <link rel="icon" type="image/x-icon" href="public/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32.png">
@@ -1363,6 +1363,107 @@
   box-shadow: none;
 }
 
+/* ── Chat compose toolbar (attach + voice) ── */
+.chat-compose-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.chat-compose-toolbar button {
+  width: 36px; height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.chat-compose-toolbar button:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.chat-compose-toolbar button.recording {
+  border-color: var(--red, #ff3d5a);
+  color: var(--red, #ff3d5a);
+  background: rgba(255,61,90,0.1);
+  animation: pulse-record 1.2s ease-in-out infinite;
+}
+@keyframes pulse-record {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,61,90,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(255,61,90,0); }
+}
+
+/* Chat attachment preview strip */
+.chat-attach-preview {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 6px 16px 0; flex-shrink: 0;
+}
+.chat-attach-preview:empty { display: none; }
+.chat-attach-item {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px; background: var(--bg-primary);
+  border: 1px solid var(--border); border-radius: 5px;
+  font-size: 11px; color: var(--text-secondary); max-width: 180px;
+}
+.chat-attach-item .att-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.chat-attach-item .att-remove { cursor: pointer; color: var(--text-dim); font-size: 13px; }
+.chat-attach-item .att-remove:hover { color: var(--red, #ff3d5a); }
+
+/* Chat voice recording bar */
+.chat-voice-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 16px; background: rgba(255,61,90,0.06);
+  border-top: 1px solid rgba(255,61,90,0.2);
+  flex-shrink: 0; font-size: 12px; color: var(--red, #ff3d5a);
+}
+.chat-voice-bar .vr-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red, #ff3d5a); animation: pulse-record 1.2s ease-in-out infinite; }
+.chat-voice-bar .vr-timer { font-family: var(--font-mono); font-weight: 700; }
+.chat-voice-bar .vr-cancel { margin-left: auto; cursor: pointer; color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+.chat-voice-bar .vr-cancel:hover { color: var(--text-primary); }
+
+/* File attachments in chat messages */
+.chat-msg-attachment {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; background: rgba(0,229,255,0.04);
+  border: 1px solid var(--border); border-radius: 6px;
+  margin-top: 4px; font-size: 12px; cursor: pointer;
+  transition: border-color 0.2s; max-width: 240px;
+}
+.chat-msg-attachment:hover { border-color: var(--cyan); }
+.chat-msg-attachment .fa-icon { font-size: 1.1rem; flex-shrink: 0; }
+.chat-msg-attachment .fa-info { flex: 1; min-width: 0; }
+.chat-msg-attachment .fa-name { color: var(--cyan); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-msg-attachment .fa-size { color: var(--text-dim); font-size: 10px; }
+.chat-msg-attachment img.fa-thumb { max-width: 180px; max-height: 120px; border-radius: 4px; object-fit: cover; }
+
+/* Voice player in chat messages */
+.chat-voice-player {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; background: rgba(0,229,255,0.04);
+  border: 1px solid var(--border); border-radius: 16px;
+  margin-top: 4px; max-width: 220px;
+}
+.chat-voice-player .vp-btn {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), #00b8d4);
+  border: none; color: #000; font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.chat-voice-player .vp-wave {
+  flex: 1; height: 20px; display: flex; align-items: center; gap: 1.5px;
+}
+.chat-voice-player .vp-wave .b {
+  width: 2.5px; background: var(--cyan); border-radius: 1.5px; opacity: 0.5;
+}
+.chat-voice-player .vp-dur {
+  font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); flex-shrink: 0;
+}
+
 /* Chat welcome message */
 .chat-welcome {
   text-align: center;
@@ -1712,16 +1813,34 @@
         </div>
       </div>
 
-      <!-- Step 5: Secrets -->
+      <!-- Step 5: Agent Wallet & Secrets -->
       <div class="wizard-panel" id="step-5">
-        <div class="wizard-step-title">Secrets &amp; Keys</div>
-        <div class="wizard-step-subtitle">Provide credentials for your agent (encrypted at rest)</div>
-        <div class="form-group">
-          <label>Private Key</label>
-          <input type="password" id="private-key" placeholder="0x..." oninput="validatePrivateKey()">
-          <div class="form-hint" id="pk-hint">Optional. Used for signing transactions. A demo keypair is generated if omitted.</div>
-          <div id="pk-error" style="display:none;font-size:11px;color:#ff3d5a;margin-top:4px;"></div>
+        <div class="wizard-step-title">Agent Wallet &amp; Secrets</div>
+        <div class="wizard-step-subtitle">A dedicated wallet is generated for your agent to hold its ENS credentials</div>
+
+        <div class="info-box" style="margin-bottom:16px;">
+          <strong>Automatic Wallet Registration:</strong> Each agent receives its own Ethereum wallet at registration. This wallet holds the agent's ENS name as its operating credential. The agent iNFT itself stays in <em>your</em> wallet for safekeeping — you own and protect the valuable asset.
         </div>
+
+        <div class="form-group">
+          <label>Agent Wallet Address</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="agent-wallet-address" readonly style="flex:1;color:var(--cyan);background:var(--bg-primary);font-family:var(--font-mono);font-size:12px;" placeholder="Generated at deploy time...">
+            <button class="btn-wizard btn-wizard-next" style="padding:10px 16px;font-size:11px;white-space:nowrap;" onclick="generateAgentWalletNow()">Generate Now</button>
+          </div>
+          <div class="form-hint" id="wallet-hint">This wallet holds the agent's ENS name as its operating credential. The iNFT stays in your wallet.</div>
+        </div>
+
+        <div id="wallet-generated-info" style="display:none;margin-bottom:16px;padding:12px;background:rgba(0,230,118,0.05);border:1px solid rgba(0,230,118,0.2);border-radius:8px;">
+          <div style="color:var(--green);font-size:11px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Wallet Generated</div>
+          <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;">
+            Your agent's dedicated wallet has been created. The private key is encrypted and will be passed to the agent runtime automatically. You do not need to manage it manually.
+          </div>
+        </div>
+
+        <!-- Hidden field to hold encrypted private key for deploy flow -->
+        <input type="hidden" id="private-key" value="">
+
         <div class="form-group">
           <label>0G Compute API Key (Optional)</label>
           <input type="password" id="og-api-key" placeholder="og-...">
@@ -1732,11 +1851,14 @@
         </div>
         <div class="security-badges">
           <div class="security-badge">&#x1F512; AES-256-GCM Encryption</div>
-          <div class="security-badge">&#x1F6E1; Secure Enclave Storage</div>
-          <div class="security-badge">&#x2705; Zero-Knowledge Ready</div>
+          <div class="security-badge">&#x1F6E1; Dedicated Agent Wallet</div>
+          <div class="security-badge">&#x2705; ENS Credential Holder</div>
+        </div>
+        <div style="margin-top:12px;padding:10px 14px;background:rgba(179,136,255,0.06);border:1px solid rgba(179,136,255,0.15);border-radius:8px;font-size:11px;color:var(--text-secondary);line-height:1.6;">
+          <strong style="color:var(--purple);">Ledger Users:</strong> If your org uses a Ledger hardware wallet, the agent's wallet is still auto-generated (agents need hot keys for autonomous signing), but all high-value actions above the policy limit are routed to your Ledger for approval.
         </div>
         <div class="warning-box">
-          Warning: Your private key controls real funds. In production, use a dedicated agent wallet with limited funds. Never reuse your primary wallet key.
+          The agent's private key is generated locally and encrypted before storage. It never leaves your browser unencrypted. Fund this wallet with a small amount for gas fees only.
         </div>
       </div>
 
@@ -1752,11 +1874,12 @@
           <div class="review-section">
             <h4>What Happens Next</h4>
             <ul class="checklist">
+              <li>Dedicated agent wallet generated (holds ENS credential)</li>
               <li>Secrets encrypted with AES-256-GCM</li>
-              <li>ENS subdomain registered on-chain</li>
+              <li>ENS subdomain registered to agent wallet</li>
               <li>Policy contract deployed to selected network</li>
               <li>Soul backup hash committed on-chain (OCMB v0.1)</li>
-              <li>Agent iNFT minted on 0G Chain (ERC-7857)</li>
+              <li>Agent iNFT minted to <strong>your wallet</strong> (ERC-7857)</li>
               <li>Encrypted metadata uploaded to 0G Storage</li>
               <li>Agent runtime initialized with SOUL persona</li>
               <li>0G decentralized compute configured</li>
@@ -1772,9 +1895,11 @@
           <div class="wizard-step-subtitle" style="margin-bottom:16px;">This may take a moment</div>
           <div class="deploy-steps" id="deploy-steps">
             <div class="deploy-step-item" data-deploy="encrypt"><span class="step-icon">&#x25E6;</span> Preparing agent configuration</div>
-            <div class="deploy-step-item" data-deploy="wallet"><span class="step-icon">&#x25E6;</span> Connecting wallet</div>
+            <div class="deploy-step-item" data-deploy="agent-wallet"><span class="step-icon">&#x25E6;</span> Generating agent wallet &amp; credentials</div>
+            <div class="deploy-step-item" data-deploy="wallet"><span class="step-icon">&#x25E6;</span> Connecting owner wallet</div>
             <div class="deploy-step-item" data-deploy="network"><span class="step-icon">&#x25E6;</span> Switching to target network</div>
             <div class="deploy-step-item" data-deploy="soul"><span class="step-icon">&#x25E6;</span> Uploading soul backup to 0G Storage</div>
+            <div class="deploy-step-item" data-deploy="ens"><span class="step-icon">&#x25E6;</span> Registering ENS name to agent wallet</div>
             <div class="deploy-step-item" data-deploy="inft"><span class="step-icon">&#x25E6;</span> Minting agent iNFT (ERC-7857)</div>
             <div class="deploy-step-item" data-deploy="registry"><span class="step-icon">&#x25E6;</span> Registering in identity registry</div>
             <div class="deploy-step-item" data-deploy="storage"><span class="step-icon">&#x25E6;</span> Storing encrypted metadata</div>
@@ -1867,7 +1992,19 @@
     <button class="chat-drawer-close" onclick="closeChat()">&times;</button>
   </div>
   <div class="chat-messages" id="chat-messages"></div>
+  <div class="chat-attach-preview" id="chat-attach-preview"></div>
+  <div class="chat-voice-bar" id="chat-voice-bar" style="display:none;">
+    <span class="vr-dot"></span>
+    <span class="vr-timer" id="chat-rec-timer">0:00</span>
+    <span>Recording...</span>
+    <span class="vr-cancel" onclick="chatCancelVoice()">Cancel</span>
+  </div>
   <div class="chat-compose">
+    <div class="chat-compose-toolbar">
+      <button onclick="chatTriggerAttach()" title="Attach files">&#x1F4CE;</button>
+      <button id="chat-voice-btn" onclick="chatToggleVoice()" title="Voice message">&#x1F3A4;</button>
+    </div>
+    <input type="file" id="chat-file-input" multiple style="display:none;" onchange="chatHandleFiles(event)">
     <textarea id="chat-input" placeholder="Message this agent..." rows="1"></textarea>
     <button class="chat-send-btn" id="chat-send-btn" onclick="chatSend()">&#x27A4;</button>
   </div>
@@ -2003,6 +2140,7 @@ function loadAgents() {
 
 function saveAgents() {
   localStorage.setItem('poc_agents', JSON.stringify(agents));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agents', agents);
 }
 
 // ═══════════════════════════════════════
@@ -2083,8 +2221,8 @@ function renderAgents() {
         </div>
       </div>
       ` : ''}
-      ${a.address ? `<div style="font-size:10px;color:var(--text-dim);padding:0 16px;margin-top:-4px;margin-bottom:4px;font-family:var(--font-mono);word-break:break-all;">${esc(a.address)}</div>` : ''}
-      ${a.inftTokenId ? `<div style="font-size:10px;padding:0 16px;margin-bottom:4px;"><span style="color:var(--cyan);font-size:9px;text-transform:uppercase;letter-spacing:0.5px;">iNFT #${esc(String(a.inftTokenId))}</span></div>` : ''}
+      ${a.walletAddress ? `<div style="font-size:10px;color:var(--text-dim);padding:0 16px;margin-top:-4px;margin-bottom:4px;font-family:var(--font-mono);word-break:break-all;" title="Agent wallet (ENS credential holder)">${esc(a.walletAddress)}</div>` : a.address ? `<div style="font-size:10px;color:var(--text-dim);padding:0 16px;margin-top:-4px;margin-bottom:4px;font-family:var(--font-mono);word-break:break-all;">${esc(a.address)}</div>` : ''}
+      ${a.inftTokenId ? `<div style="font-size:10px;padding:0 16px;margin-bottom:4px;"><span style="color:var(--cyan);font-size:9px;text-transform:uppercase;letter-spacing:0.5px;">iNFT #${esc(String(a.inftTokenId))}</span>${a.walletAddress ? ' <span style="color:var(--green);font-size:9px;">&#x2713; ENS Credential</span>' : ''}</div>` : ''}
       <div class="agent-actions" onclick="event.stopPropagation();">
         <a href="dashboard.html?agent=${a.id}">Dashboard</a>
         <a href="#" onclick="event.preventDefault();openProfile('${a.id}');">Profile</a>
@@ -2373,6 +2511,12 @@ function resetWizardUI() {
   if (soulVal) soulVal.style.display = 'none';
   const soulSec = document.getElementById('soul-sections');
   if (soulSec) soulSec.style.display = 'none';
+
+  // Reset agent wallet
+  const walletAddrEl = document.getElementById('agent-wallet-address');
+  if (walletAddrEl) walletAddrEl.value = '';
+  const walletInfo = document.getElementById('wallet-generated-info');
+  if (walletInfo) walletInfo.style.display = 'none';
 }
 
 function updateWizardUI() {
@@ -2428,7 +2572,7 @@ function validateStep() {
       valid = validateSoulBackupStep();
       break;
     case 5:
-      valid = true; // Private key is optional — a demo keypair will be generated if omitted
+      valid = true; // Wallet is auto-generated at deploy if not already done
       break;
   }
 
@@ -2508,6 +2652,48 @@ function loadSoulFile(event) {
     validateStep();
   };
   reader.readAsText(file);
+}
+
+// ─── Agent Wallet Generation ───
+
+/**
+ * Generate a dedicated wallet for this agent.
+ * Called automatically during deploy, or manually via "Generate Now" button.
+ * The wallet holds the agent's ENS name NFT as its on-chain credential.
+ */
+function generateAgentWalletNow() {
+  if (!window.PocViem || !window.PocViem.generateAgentWallet) {
+    alert('Blockchain module not loaded yet. Please wait a moment and try again.');
+    return;
+  }
+
+  const wallet = window.PocViem.generateAgentWallet();
+
+  // Store on wizardData
+  wizardData.agentWalletAddress = wallet.address;
+  wizardData.agentWalletKey = wallet.privateKey;
+
+  // Update UI
+  document.getElementById('agent-wallet-address').value = wallet.address;
+  document.getElementById('private-key').value = wallet.privateKey;
+
+  // Show confirmation
+  document.getElementById('wallet-generated-info').style.display = 'block';
+  document.getElementById('wallet-hint').textContent =
+    'Wallet generated. This address will receive the ENS name NFT and serve as agent credentials.';
+
+  validateStep();
+}
+
+/**
+ * Ensure the agent has a wallet before deploy.
+ * Auto-generates if not already done.
+ */
+function ensureAgentWallet() {
+  if (wizardData.agentWalletAddress && wizardData.agentWalletKey) {
+    return; // Already generated
+  }
+  generateAgentWalletNow();
 }
 
 function wizardNext() {
@@ -2642,6 +2828,11 @@ function buildReview() {
   // Gather latest data
   gatherStepData();
 
+  // Build ownership chain info
+  const org = getOrg();
+  const swarm = wizardData.swarmId ? getSwarmById(wizardData.swarmId) : null;
+  const fmtAddr = (addr) => addr ? `${addr.slice(0,6)}...${addr.slice(-4)}` : 'not set';
+
   document.getElementById('review-identity').innerHTML = `
     <h4>Identity</h4>
     <div class="review-row"><span class="label">Name</span><span class="value">${esc(wizardData.name || '-')}</span></div>
@@ -2649,6 +2840,36 @@ function buildReview() {
     <div class="review-row"><span class="label">Type</span><span class="value">${esc(wizardData.typeName || '-')}</span></div>
     <div class="review-row"><span class="label">Skills</span><span class="value">${esc((wizardData.skills || []).join(', ') || 'None')}</span></div>
     <div class="review-row"><span class="label">Network</span><span class="value">${esc({sepolia:'Sepolia',og_testnet:'0G Testnet',mainnet:'Ethereum Mainnet',og_mainnet:'0G Mainnet'}[wizardData.network] || wizardData.network)}</span></div>
+
+    <h4 style="margin-top:16px;">Wallet Ownership Chain</h4>
+    <div style="background:rgba(0,229,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;line-height:2;font-family:var(--font-mono);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--text-dim);min-width:80px;">You</span>
+        <span style="color:var(--cyan);">${esc(fmtAddr(org?.walletAddress || localStorage.getItem('poc_wallet_address')))}</span>
+        <span style="color:var(--text-dim);font-size:9px;">holds iNFTs + org</span>
+      </div>
+      <div style="padding-left:12px;border-left:1px solid var(--border-dim);margin-left:4px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="color:var(--text-dim);min-width:68px;">Org</span>
+          <span style="color:var(--cyan);">${esc(org?.ens || '-')}</span>
+        </div>
+        <div style="padding-left:12px;border-left:1px solid var(--border-dim);margin-left:4px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:var(--text-dim);min-width:56px;">Swarm</span>
+            <span style="color:var(--purple);">${esc(swarm?.ens || '-')}</span>
+            ${swarm?.walletAddress ? `<span style="color:var(--text-dim);font-size:9px;">${esc(fmtAddr(swarm.walletAddress))}</span>` : ''}
+          </div>
+          <div style="padding-left:12px;border-left:1px solid var(--border-dim);margin-left:4px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="color:var(--text-dim);min-width:44px;">Agent</span>
+              <span style="color:var(--green);">${esc(wizardData.ens || '-')}</span>
+              <span style="color:var(--green);font-size:9px;">${esc(wizardData.agentWalletAddress ? fmtAddr(wizardData.agentWalletAddress) : 'generated at deploy')}</span>
+              <span style="color:var(--text-dim);font-size:9px;">holds ENS credential</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   document.getElementById('review-policy').innerHTML = `
@@ -2691,15 +2912,23 @@ async function startDeploy() {
   }
 
   try {
-    // Step 1: Encrypt secrets (simulate)
+    // Step 1: Prepare agent configuration
     setStepActive(0);
     await new Promise(r => setTimeout(r, 500));
 
-    // Step 2: Connect wallet if needed
+    // Step 2: Generate agent wallet (auto-creates if not done in wizard)
     setStepActive(1);
     if (!window.PocViem) {
       throw new Error('Blockchain module not loaded. Please refresh and try again.');
     }
+    ensureAgentWallet();
+    if (!wizardData.agentWalletAddress) {
+      throw new Error('Failed to generate agent wallet. Please try again.');
+    }
+    await new Promise(r => setTimeout(r, 300));
+
+    // Step 3: Connect owner wallet
+    setStepActive(2);
     const state = window.PocViem.getWalletState();
     if (!state.connected) {
       await connectWalletUI();
@@ -2708,18 +2937,18 @@ async function startDeploy() {
       }
     }
 
-    // Step 3: Switch network
-    setStepActive(2);
+    // Step 4: Switch network
+    setStepActive(3);
     const network = wizardData.network || 'sepolia';
     await window.PocViem.switchNetwork(network);
     window.PocViem.init(network);
 
-    // Step 4: Execute onchain deployment
-    setStepActive(3);
+    // Step 5: Execute onchain deployment (includes soul upload, iNFT mint, registry)
+    setStepActive(4);
     const deployResult = await doOnchainDeploy();
 
-    // Step 5-8: Complete remaining steps
-    for (let i = 4; i < steps.length; i++) {
+    // Step 6-10: Complete remaining steps
+    for (let i = 5; i < steps.length; i++) {
       setStepActive(i);
       await new Promise(r => setTimeout(r, 300));
     }
@@ -2767,8 +2996,6 @@ function deployComplete(deployResult) {
   const agentId = wizardData.name.toLowerCase().replace(/[^a-z0-9-]/g, '') || 'agent-' + Date.now();
 
   // Use real onchain data if available, otherwise fall back to demo
-  const pkProvided = document.getElementById('private-key').value.trim().length > 0;
-  const demoAddr = '0x' + Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('');
   const demoPolicyHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
   const demoImageId = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
 
@@ -2785,11 +3012,13 @@ function deployComplete(deployResult) {
     status: 'online',
     deployedAt: new Date().toISOString(),
     description: wizardData.description || '',
+    // Agent wallet — holds ENS name NFT as credential
+    walletAddress: wizardData.agentWalletAddress || null,
     // Use real onchain data
     inftTokenId: deployResult.tokenId || Math.floor(Math.random() * 9000) + 1000,
     policyHash: deployResult.policyHash || demoPolicyHash,
     imageId: deployResult.imageId || demoImageId,
-    address: deployResult.contractAddress || demoAddr,
+    address: deployResult.contractAddress || wizardData.agentWalletAddress,
     txHash: deployResult.txHash,
     stats: { actions: 0, proofs: 0, uptime: '0m' }
   };
@@ -2804,11 +3033,12 @@ function deployComplete(deployResult) {
     if (sw) { sw.agentCount = (sw.agentCount || 0) + 1; saveSwarms(swarms); }
   }
 
-  document.getElementById('success-message').textContent =
-    `${newAgent.name} (${newAgent.ens}) registered on-chain. Start your agent to connect.`;
+  document.getElementById('success-message').textContent = newAgent.walletAddress
+    ? `${newAgent.name} (${newAgent.ens}) registered. iNFT in your wallet. ENS credential in agent wallet ${newAgent.walletAddress.slice(0,6)}...${newAgent.walletAddress.slice(-4)}.`
+    : `${newAgent.name} (${newAgent.ens}) registered on-chain. Start your agent to connect.`;
 
   // Build the cargo run command with the agent's actual config
-  const pk = document.getElementById('private-key').value.trim() || '0x_YOUR_PRIVATE_KEY';
+  const pk = wizardData.agentWalletKey || '0x_YOUR_PRIVATE_KEY';
   const rpcUrl = wizardData.network === 'sepolia' ? 'https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY'
     : wizardData.network === 'og_testnet' ? 'https://evmrpc-testnet.0g.ai'
     : wizardData.network === 'og_mainnet' ? 'https://evmrpc.0g.ai'
@@ -2817,9 +3047,11 @@ function deployComplete(deployResult) {
   const endpoints = wizardData.endpoints || 'https://api.uniswap.org,https://api.0x.org';
   const maxWei = (wizardData.valueLimit || 100) * 1e16; // rough USD to wei
 
+  const walletAddr = wizardData.agentWalletAddress || '';
   const runCmd = `cd agent && \\
 AGENT_ID=${agentId} \\
 ENS_NAME=${newAgent.ens} \\
+AGENT_WALLET=${walletAddr} \\
 PRIVATE_KEY=${pk} \\
 RPC_URL=${rpcUrl} \\
 ZERO_G_INDEXER_RPC=https://indexer-storage-testnet.0g.ai \\
@@ -2834,6 +3066,7 @@ cargo run`;
   saveAgentConfig(agentId, {
     runCmd,
     privateKey: pk,
+    walletAddress: wizardData.agentWalletAddress || null,
     rpcUrl,
     tools,
     endpoints,
@@ -3002,7 +3235,9 @@ function chatOpenProfile() {
 // ─── Agent Config Persistence (for reconnect/update) ───
 
 function saveAgentConfig(agentId, config) {
-  localStorage.setItem('poc_agent_config_' + agentId, JSON.stringify(config));
+  const key = 'poc_agent_config_' + agentId;
+  localStorage.setItem(key, JSON.stringify(config));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref(key, config);
 }
 
 function loadAgentConfig(agentId) {
@@ -3160,7 +3395,9 @@ function saveChatMessage(agentId, msg) {
   history.push(msg);
   // Keep last 200 messages
   if (history.length > 200) history.splice(0, history.length - 200);
-  localStorage.setItem(getChatKey(agentId), JSON.stringify(history));
+  const key = getChatKey(agentId);
+  localStorage.setItem(key, JSON.stringify(history));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref(key, history);
 }
 
 // ─── Render ───
@@ -3199,6 +3436,24 @@ function renderChatHistory(agentId, agentData) {
   scrollChatToBottom();
 }
 
+function chatGetFileIcon(mime) {
+  if (!mime) return '\u{1F4CE}';
+  if (mime.startsWith('image/')) return '\u{1F5BC}';
+  if (mime.startsWith('video/')) return '\u{1F3AC}';
+  if (mime.startsWith('audio/')) return '\u{1F3B5}';
+  if (mime.includes('pdf')) return '\u{1F4C4}';
+  if (mime.includes('zip') || mime.includes('tar')) return '\u{1F4E6}';
+  if (mime.includes('text') || mime.includes('json')) return '\u{1F4DD}';
+  return '\u{1F4CE}';
+}
+
+function chatFormatSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
 function renderChatMsg(msg, agentData) {
   const isUser = msg.role === 'user';
   const timeStr = formatRelativeTime(msg.timestamp);
@@ -3206,11 +3461,58 @@ function renderChatMsg(msg, agentData) {
   if (!isUser && msg.proof) {
     proofHtml = `<div class="chat-proof-badge"><span class="proof-check">\u2713</span> Proof verified | ${esc(msg.proof.mode)} | ${esc(msg.proof.hash)}</div>`;
   }
+
+  // Attachment HTML
+  let attachHtml = '';
+  if (msg.attachments && msg.attachments.length > 0) {
+    attachHtml = msg.attachments.map(a => {
+      if (a.mimetype && a.mimetype.startsWith('image/')) {
+        return `<div class="chat-msg-attachment" onclick="window.open('${esc(a.url)}','_blank')"><img class="fa-thumb" src="${esc(a.url)}" alt="${esc(a.filename)}"></div>`;
+      }
+      return `<div class="chat-msg-attachment" onclick="window.open('${esc(a.url)}','_blank')">
+        <span class="fa-icon">${chatGetFileIcon(a.mimetype)}</span>
+        <div class="fa-info"><div class="fa-name">${esc(a.filename)}</div><div class="fa-size">${chatFormatSize(a.size)}</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Voice HTML
+  let voiceHtml = '';
+  if (msg.type === 'voice' && msg.voiceUrl) {
+    const dur = msg.voiceDuration || 0;
+    const durStr = Math.floor(dur / 60) + ':' + String(dur % 60).padStart(2, '0');
+    const bars = Array.from({length: 16}, () => `<span class="b" style="height:${3 + Math.random() * 15}px"></span>`).join('');
+    voiceHtml = `<div class="chat-voice-player">
+      <button class="vp-btn" onclick="chatPlayVoice(this,'${esc(msg.voiceUrl)}')">\u25B6</button>
+      <div class="vp-wave">${bars}</div>
+      <span class="vp-dur">${durStr}</span>
+      <audio src="${esc(msg.voiceUrl)}" preload="metadata"></audio>
+    </div>`;
+  }
+
+  const textHtml = msg.text ? `<div class="chat-msg-bubble">${escChatText(msg.text)}</div>` : '';
+
   return `<div class="chat-msg ${isUser ? 'user' : 'agent'}">
-    <div class="chat-msg-bubble">${escChatText(msg.text)}</div>
+    ${textHtml}
+    ${attachHtml}
+    ${voiceHtml}
     ${proofHtml}
     <div class="chat-msg-time">${timeStr}</div>
   </div>`;
+}
+
+function chatPlayVoice(btn, url) {
+  const player = btn.closest('.chat-voice-player');
+  const audio = player.querySelector('audio');
+  if (audio.paused) {
+    document.querySelectorAll('.chat-voice-player audio').forEach(a => { a.pause(); a.currentTime = 0; });
+    document.querySelectorAll('.vp-btn').forEach(b => b.textContent = '\u25B6');
+    audio.play();
+    btn.textContent = '\u275A\u275A';
+    audio.onended = () => { btn.textContent = '\u25B6'; };
+  } else {
+    audio.pause(); audio.currentTime = 0; btn.textContent = '\u25B6';
+  }
 }
 
 function escChatText(text) {
@@ -3239,19 +3541,174 @@ function chatInsert(text) {
   input.focus();
 }
 
+// ─── File & Voice State ───
+
+let chatPendingFiles = [];
+let chatMediaRecorder = null;
+let chatAudioChunks = [];
+let chatRecStartTime = null;
+let chatRecInterval = null;
+
+function chatTriggerAttach() {
+  document.getElementById('chat-file-input').click();
+}
+
+function chatHandleFiles(event) {
+  Array.from(event.target.files).forEach(f => chatPendingFiles.push(f));
+  chatRenderAttachPreview();
+  event.target.value = '';
+}
+
+function chatRenderAttachPreview() {
+  const el = document.getElementById('chat-attach-preview');
+  el.innerHTML = chatPendingFiles.map((f, i) => `
+    <div class="chat-attach-item">
+      <span>${chatGetFileIcon(f.type)}</span>
+      <span class="att-name">${esc(f.name)}</span>
+      <span class="att-remove" onclick="chatRemoveAttach(${i})">&times;</span>
+    </div>`).join('');
+}
+
+function chatRemoveAttach(idx) {
+  chatPendingFiles.splice(idx, 1);
+  chatRenderAttachPreview();
+}
+
+async function chatToggleVoice() {
+  const voiceBtn = document.getElementById('chat-voice-btn');
+  const voiceBar = document.getElementById('chat-voice-bar');
+  const timer = document.getElementById('chat-rec-timer');
+
+  if (chatMediaRecorder && chatMediaRecorder.state === 'recording') {
+    chatMediaRecorder.stop();
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    chatAudioChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    chatMediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+
+    chatMediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chatAudioChunks.push(e.data);
+    };
+
+    chatMediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(chatRecInterval);
+      voiceBar.style.display = 'none';
+      voiceBtn.classList.remove('recording');
+
+      if (chatAudioChunks.length > 0) {
+        const blob = new Blob(chatAudioChunks, { type: chatMediaRecorder.mimeType || 'audio/webm' });
+        const ext = blob.type.includes('webm') ? '.webm' : '.ogg';
+        const file = new File([blob], 'voice-message' + ext, { type: blob.type });
+        chatSendVoice(file);
+      }
+      chatMediaRecorder = null;
+    };
+
+    chatMediaRecorder.start(200);
+    voiceBtn.classList.add('recording');
+    voiceBar.style.display = 'flex';
+    chatRecStartTime = Date.now();
+    timer.textContent = '0:00';
+    chatRecInterval = setInterval(() => {
+      const secs = Math.floor((Date.now() - chatRecStartTime) / 1000);
+      timer.textContent = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+    }, 500);
+  } catch (err) {
+    alert('Microphone access is required for voice messages.');
+  }
+}
+
+function chatCancelVoice() {
+  if (chatMediaRecorder && chatMediaRecorder.state === 'recording') {
+    chatAudioChunks = [];
+    chatMediaRecorder.stop();
+  }
+}
+
+async function chatSendVoice(file) {
+  if (!chatAgentId) return;
+  const a = agents.find(x => x.id === chatAgentId);
+  if (!a) return;
+  const conn = getAgentConnection(a.id);
+  if (!conn) return;
+
+  const voiceUrl = URL.createObjectURL(file);
+  const duration = Math.floor((Date.now() - chatRecStartTime) / 1000);
+
+  const userMsg = { role: 'user', text: '', timestamp: Date.now(), type: 'voice', voiceUrl, voiceDuration: duration };
+  saveChatMessage(chatAgentId, userMsg);
+
+  const container = document.getElementById('chat-messages');
+  const welcome = container.querySelector('.chat-welcome');
+  if (welcome) welcome.remove();
+  container.insertAdjacentHTML('beforeend', renderChatMsg(userMsg, a));
+  scrollChatToBottom();
+
+  // Send to backend
+  chatStreaming = true;
+  const typingId = 'typing-' + Date.now();
+  container.insertAdjacentHTML('beforeend', `
+    <div class="chat-typing" id="${typingId}">
+      <div class="chat-typing-avatar"><img src="${a.typeIcon}" alt="" style="width:100%;height:100%;object-fit:contain;"></div>
+      <div class="chat-typing-dots"><span></span><span></span><span></span></div>
+    </div>`);
+  scrollChatToBottom();
+
+  try {
+    const formData = new FormData();
+    formData.append('type', 'voice');
+    formData.append('content', '');
+    formData.append('files', file, file.name);
+
+    const resp = await fetch(conn.url + '/api/chat/send', {
+      method: 'POST',
+      body: formData,
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    document.getElementById(typingId)?.remove();
+    const responseText = data.response || data.message || '';
+    const agentMsg = { role: 'agent', text: responseText, timestamp: Date.now(), proof: { mode: 'autonomous', hash: '-', status: 'verified' } };
+    saveChatMessage(chatAgentId, agentMsg);
+    container.insertAdjacentHTML('beforeend', renderChatMsg(agentMsg, a));
+    scrollChatToBottom();
+  } catch (e) {
+    document.getElementById(typingId)?.remove();
+    container.insertAdjacentHTML('beforeend', `<div class="chat-msg agent"><div class="chat-msg-bubble" style="color:var(--red);">Error: ${esc(e.message)}</div><div class="chat-msg-time">just now</div></div>`);
+    scrollChatToBottom();
+  }
+  chatStreaming = false;
+}
+
 // ─── Send Message ───
 
 function chatSend() {
   if (chatStreaming) return;
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
-  if (!text || !chatAgentId) return;
+  const hasFiles = chatPendingFiles.length > 0;
+  if ((!text && !hasFiles) || !chatAgentId) return;
 
   const a = agents.find(x => x.id === chatAgentId);
   if (!a) return;
 
-  // Save user message
-  const userMsg = { role: 'user', text: text, timestamp: Date.now() };
+  // Capture files before clearing
+  const filesToSend = [...chatPendingFiles];
+
+  // Save user message with attachments
+  const userMsg = {
+    role: 'user', text: text, timestamp: Date.now(),
+    attachments: filesToSend.map(f => ({ filename: f.name, mimetype: f.type, size: f.size, url: URL.createObjectURL(f) }))
+  };
   saveChatMessage(chatAgentId, userMsg);
 
   // Clear welcome and append user bubble
@@ -3262,12 +3719,13 @@ function chatSend() {
   container.insertAdjacentHTML('beforeend', renderChatMsg(userMsg, a));
   scrollChatToBottom();
   input.value = '';
+  chatPendingFiles = [];
+  chatRenderAttachPreview();
   autoResizeChatInput();
 
   // Require live backend connection
   const conn = getAgentConnection(a.id);
   if (!conn) {
-    const container = document.getElementById('chat-messages');
     container.insertAdjacentHTML('beforeend', `
       <div class="chat-msg agent">
         <div class="chat-msg-bubble" style="color:var(--red);border-color:rgba(255,61,90,0.3);">Agent not connected. Click <strong>Connect OpenClaw</strong> in the sidebar to connect your running agent.</div>
@@ -3277,12 +3735,12 @@ function chatSend() {
     return;
   }
 
-  sendLiveChat(a, text, conn.url);
+  sendLiveChat(a, text, conn.url, filesToSend);
 }
 
 // ─── Live Backend Chat ───
 
-async function sendLiveChat(agentData, userMessage, baseUrl) {
+async function sendLiveChat(agentData, userMessage, baseUrl, files) {
   chatStreaming = true;
   const container = document.getElementById('chat-messages');
   const agentId = chatAgentId;
@@ -3297,12 +3755,24 @@ async function sendLiveChat(agentData, userMessage, baseUrl) {
   scrollChatToBottom();
 
   try {
-    const resp = await fetch(baseUrl + '/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userMessage }),
-      signal: AbortSignal.timeout(15000),
-    });
+    let fetchOpts;
+    if (files && files.length > 0) {
+      const formData = new FormData();
+      formData.append('content', userMessage);
+      formData.append('type', 'file');
+      files.forEach(f => formData.append('files', f, f.name));
+      fetchOpts = { method: 'POST', body: formData, signal: AbortSignal.timeout(30000) };
+    } else {
+      fetchOpts = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage }),
+        signal: AbortSignal.timeout(15000)
+      };
+    }
+
+    const endpoint = (files && files.length > 0) ? '/api/chat/send' : '/api/chat';
+    const resp = await fetch(baseUrl + endpoint, fetchOpts);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
@@ -3709,7 +4179,9 @@ async function doOnchainDeploy() {
     skills: wizardData.skills || [],
     maxTasks: wizardData.maxTasks || 5,
     soulPersona: wizardData.soulPersona || '',
-    soulBackupYaml: wizardData.soulBackupYaml || ''
+    soulBackupYaml: wizardData.soulBackupYaml || '',
+    // Agent's dedicated wallet — receives the ENS name NFT as credential
+    walletAddress: wizardData.agentWalletAddress || null
   };
 
   // Create registration session
@@ -3801,13 +4273,11 @@ checkWalletConnection();
 <script src="ens-resolver.js"></script>
 <script src="poc-api.js"></script>
 <script>
-// Sidebar collapse
-function toggleSidebar() {
-  document.body.classList.toggle('sidebar-collapsed');
-  localStorage.setItem('poc-sidebar-collapsed', document.body.classList.contains('sidebar-collapsed'));
-}
-if (localStorage.getItem('poc-sidebar-collapsed') === 'true') {
-  document.body.classList.add('sidebar-collapsed');
+// Sidebar state — uses shared.js toggleSidebar() + PocPersist
+// Migrate old hyphenated key if present
+if (localStorage.getItem('poc-sidebar-collapsed') !== null) {
+  localStorage.setItem('poc_sidebar_collapsed', localStorage.getItem('poc-sidebar-collapsed'));
+  localStorage.removeItem('poc-sidebar-collapsed');
 }
 </script>
 </body>

@@ -165,7 +165,9 @@ export class AgentRegistrationManager {
         soulBackupURI: results.soulBackup?.uri || '',
         skills: config.skills || [],
         maxTasks: config.maxTasks || 5,
-        soulPersona: config.soulPersona || ''
+        soulPersona: config.soulPersona || '',
+        // Agent's dedicated wallet — iNFT mints directly here
+        agentWalletAddress: config.walletAddress || null
       };
 
       this.updateStatus(sessionId, 'registering', { registration: 60 });
@@ -518,7 +520,9 @@ export class AgentRegistrationManager {
       storageURI: data.encryptedURI || '',
       storageRootHash: data.metadataHash || '',
       soulBackupHash: data.soulBackupHash || '',
-      soulBackupURI: data.soulBackupURI || ''
+      soulBackupURI: data.soulBackupURI || '',
+      // Agent's dedicated wallet — iNFT mints directly into this wallet
+      agentWalletAddress: data.agentWalletAddress || null
     };
 
     // Call the actual on-chain registration via viem

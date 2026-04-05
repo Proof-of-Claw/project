@@ -96,7 +96,7 @@ contract ProofOfClawINFT {
 
     // ─── Minting ────────────────────────────────────────────────────────
 
-    /// @notice Mint an iNFT for a Proof of Claw agent
+    /// @notice Mint an iNFT for a Proof of Claw agent (mints to msg.sender)
     /// @param agentId Internal agent identifier (keccak256 of AGENT_ID string)
     /// @param policyHash SHA256 hash of the agent's policy
     /// @param riscZeroImageId RISC Zero guest image ID commitment
@@ -116,13 +116,47 @@ contract ProofOfClawINFT {
         string calldata soulBackupURI,
         string calldata ensName
     ) external returns (uint256 tokenId) {
+        return _mintTo(msg.sender, agentId, policyHash, riscZeroImageId, encryptedURI, metadataHash, soulBackupHash, soulBackupURI, ensName);
+    }
+
+    /// @notice Mint an iNFT directly into an agent's dedicated wallet
+    /// @dev The caller (org/user wallet) pays gas, but the iNFT lands in the agent's wallet.
+    ///      This ensures the agent wallet holds the ENS credential NFT from the start.
+    /// @param to The agent's dedicated wallet address that will own this iNFT
+    function mintTo(
+        address to,
+        bytes32 agentId,
+        bytes32 policyHash,
+        bytes32 riscZeroImageId,
+        string calldata encryptedURI,
+        bytes32 metadataHash,
+        bytes32 soulBackupHash,
+        string calldata soulBackupURI,
+        string calldata ensName
+    ) external returns (uint256 tokenId) {
+        if (to == address(0)) revert ZeroAddress();
+        return _mintTo(to, agentId, policyHash, riscZeroImageId, encryptedURI, metadataHash, soulBackupHash, soulBackupURI, ensName);
+    }
+
+    /// @dev Internal mint logic — shared by mint() and mintTo()
+    function _mintTo(
+        address to,
+        bytes32 agentId,
+        bytes32 policyHash,
+        bytes32 riscZeroImageId,
+        string calldata encryptedURI,
+        bytes32 metadataHash,
+        bytes32 soulBackupHash,
+        string calldata soulBackupURI,
+        string calldata ensName
+    ) internal returns (uint256 tokenId) {
         if (agentToToken[agentId] != 0) revert AgentAlreadyMinted();
         if (soulBackupHash == bytes32(0)) revert SoulBackupRequired();
 
         tokenId = _nextTokenId++;
 
         agents[tokenId] = AgentINFT({
-            owner: msg.sender,
+            owner: to,
             agentId: agentId,
             policyHash: policyHash,
             riscZeroImageId: riscZeroImageId,
@@ -138,10 +172,10 @@ contract ProofOfClawINFT {
         });
 
         agentToToken[agentId] = tokenId;
-        _balances[msg.sender]++;
+        _balances[to]++;
 
-        emit Transfer(address(0), msg.sender, tokenId);
-        emit AgentMinted(tokenId, agentId, msg.sender, ensName);
+        emit Transfer(address(0), to, tokenId);
+        emit AgentMinted(tokenId, agentId, to, ensName);
         emit SoulBackupRecorded(tokenId, soulBackupHash, soulBackupURI);
     }
 

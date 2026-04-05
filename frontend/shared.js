@@ -13,12 +13,204 @@ function esc(str) {
   return String(str).replace(/[&<>"']/g, c => _escMap[c]);
 }
 
+/* ══════════════════════════════════════
+   PERSISTENCE LAYER (Neon DB + localStorage fallback)
+   Syncs user preferences, orgs, and swarms to the server
+   when a wallet is connected. Falls back to localStorage.
+   ══════════════════════════════════════ */
+
+const PocPersist = (() => {
+  const API_BASE = window.POC_API_URL || 'http://localhost:3456';
+  let _wallet = null;
+  let _syncQueue = [];
+  let _syncing = false;
+
+  /** Get the connected wallet address (lowercase) */
+  function getWallet() {
+    if (_wallet) return _wallet;
+    // Check common wallet sources
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.selectedAddress) {
+      _wallet = window.ethereum.selectedAddress.toLowerCase();
+    } else {
+      // Check localStorage for cached wallet
+      try { _wallet = localStorage.getItem('poc_wallet_address'); } catch (_) {}
+    }
+    return _wallet;
+  }
+
+  /** Set wallet address (call after wallet connect) */
+  function setWallet(addr) {
+    _wallet = addr ? addr.toLowerCase() : null;
+    try { localStorage.setItem('poc_wallet_address', _wallet || ''); } catch (_) {}
+    if (_wallet) flushQueue();
+  }
+
+  /** Make an API call with wallet header */
+  async function api(method, path, body) {
+    const wallet = getWallet();
+    if (!wallet) return null;
+
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json', 'x-wallet-address': wallet },
+    };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+
+    try {
+      const resp = await fetch(`${API_BASE}${path}`, opts);
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch (_) {
+      return null; // Server unreachable — localStorage will cover us
+    }
+  }
+
+  /** Queue a write for when wallet becomes available */
+  function enqueue(fn) {
+    if (getWallet()) {
+      fn().catch(() => {});
+    } else {
+      _syncQueue.push(fn);
+    }
+  }
+
+  /** Flush pending writes */
+  async function flushQueue() {
+    if (_syncing || _syncQueue.length === 0) return;
+    _syncing = true;
+    const queue = _syncQueue.splice(0);
+    for (const fn of queue) {
+      try { await fn(); } catch (_) {}
+    }
+    _syncing = false;
+  }
+
+  // ── Preference helpers ──
+
+  /** Save a preference to both localStorage and server */
+  function savePref(key, value) {
+    try { localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value)); } catch (_) {}
+    enqueue(() => api('PUT', `/v1/preferences/${encodeURIComponent(key)}`, { value }));
+  }
+
+  /** Get a preference from localStorage (instant), server sync happens on load */
+  function getPref(key) {
+    try { return localStorage.getItem(key); } catch (_) { return null; }
+  }
+
+  /** Load all preferences from server and merge into localStorage */
+  async function syncFromServer() {
+    const result = await api('GET', '/v1/preferences');
+    if (!result || !result.preferences) return false;
+
+    for (const [key, value] of Object.entries(result.preferences)) {
+      try {
+        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+      } catch (_) {}
+    }
+    return true;
+  }
+
+  /** Push all current localStorage preferences to server (initial sync) */
+  async function syncToServer() {
+    const prefs = {};
+    // Static keys we always sync
+    const keysToSync = [
+      'poc_sidebar_collapsed', 'poc_org', 'poc_swarms',
+      'poc_auth_connections', 'poc_agent_tasks', 'poc_agents',
+      'poc_connection', 'poc_gateway_token', 'poc_ens_domain',
+      'poc_custom_secrets', 'gcal_oneclaw_reference',
+      'last_1claw_package_key', 'poc_wallet_connected'
+    ];
+    for (const key of keysToSync) {
+      try {
+        const val = localStorage.getItem(key);
+        if (val !== null) {
+          try { prefs[key] = JSON.parse(val); } catch (_) { prefs[key] = val; }
+        }
+      } catch (_) {}
+    }
+    // Dynamic keys: agent configs, chat history, 1claw cache, encrypted secrets
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('poc_agent_config_') || key.startsWith('poc_chat_') || key.startsWith('1claw_') || key.startsWith('poc_encrypted_'))) {
+          const val = localStorage.getItem(key);
+          if (val !== null) {
+            try { prefs[key] = JSON.parse(val); } catch (_) { prefs[key] = val; }
+          }
+        }
+      }
+    } catch (_) {}
+    if (Object.keys(prefs).length > 0) {
+      await api('PUT', '/v1/preferences', { preferences: prefs });
+    }
+  }
+
+  // ── Org helpers ──
+
+  async function saveOrgToServer(org) {
+    await api('PUT', '/v1/org', { org });
+  }
+
+  async function loadOrgFromServer() {
+    const result = await api('GET', '/v1/org');
+    if (result && result.org) {
+      try { localStorage.setItem('poc_org', JSON.stringify(result.org)); } catch (_) {}
+      return result.org;
+    }
+    return null;
+  }
+
+  // ── Swarm helpers ──
+
+  async function saveSwarmToServer(swarm) {
+    await api('PUT', '/v1/swarms', { swarm });
+  }
+
+  async function loadSwarmsFromServer() {
+    const result = await api('GET', '/v1/swarms');
+    if (result && result.swarms) {
+      try { localStorage.setItem('poc_swarms', JSON.stringify(result.swarms)); } catch (_) {}
+      return result.swarms;
+    }
+    return null;
+  }
+
+  /** Full sync: pull from server then push anything missing */
+  async function fullSync() {
+    if (!getWallet()) return;
+    const pulled = await syncFromServer();
+    if (!pulled) {
+      // Server had nothing — push our local state up
+      await syncToServer();
+      // Also push org and swarms if they exist locally
+      const org = (() => { try { return JSON.parse(localStorage.getItem('poc_org')); } catch (_) { return null; } })();
+      if (org) await saveOrgToServer(org);
+      const swarms = (() => { try { return JSON.parse(localStorage.getItem('poc_swarms')); } catch (_) { return []; } })();
+      for (const s of swarms) await saveSwarmToServer(s);
+    } else {
+      // Also pull org and swarms
+      await loadOrgFromServer();
+      await loadSwarmsFromServer();
+    }
+  }
+
+  return {
+    getWallet, setWallet, api,
+    savePref, getPref,
+    syncFromServer, syncToServer, fullSync,
+    saveOrgToServer, loadOrgFromServer,
+    saveSwarmToServer, loadSwarmsFromServer,
+    enqueue,
+  };
+})();
+
 /* ── Sidebar Toggle ── */
 function toggleSidebar() {
   document.body.classList.toggle('sidebar-collapsed');
-  try {
-    localStorage.setItem('poc_sidebar_collapsed', document.body.classList.contains('sidebar-collapsed'));
-  } catch (_) { /* ignore */ }
+  const collapsed = document.body.classList.contains('sidebar-collapsed');
+  PocPersist.savePref('poc_sidebar_collapsed', String(collapsed));
 }
 
 /* ── Mobile Sidebar Toggle ── */
@@ -119,6 +311,7 @@ function getOrg() {
 
 function saveOrg(org) {
   localStorage.setItem('poc_org', JSON.stringify(org));
+  PocPersist.enqueue(() => PocPersist.saveOrgToServer(org));
 }
 
 /* ── Swarm Storage ── */
@@ -128,6 +321,11 @@ function getSwarms() {
 
 function saveSwarms(swarms) {
   localStorage.setItem('poc_swarms', JSON.stringify(swarms));
+  // Sync the latest swarm to server
+  if (swarms.length > 0) {
+    const latest = swarms[swarms.length - 1];
+    PocPersist.enqueue(() => PocPersist.saveSwarmToServer(latest));
+  }
 }
 
 function getSwarmById(id) {
@@ -269,12 +467,40 @@ function showOrgRegistration() {
           </select>
         </div>
 
+        <div class="form-group">
+          <label>Wallet Security</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;padding:10px 16px;background:var(--bg-primary);border:2px solid var(--border-cyan);border-radius:8px;cursor:pointer;flex:1;min-width:180px;" id="org-wallet-browser-opt">
+              <input type="radio" name="org-wallet-type" value="browser" checked onchange="updateOrgWalletChoice()">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-primary);">Browser Wallet</div>
+                <div style="font-size:10px;color:var(--text-dim);">MetaMask, WalletConnect, etc.</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;padding:10px 16px;background:var(--bg-primary);border:2px solid var(--border);border-radius:8px;cursor:pointer;flex:1;min-width:180px;" id="org-wallet-ledger-opt">
+              <input type="radio" name="org-wallet-type" value="ledger" onchange="updateOrgWalletChoice()">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-primary);">Ledger Hardware</div>
+                <div style="font-size:10px;color:var(--text-dim);">Sign with secure element</div>
+              </div>
+            </label>
+          </div>
+          <div id="org-ledger-status" style="display:none;margin-top:8px;padding:10px;background:rgba(179,136,255,0.06);border:1px solid rgba(179,136,255,0.2);border-radius:8px;font-size:11px;">
+            <div style="color:var(--purple);font-weight:600;margin-bottom:4px;">Ledger Connection</div>
+            <div style="color:var(--text-secondary);">Connect your Ledger, open the Ethereum app, then click below.</div>
+            <button class="btn" style="margin-top:8px;padding:8px 16px;font-size:11px;background:linear-gradient(135deg,#bb86fc,#9c27b0);color:#fff;border:none;border-radius:6px;cursor:pointer;" onclick="connectLedgerForOrg()">
+              Connect Ledger
+            </button>
+            <div id="org-ledger-address" style="margin-top:6px;font-family:var(--font-mono);font-size:10px;color:var(--cyan);word-break:break-all;"></div>
+          </div>
+        </div>
+
         <div style="background:rgba(0,229,255,0.06);border:1px solid var(--border-cyan);border-radius:8px;padding:14px;margin-bottom:20px;">
-          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">ENS Hierarchy Preview</div>
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Wallet Ownership Hierarchy</div>
           <div style="font-family:var(--font-mono);font-size:12px;line-height:2;">
-            <div><span style="color:var(--text-dim);">Org:</span> <strong id="org-preview-org" style="color:var(--cyan);">—</strong></div>
-            <div><span style="color:var(--text-dim);">Swarm:</span> <span id="org-preview-swarm" style="color:var(--purple);">team-name.<span class="org-slug-preview">org</span>.eth</span></div>
-            <div><span style="color:var(--text-dim);">Agent:</span> <span id="org-preview-agent" style="color:var(--green);">agent-name.team-name.<span class="org-slug-preview">org</span>.eth</span></div>
+            <div><span style="color:var(--text-dim);">Org Wallet:</span> <strong id="org-preview-org" style="color:var(--cyan);">—</strong> <span style="color:var(--text-dim);font-size:10px;">holds swarm ENS names</span></div>
+            <div style="padding-left:16px;"><span style="color:var(--text-dim);">Swarm Wallet:</span> <span id="org-preview-swarm" style="color:var(--purple);">team-name.<span class="org-slug-preview">org</span>.eth</span> <span style="color:var(--text-dim);font-size:10px;">holds agent ENS names</span></div>
+            <div style="padding-left:32px;"><span style="color:var(--text-dim);">Agent Wallet:</span> <span id="org-preview-agent" style="color:var(--green);">agent-name.team-name.<span class="org-slug-preview">org</span>.eth</span> <span style="color:var(--text-dim);font-size:10px;">holds credentials</span></div>
           </div>
         </div>
 
@@ -340,6 +566,15 @@ async function submitOrgRegistration() {
     // Bridge not running — org still works locally
   }
 
+  // Org wallet = user's connected wallet (MetaMask / Ledger hardware)
+  // This wallet owns everything — swarms, agents, ENS hierarchy
+  const walletType = document.querySelector('input[name="org-wallet-type"]:checked')?.value || 'browser';
+  const ownerWallet = walletType === 'ledger' && window._orgLedgerAddress
+    ? window._orgLedgerAddress
+    : (typeof walletState !== 'undefined' && walletState.address)
+      ? walletState.address
+      : localStorage.getItem('poc_wallet_address') || null;
+
   const org = {
     id: bridgeResult?.orgId || ('org-' + Date.now()),
     name: name,
@@ -348,6 +583,9 @@ async function submitOrgRegistration() {
     description: description,
     network: network,
     icon: '\u2B23',
+    // Org wallet = user's own wallet (hardware or browser)
+    walletAddress: ownerWallet,
+    walletType: walletType, // 'browser' | 'ledger'
     defaultChannelId: bridgeResult?.defaultChannelId || null,
     bridgeConfigured: !!bridgeResult,
     createdAt: new Date().toISOString()
@@ -369,6 +607,8 @@ async function submitOrgRegistration() {
         <div style="font-size:40px;margin-bottom:12px;">\u2705</div>
         <h2 style="font-family:var(--font-display);font-weight:700;margin-bottom:4px;">Organization Registered!</h2>
         <p style="color:var(--cyan);font-family:var(--font-mono);font-size:14px;">${esc(org.ens)}</p>
+        ${org.walletAddress ? `<p style="font-size:11px;color:var(--text-dim);font-family:var(--font-mono);margin-top:4px;">Owner Wallet: ${esc(org.walletAddress.slice(0,6))}...${esc(org.walletAddress.slice(-4))}</p>` : ''}
+        <p style="font-size:11px;color:var(--text-secondary);margin-top:8px;">Your wallet owns this org. Swarms and agents below it will each receive their own wallets to hold ENS credentials.</p>
         ${bridgeNote}
       </div>
       <button class="btn btn-primary" style="width:100%;padding:12px 32px;font-size:14px;font-weight:700;" onclick="closeOrgRegistration()">Continue</button>
@@ -380,6 +620,73 @@ async function submitOrgRegistration() {
 function closeOrgRegistration() {
   const overlay = document.getElementById('org-register-overlay');
   if (overlay) overlay.remove();
+}
+
+/* ── Ledger Hardware Wallet Support ── */
+
+/**
+ * Update UI when user toggles between browser/ledger wallet for org.
+ */
+function updateOrgWalletChoice() {
+  const choice = document.querySelector('input[name="org-wallet-type"]:checked')?.value;
+  const ledgerStatus = document.getElementById('org-ledger-status');
+  const browserOpt = document.getElementById('org-wallet-browser-opt');
+  const ledgerOpt = document.getElementById('org-wallet-ledger-opt');
+
+  if (choice === 'ledger') {
+    ledgerStatus.style.display = 'block';
+    ledgerOpt.style.borderColor = 'var(--purple)';
+    browserOpt.style.borderColor = 'var(--border)';
+  } else {
+    ledgerStatus.style.display = 'none';
+    browserOpt.style.borderColor = 'var(--border-cyan)';
+    ledgerOpt.style.borderColor = 'var(--border)';
+  }
+}
+
+/**
+ * Connect Ledger hardware wallet for org ownership.
+ * Uses WebHID/WebUSB to communicate with Ledger device.
+ * The Ledger address becomes the org's owner wallet.
+ */
+async function connectLedgerForOrg() {
+  const statusEl = document.getElementById('org-ledger-address');
+  statusEl.innerHTML = '<span style="color:var(--text-dim);">Connecting to Ledger...</span>';
+
+  try {
+    // Use MetaMask's Ledger integration if available
+    if (window.ethereum && window.ethereum.isMetaMask) {
+      // MetaMask can proxy Ledger connections
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (accounts && accounts.length > 0) {
+        const addr = accounts[0];
+        statusEl.innerHTML = `<span style="color:var(--green);">&#x2713; Connected: ${esc(addr)}</span>`;
+        // Store the ledger address for org registration
+        window._orgLedgerAddress = addr;
+        // Enable the register button
+        const btn = document.getElementById('org-register-btn');
+        if (btn) btn.disabled = false;
+        return;
+      }
+    }
+
+    // Fallback: direct WebHID Ledger connection
+    // This requires @ledgerhq/hw-transport-webhid which is loaded if available
+    if (window.TransportWebHID) {
+      const transport = await window.TransportWebHID.create();
+      const eth = new window.LedgerEth(transport);
+      const result = await eth.getAddress("44'/60'/0'/0/0");
+      const addr = result.address;
+      statusEl.innerHTML = `<span style="color:var(--green);">&#x2713; Ledger: ${esc(addr)}</span>`;
+      window._orgLedgerAddress = addr;
+      await transport.close();
+      return;
+    }
+
+    statusEl.innerHTML = '<span style="color:var(--text-secondary);">Connect your Ledger through MetaMask, or install the Ledger Live bridge.</span>';
+  } catch (err) {
+    statusEl.innerHTML = `<span style="color:var(--red);">&#x2717; ${esc(err.message || 'Connection failed')}</span>`;
+  }
 }
 
 /* ── Swarm Creation Modal ── */
@@ -427,9 +734,14 @@ function showSwarmCreation() {
         </div>
 
         <div style="background:rgba(179,136,255,0.06);border:1px solid rgba(179,136,255,0.2);border-radius:8px;padding:14px;margin-bottom:20px;">
-          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Agent ENS Preview</div>
-          <div style="font-family:var(--font-mono);font-size:12px;color:var(--green);">
-            agent-name.<span id="swarm-slug-preview">swarm</span>.${esc(org.slug)}.eth
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Swarm Wallet &amp; ENS Preview</div>
+          <div style="font-family:var(--font-mono);font-size:12px;line-height:2;">
+            <div><span style="color:var(--purple);">Swarm ENS:</span> <span id="swarm-slug-preview">swarm</span>.${esc(org.slug)}.eth</div>
+            <div><span style="color:var(--green);">Agent ENS:</span> agent-name.<span id="swarm-slug-preview-agent">swarm</span>.${esc(org.slug)}.eth</div>
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:6px;">
+            A dedicated wallet is auto-generated for this swarm to hold its agents' ENS credentials.
+            ${org.walletType === 'ledger' ? '<br><span style="color:var(--purple);">Parent org uses Ledger hardware wallet for signing.</span>' : ''}
           </div>
         </div>
 
@@ -445,6 +757,7 @@ function showSwarmCreation() {
                 <div>
                   <span style="color:var(--text-primary);font-size:13px;font-weight:600;">${esc(s.name)}</span>
                   <span style="color:var(--purple);font-size:11px;margin-left:8px;">${esc(s.ens)}</span>
+                  ${s.walletAddress ? `<div style="font-size:9px;color:var(--text-dim);font-family:var(--font-mono);margin-top:2px;">${esc(s.walletAddress.slice(0,6))}...${esc(s.walletAddress.slice(-4))}</div>` : ''}
                 </div>
                 <span style="font-size:11px;color:var(--text-dim);">${s.agentCount || 0} agents</span>
               </div>
@@ -468,6 +781,8 @@ function showSwarmCreation() {
     ensInput.value = ens;
     btn.disabled = !slug;
     overlay.querySelector('#swarm-slug-preview').textContent = slug || 'swarm';
+    const agentPreview = overlay.querySelector('#swarm-slug-preview-agent');
+    if (agentPreview) agentPreview.textContent = slug || 'swarm';
 
     // Check ENS availability
     checkENSAvailability(ens, 'swarm-ens-input-status');
@@ -511,6 +826,13 @@ async function submitSwarmCreation() {
     // Bridge offline — continue with local-only swarm
   }
 
+  // Generate a dedicated wallet for this swarm
+  // Swarm wallet holds the agent ENS names registered under it
+  let swarmWallet = null;
+  if (window.PocViem && window.PocViem.generateAgentWallet) {
+    swarmWallet = window.PocViem.generateAgentWallet();
+  }
+
   const swarm = {
     id: 'swarm-' + Date.now(),
     name: name,
@@ -518,6 +840,9 @@ async function submitSwarmCreation() {
     ens: `${slug}.${org.slug}.eth`,
     description: document.getElementById('swarm-desc-input').value.trim(),
     orgId: org.id,
+    // Swarm's own wallet — holds agent ENS names as sub-credentials
+    walletAddress: swarmWallet ? swarmWallet.address : null,
+    walletKey: swarmWallet ? swarmWallet.privateKey : null,
     channelId: channelId,
     agentCount: 0,
     createdAt: new Date().toISOString()
@@ -547,4 +872,28 @@ document.addEventListener('DOMContentLoaded', () => {
       showOrgRegistration();
     }
   }, 300);
+
+  // Sync preferences from Neon DB (non-blocking)
+  PocPersist.fullSync().then(() => {
+    // Re-apply sidebar state after server sync (may have changed)
+    try {
+      if (localStorage.getItem('poc_sidebar_collapsed') === 'true') {
+        document.body.classList.add('sidebar-collapsed');
+      } else {
+        document.body.classList.remove('sidebar-collapsed');
+      }
+    } catch (_) {}
+    // Re-inject org badge in case server had newer data
+    injectOrgBadge();
+  }).catch(() => {});
+
+  // Listen for wallet connect events (MetaMask / WalletConnect)
+  if (typeof window.ethereum !== 'undefined') {
+    window.ethereum.on('accountsChanged', (accounts) => {
+      if (accounts.length > 0) {
+        PocPersist.setWallet(accounts[0]);
+        PocPersist.fullSync().catch(() => {});
+      }
+    });
+  }
 });
