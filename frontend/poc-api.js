@@ -442,6 +442,91 @@ const PocAPI = (() => {
     document.head.appendChild(style);
   }
 
+  // ── WebSocket real-time connection ──
+  let _ws = null;
+  let _wsReconnectTimer = null;
+  let _wsListeners = []; // array of { type, fn }
+
+  /**
+   * Open a WebSocket to the connected agent runtime.
+   * Falls back to polling if WebSocket fails after 2 attempts.
+   */
+  function openWebSocket() {
+    const conn = getConnection();
+    if (!conn) return;
+
+    // Derive ws:// URL from http:// URL
+    const wsUrl = conn.url.replace(/^http/, 'ws') + '/ws';
+
+    if (_ws && (_ws.readyState === WebSocket.OPEN || _ws.readyState === WebSocket.CONNECTING)) {
+      return; // already connected
+    }
+
+    try {
+      _ws = new WebSocket(wsUrl);
+    } catch (e) {
+      return; // WebSocket not supported or bad URL
+    }
+
+    _ws.onopen = function() {
+      if (_wsReconnectTimer) { clearTimeout(_wsReconnectTimer); _wsReconnectTimer = null; }
+      _dispatchWsEvent('ws_open', {});
+    };
+
+    _ws.onmessage = function(evt) {
+      try {
+        var msg = JSON.parse(evt.data);
+        _dispatchWsEvent(msg.type, msg.data, msg.ts);
+      } catch (e) { /* ignore malformed */ }
+    };
+
+    _ws.onclose = function() {
+      _dispatchWsEvent('ws_close', {});
+      // Auto-reconnect after 3s
+      if (!_wsReconnectTimer && isConnected()) {
+        _wsReconnectTimer = setTimeout(function() {
+          _wsReconnectTimer = null;
+          openWebSocket();
+        }, 3000);
+      }
+    };
+
+    _ws.onerror = function() {
+      // onclose will fire after onerror
+    };
+  }
+
+  function closeWebSocket() {
+    if (_wsReconnectTimer) { clearTimeout(_wsReconnectTimer); _wsReconnectTimer = null; }
+    if (_ws) { _ws.close(); _ws = null; }
+  }
+
+  /**
+   * Subscribe to WebSocket events.
+   * @param {string} type - Event type: snapshot, status, activity, proofs, message, ws_open, ws_close
+   * @param {function} fn - Callback receiving (data, ts)
+   * @returns {function} Unsubscribe function
+   */
+  function onWsEvent(type, fn) {
+    var entry = { type: type, fn: fn };
+    _wsListeners.push(entry);
+    return function() {
+      _wsListeners = _wsListeners.filter(function(e) { return e !== entry; });
+    };
+  }
+
+  function _dispatchWsEvent(type, data, ts) {
+    for (var i = 0; i < _wsListeners.length; i++) {
+      if (_wsListeners[i].type === type || _wsListeners[i].type === '*') {
+        try { _wsListeners[i].fn(data, ts); } catch (e) { /* ignore listener errors */ }
+      }
+    }
+  }
+
+  function isWebSocketOpen() {
+    return _ws && _ws.readyState === WebSocket.OPEN;
+  }
+
   // Public API
   return {
     init,
@@ -461,6 +546,10 @@ const PocAPI = (() => {
     doConnect,
     showDisconnectPrompt,
     renderConnectionBadge,
+    openWebSocket,
+    closeWebSocket,
+    onWsEvent,
+    isWebSocketOpen,
   };
 })();
 

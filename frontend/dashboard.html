@@ -1083,7 +1083,7 @@ function showLiveError(msg) {
 }
 
 function startLivePolling() {
-  if (livePollingInterval) return; // already polling
+  if (livePollingInterval) return; // already running
   var conn = PocAPI.getConnection();
   if (!conn) return;
 
@@ -1092,68 +1092,131 @@ function startLivePolling() {
   showLiveBadge(true);
   showLiveError(null);
 
-  function pollOnce() {
-    if (!liveConnected) return;
-    var c = PocAPI.getConnection();
-    if (!c) {
-      stopLivePolling();
-      fallbackToMock();
-      return;
-    }
-    var baseUrl = c.url;
+  // ── Try WebSocket first ──
+  if (typeof PocAPI.openWebSocket === 'function') {
+    PocAPI.openWebSocket();
 
-    // Fetch all three endpoints in parallel
-    Promise.all([
-      PocAPI.fetchStatus(baseUrl).catch(function(e) { return { _error: e }; }),
-      PocAPI.fetchActivity(baseUrl).catch(function(e) { return { _error: e }; }),
-      PocAPI.fetchProofs(baseUrl).catch(function(e) { return { _error: e }; })
-    ]).then(function(results) {
-      var statusData = results[0];
-      var activityData = results[1];
-      var proofsData = results[2];
-
-      // Check if all failed
-      var allFailed = statusData._error && activityData._error && proofsData._error;
-      if (allFailed) {
-        liveConsecutiveErrors++;
-        if (liveConsecutiveErrors >= 3) {
-          showLiveError('Connection lost. Falling back to cached data. Retrying...');
-          showLiveBadge(false);
-        }
-        return;
-      }
-
-      // At least one succeeded — reset error state
+    PocAPI.onWsEvent('snapshot', function(data) {
+      if (data.status) updateFromStatus(data.status);
+      if (data.proofs) updateFromProofs({ proofs: data.proofs });
       liveConsecutiveErrors = 0;
-      showLiveError(null);
       showLiveBadge(true);
+      showLiveError(null);
+    });
 
-      // --- Update from /api/status ---
-      if (statusData && !statusData._error) {
-        updateFromStatus(statusData);
+    PocAPI.onWsEvent('status', function(data) {
+      updateFromStatus(data);
+      liveConsecutiveErrors = 0;
+    });
+
+    PocAPI.onWsEvent('activity', function(data) {
+      // Single activity item pushed — fetch full list for display
+      var c = PocAPI.getConnection();
+      if (c) {
+        PocAPI.fetchActivity(c.url).then(function(actData) {
+          updateFromActivity(actData);
+        }).catch(function() {});
       }
+    });
 
-      // --- Update from /api/activity ---
-      if (activityData && !activityData._error) {
-        updateFromActivity(activityData);
+    PocAPI.onWsEvent('proofs', function(data) {
+      var c = PocAPI.getConnection();
+      if (c) {
+        PocAPI.fetchProofs(c.url).then(function(proofsData) {
+          updateFromProofs(proofsData);
+        }).catch(function() {});
       }
+    });
 
-      // --- Update from /api/proofs ---
-      if (proofsData && !proofsData._error) {
-        updateFromProofs(proofsData);
+    PocAPI.onWsEvent('message', function(data) {
+      // New message received — refresh activity
+      var c = PocAPI.getConnection();
+      if (c) {
+        PocAPI.fetchActivity(c.url).then(function(actData) {
+          updateFromActivity(actData);
+        }).catch(function() {});
+      }
+    });
+
+    PocAPI.onWsEvent('ws_open', function() {
+      showLiveBadge(true);
+      showLiveError(null);
+      liveConsecutiveErrors = 0;
+      // Stop polling fallback if it was running
+      if (livePollingInterval) {
+        clearInterval(livePollingInterval);
+        livePollingInterval = null;
+      }
+    });
+
+    PocAPI.onWsEvent('ws_close', function() {
+      // Fall back to polling while WebSocket reconnects
+      if (!livePollingInterval && liveConnected) {
+        startPollingFallback();
       }
     });
   }
 
-  // Immediate first poll, then every 3 seconds
+  // Do an immediate HTTP poll for initial data regardless
   pollOnce();
+
+  // Start polling fallback (will be stopped once WebSocket connects)
+  if (!PocAPI.isWebSocketOpen || !PocAPI.isWebSocketOpen()) {
+    startPollingFallback();
+  }
+}
+
+function startPollingFallback() {
+  if (livePollingInterval) return;
   livePollingInterval = setInterval(pollOnce, 3000);
+}
+
+function pollOnce() {
+  if (!liveConnected) return;
+  var c = PocAPI.getConnection();
+  if (!c) {
+    stopLivePolling();
+    fallbackToMock();
+    return;
+  }
+  var baseUrl = c.url;
+
+  Promise.all([
+    PocAPI.fetchStatus(baseUrl).catch(function(e) { return { _error: e }; }),
+    PocAPI.fetchActivity(baseUrl).catch(function(e) { return { _error: e }; }),
+    PocAPI.fetchProofs(baseUrl).catch(function(e) { return { _error: e }; })
+  ]).then(function(results) {
+    var statusData = results[0];
+    var activityData = results[1];
+    var proofsData = results[2];
+
+    var allFailed = statusData._error && activityData._error && proofsData._error;
+    if (allFailed) {
+      liveConsecutiveErrors++;
+      if (liveConsecutiveErrors >= 3) {
+        showLiveError('Connection lost. Falling back to cached data. Retrying...');
+        showLiveBadge(false);
+      }
+      return;
+    }
+
+    liveConsecutiveErrors = 0;
+    showLiveError(null);
+    showLiveBadge(true);
+
+    if (statusData && !statusData._error) updateFromStatus(statusData);
+    if (activityData && !activityData._error) updateFromActivity(activityData);
+    if (proofsData && !proofsData._error) updateFromProofs(proofsData);
+  });
 }
 
 function stopLivePolling() {
   if (livePollingInterval) {
     clearInterval(livePollingInterval);
     livePollingInterval = null;
+  }
+  if (typeof PocAPI !== 'undefined' && PocAPI.closeWebSocket) {
+    PocAPI.closeWebSocket();
   }
   liveConnected = false;
   showLiveBadge(false);

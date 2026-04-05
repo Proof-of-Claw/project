@@ -16,5 +16,6 @@ og_mainnet = "https://evmrpc.0g.ai"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
 og_testnet = { key = "", url = "https://chainscan-galileo.0g.ai/open/api" }
 og_mainnet = { key = "", url = "https://chainscan.0g.ai/open/api" }

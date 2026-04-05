@@ -51,6 +51,12 @@ contract ProofOfClawINFT {
     /// @notice Owner → token count (O(1) balanceOf)
     mapping(address => uint256) private _balances;
 
+    /// @notice Owner → ordered list of owned token IDs (enumeration support)
+    mapping(address => uint256[]) private _ownedTokens;
+
+    /// @notice Token ID → index in the owner's _ownedTokens array
+    mapping(uint256 => uint256) private _ownedTokensIndex;
+
     /// @notice Token ID → Executor → Permissions (ERC-7857 usage authorization)
     mapping(uint256 => mapping(address => bytes)) public usageAuthorizations;
 
@@ -183,10 +189,14 @@ contract ProofOfClawINFT {
         agentToToken[agentId] = tokenId;
         ensNameToToken[ensHash] = tokenId;
         _balances[to]++;
+        _ownedTokens[to].push(tokenId);
+        _ownedTokensIndex[tokenId] = _ownedTokens[to].length - 1;
 
         emit Transfer(address(0), to, tokenId);
         emit AgentMinted(tokenId, agentId, to, ensName);
         emit SoulBackupRecorded(tokenId, soulBackupHash, soulBackupURI);
+
+        _checkOnERC721Received(address(0), to, tokenId, "");
     }
 
     // ─── Soul Backup Management ─────────────────────────────────────────
@@ -395,13 +405,47 @@ contract ProofOfClawINFT {
         agent.owner = to;
         delete _tokenApprovals[tokenId];
 
+        // Update owner-to-tokenIds enumeration
+        _removeTokenFromOwner(from, tokenId);
+        _ownedTokens[to].push(tokenId);
+        _ownedTokensIndex[tokenId] = _ownedTokens[to].length - 1;
+
         emit Transfer(from, to, tokenId);
     }
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
         return interfaceId == 0x80ac58cd  // ERC-721
             || interfaceId == 0x01ffc9a7  // ERC-165
-            || interfaceId == 0x5b5e139f; // ERC-721Metadata
+            || interfaceId == 0x5b5e139f  // ERC-721Metadata
+            || interfaceId == 0x780e9d63; // ERC-721Enumerable
+    }
+
+    /// @notice Get the token ID owned by `owner` at a given `index`
+    /// @dev Reverts if index >= balanceOf(owner)
+    function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256) {
+        if (owner == address(0)) revert ZeroAddress();
+        if (index >= _ownedTokens[owner].length) revert TokenDoesNotExist();
+        return _ownedTokens[owner][index];
+    }
+
+    /// @notice Get all token IDs owned by an address
+    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+        return _ownedTokens[owner];
+    }
+
+    /// @dev Remove a token from the owner's enumeration using swap-and-pop
+    function _removeTokenFromOwner(address owner, uint256 tokenId) internal {
+        uint256 lastIndex = _ownedTokens[owner].length - 1;
+        uint256 tokenIndex = _ownedTokensIndex[tokenId];
+
+        if (tokenIndex != lastIndex) {
+            uint256 lastTokenId = _ownedTokens[owner][lastIndex];
+            _ownedTokens[owner][tokenIndex] = lastTokenId;
+            _ownedTokensIndex[lastTokenId] = tokenIndex;
+        }
+
+        _ownedTokens[owner].pop();
+        delete _ownedTokensIndex[tokenId];
     }
 
     /// @dev Checks if `to` is a contract and, if so, calls onERC721Received

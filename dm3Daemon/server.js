@@ -4,6 +4,8 @@
  */
 
 const express = require('express');
+const http = require('http');
+const { WebSocketServer } = require('ws');
 const cors = require('cors');
 const crypto = require('crypto');
 const path = require('path');
@@ -82,6 +84,55 @@ const agentState = {
 // In-memory message store (in production, use persistent storage)
 const messageStore = new Map(); // contactId -> messages[]
 const conversations = new Map(); // sessionId -> { messages, context }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WebSocket — real-time push to dashboard clients
+// ═══════════════════════════════════════════════════════════════════════════
+
+const wsClients = new Set();
+
+/**
+ * Broadcast a typed event to all connected WebSocket clients.
+ * @param {string} type  - Event type: status | activity | proofs | message
+ * @param {object} data  - Payload
+ */
+function wsBroadcast(type, data) {
+  const payload = JSON.stringify({ type, data, ts: Date.now() });
+  for (const ws of wsClients) {
+    if (ws.readyState === 1 /* OPEN */) {
+      ws.send(payload);
+    }
+  }
+}
+
+/**
+ * Build and broadcast a full status snapshot.
+ * Called after any state mutation so dashboard stays current.
+ */
+function broadcastStatus() {
+  wsBroadcast('status', {
+    agent_id: AGENT_ID,
+    ens_name: ENS_NAME,
+    status: agentState.status,
+    network: NETWORK,
+    dm3_connected: agentState.dm3Connected,
+    dm3_delivery_service: DM3_DELIVERY_SERVICE_URL,
+    session_id: agentState.sessionId,
+    uptime_secs: Math.floor((Date.now() - agentState.startedAt) / 1000),
+    allowed_tools: ALLOWED_TOOLS,
+    endpoint_allowlist: ENDPOINT_ALLOWLIST,
+    max_value_autonomous_wei: MAX_VALUE_AUTONOMOUS_WEI,
+    stats: {
+      total_actions: agentState.totalActions,
+      proofs_generated: agentState.proofsGenerated,
+      messages_received: agentState.messagesReceived,
+      messages_sent: agentState.messagesSent
+    }
+  });
+}
+
+// Heartbeat: push status every 5s so uptime counter stays fresh
+setInterval(broadcastStatus, 5000);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DM3 Client Integration
@@ -398,6 +449,10 @@ app.post('/api/messages/send', async (req, res) => {
     dm3Result = await dm3Client.sendMessage(to, content);
   }
   
+  // Push real-time update
+  wsBroadcast('message', { direction: 'outbound', to, content: content.substring(0, 100), timestamp: msg.timestamp });
+  broadcastStatus();
+
   res.json({
     success: true,
     messageId: msg.id,
@@ -466,6 +521,10 @@ app.post('/api/chat', async (req, res) => {
   }
   messageStore.get(contactId).push(userMsg, agentMsg);
   
+  // Push real-time updates
+  wsBroadcast('activity', { type: 'message', action: 'chat_response', timestamp: Date.now() });
+  broadcastStatus();
+
   res.json({
     response: responseText,
     session_id: sid,
@@ -580,6 +639,11 @@ app.post('/api/chat/send', upload.array('files', 10), async (req, res) => {
   messageStore.get(contactId).push(userMsg, agentMsg);
   agentState.proofsGenerated++;
 
+  // Push real-time updates
+  wsBroadcast('activity', { type: 'message', action: 'chat_with_attachments', files: attachments.length, timestamp: Date.now() });
+  wsBroadcast('proofs', { proof_id: proofId, status: 'verified', timestamp: Date.now() });
+  broadcastStatus();
+
   res.json({
     response: responseText,
     session_id: sid,
@@ -641,9 +705,55 @@ async function startServer() {
   // Initialize DM3
   console.log('Initializing DM3 client...');
   await dm3Client.initialize();
-  
-  // Start HTTP server
-  app.listen(PORT, () => {
+
+  // Create HTTP server + WebSocket
+  const server = http.createServer(app);
+  const wss = new WebSocketServer({ server, path: '/ws' });
+
+  wss.on('connection', (ws, req) => {
+    wsClients.add(ws);
+    console.log(`WebSocket: client connected (${wsClients.size} total)`);
+
+    // Send initial state snapshot immediately
+    ws.send(JSON.stringify({
+      type: 'snapshot',
+      data: {
+        status: {
+          agent_id: AGENT_ID,
+          ens_name: ENS_NAME,
+          status: agentState.status,
+          network: NETWORK,
+          dm3_connected: agentState.dm3Connected,
+          dm3_delivery_service: DM3_DELIVERY_SERVICE_URL,
+          session_id: agentState.sessionId,
+          uptime_secs: Math.floor((Date.now() - agentState.startedAt) / 1000),
+          allowed_tools: ALLOWED_TOOLS,
+          endpoint_allowlist: ENDPOINT_ALLOWLIST,
+          max_value_autonomous_wei: MAX_VALUE_AUTONOMOUS_WEI,
+          stats: {
+            total_actions: agentState.totalActions,
+            proofs_generated: agentState.proofsGenerated,
+            messages_received: agentState.messagesReceived,
+            messages_sent: agentState.messagesSent
+          }
+        },
+        proofs: proofStore,
+      },
+      ts: Date.now()
+    }));
+
+    ws.on('close', () => {
+      wsClients.delete(ws);
+      console.log(`WebSocket: client disconnected (${wsClients.size} total)`);
+    });
+
+    ws.on('error', () => {
+      wsClients.delete(ws);
+    });
+  });
+
+  // Start server
+  server.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
 ║          Proof of Claw Agent Runtime v1.0.0                      ║
@@ -655,6 +765,7 @@ async function startServer() {
 ║  DM3 Status:  ${(agentState.dm3Connected ? 'Connected ✓' : 'Offline').padEnd(45)} ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  API Server:  http://localhost:${PORT}${''.padEnd(32)} ║
+║  WebSocket:   ws://localhost:${PORT}/ws${''.padEnd(30)} ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  Endpoints:                                                      ║
 ║    GET  /health              - Health check                      ║
@@ -666,7 +777,8 @@ async function startServer() {
 ║    POST /api/chat            - Chat with agent                   ║
 ║    POST /api/chat/send       - Chat with file/voice attachments  ║
 ║    POST /api/upload          - Upload files                      ║
-║    GET  /api/messages/poll   - Poll for DM3 messages           ║
+║    GET  /api/messages/poll   - Poll for DM3 messages             ║
+║    WS   /ws                  - Real-time dashboard updates       ║
 ╚══════════════════════════════════════════════════════════════════╝
     `);
   });

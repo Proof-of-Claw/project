@@ -27,7 +27,19 @@
       "Bash(node --check frontend/0g-registration.js)",
       "Bash(node --check frontend/env-config.js)",
       "Bash(node --check test-0g-mint.mjs)",
-      "Bash(node --check scripts/build-env.js)"
+      "Bash(node --check scripts/build-env.js)",
+      "Bash(grep -E \"\\\\.\\(sol|ts|js\\)$\")",
+      "Bash(grep -E \"\\\\.\\(sh|ts|js|sol\\)$\")",
+      "Bash(grep -r \"setInterval\\\\|setTimeout\\\\|requestAnimationFrame\\\\|EventSource\" /home/god/ProofOfClaw/ProofOfClaw/frontend/*.html)",
+      "Bash(ls -la /home/god/ProofOfClaw/ProofOfClaw/*.sh)",
+      "Bash(grep -n \"#\\\\[test\\\\]\\\\|#\\\\[tokio::test\\\\]\" /home/god/ProofOfClaw/ProofOfClaw/proof_of_claw/src/*.rs)",
+      "Bash(grep -r \"EventSource\\\\|/stream\\\\|\\\\.on\\\\\\(\\\\|\\\\.emit\\\\\\(\\\\|Socket\\\\|ws://\" /home/god/ProofOfClaw/ProofOfClaw/frontend/*.html /home/god/ProofOfClaw/ProofOfClaw/*.js /home/god/ProofOfClaw/ProofOfClaw/dm3Daemon/server.js)",
+      "Bash(grep -n \"scheduler\\\\|job\\\\|cron\\\\|Job\\\\|Schedule\" /home/god/ProofOfClaw/ProofOfClaw/proof_of_claw/src/*.rs)",
+      "Bash(grep -n \"api/\" /home/god/ProofOfClaw/ProofOfClaw/frontend/*.html /home/god/ProofOfClaw/ProofOfClaw/frontend/*.js)",
+      "Bash(node --check /home/god/ProofOfClaw/ProofOfClaw/frontend/docs.html)",
+      "Bash(forge test:*)",
+      "Bash(chmod +x /home/god/ProofOfClaw/ProofOfClaw/deploy_multichain.sh)",
+      "Bash(chmod +x /home/god/ProofOfClaw/ProofOfClaw/delivery-service/setup.sh)"
     ]
   }
 }

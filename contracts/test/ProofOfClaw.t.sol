@@ -1201,6 +1201,480 @@ contract ProofOfClawVerifierSecurityTest is Test {
 }
 
 // ===========================================================================
+// ProofOfClawINFT — safeTransferFrom & Enumeration Tests
+// ===========================================================================
+
+contract MockERC721Receiver {
+    bytes4 public constant MAGIC = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+    bool public received;
+    bool public shouldReject;
+
+    function setReject(bool _reject) external { shouldReject = _reject; }
+
+    function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {
+        if (shouldReject) return bytes4(0xdeadbeef);
+        received = true;
+        return MAGIC;
+    }
+}
+
+contract RejectingReceiver {
+    // No onERC721Received — will cause revert
+}
+
+contract ProofOfClawINFTSafeTransferTest is Test {
+    ProofOfClawINFT inft;
+    MockERC721Receiver receiver;
+    RejectingReceiver rejector;
+    address alice = address(0xA1);
+    address bob = address(0xB0B);
+
+    bytes32 constant AGENT_ID = keccak256("safe-agent-1");
+    bytes32 constant POLICY = keccak256("policy-1");
+    bytes32 constant IMAGE_ID_INFT = bytes32(uint256(0x1234));
+    bytes32 constant META_HASH = keccak256("metadata");
+    bytes32 constant SOUL_HASH = keccak256("soul-backup");
+
+    function setUp() public {
+        inft = new ProofOfClawINFT(address(0xF1));
+        receiver = new MockERC721Receiver();
+        rejector = new RejectingReceiver();
+    }
+
+    function _mint(bytes32 agentId, string memory ensName) internal returns (uint256) {
+        vm.prank(alice);
+        return inft.mint(agentId, POLICY, IMAGE_ID_INFT, "0g://enc", META_HASH, SOUL_HASH, "0g://soul", ensName);
+    }
+
+    // --- safeTransferFrom to EOA succeeds ---
+    function test_safeTransferFrom_toEOA() public {
+        uint256 tokenId = _mint(AGENT_ID, "safe1.proofofclaw.eth");
+        vm.prank(alice);
+        inft.safeTransferFrom(alice, bob, tokenId);
+        assertEq(inft.ownerOf(tokenId), bob);
+    }
+
+    // --- safeTransferFrom to valid receiver contract succeeds ---
+    function test_safeTransferFrom_toValidReceiver() public {
+        uint256 tokenId = _mint(AGENT_ID, "safe2.proofofclaw.eth");
+        vm.prank(alice);
+        inft.safeTransferFrom(alice, address(receiver), tokenId);
+        assertEq(inft.ownerOf(tokenId), address(receiver));
+        assertTrue(receiver.received());
+    }
+
+    // --- safeTransferFrom to rejecting contract reverts ---
+    function test_safeTransferFrom_toRejectingContractReverts() public {
+        uint256 tokenId = _mint(AGENT_ID, "safe3.proofofclaw.eth");
+        vm.prank(alice);
+        vm.expectRevert(ProofOfClawINFT.TransferToNonReceiver.selector);
+        inft.safeTransferFrom(alice, address(rejector), tokenId);
+    }
+
+    // --- safeTransferFrom with data ---
+    function test_safeTransferFrom_withData() public {
+        uint256 tokenId = _mint(AGENT_ID, "safe4.proofofclaw.eth");
+        vm.prank(alice);
+        inft.safeTransferFrom(alice, address(receiver), tokenId, "hello");
+        assertTrue(receiver.received());
+    }
+
+    // --- safeTransferFrom to receiver returning wrong magic reverts ---
+    function test_safeTransferFrom_wrongMagicReverts() public {
+        uint256 tokenId = _mint(AGENT_ID, "safe5.proofofclaw.eth");
+        receiver.setReject(true);
+        vm.prank(alice);
+        vm.expectRevert(ProofOfClawINFT.TransferToNonReceiver.selector);
+        inft.safeTransferFrom(alice, address(receiver), tokenId);
+    }
+
+    // --- mintTo validates receiver on contract addresses ---
+    function test_mintTo_toValidReceiver() public {
+        vm.prank(alice);
+        uint256 tokenId = inft.mintTo(address(receiver), keccak256("mint-recv"), POLICY, IMAGE_ID_INFT, "0g://enc", META_HASH, SOUL_HASH, "0g://soul", "mintrx.proofofclaw.eth");
+        assertEq(inft.ownerOf(tokenId), address(receiver));
+        assertTrue(receiver.received());
+    }
+
+    function test_mintTo_toRejectingContractReverts() public {
+        vm.prank(alice);
+        vm.expectRevert(ProofOfClawINFT.TransferToNonReceiver.selector);
+        inft.mintTo(address(rejector), keccak256("mint-rej"), POLICY, IMAGE_ID_INFT, "0g://enc", META_HASH, SOUL_HASH, "0g://soul", "mintrej.proofofclaw.eth");
+    }
+}
+
+// ===========================================================================
+// ProofOfClawINFT — Owner Enumeration Tests
+// ===========================================================================
+
+contract ProofOfClawINFTEnumerationTest is Test {
+    ProofOfClawINFT inft;
+    address alice = address(0xA1);
+    address bob = address(0xB0B);
+
+    bytes32 constant POLICY = keccak256("policy-1");
+    bytes32 constant IMAGE_ID_INFT = bytes32(uint256(0x1234));
+    bytes32 constant META_HASH = keccak256("metadata");
+    bytes32 constant SOUL_HASH = keccak256("soul-backup");
+
+    function setUp() public {
+        inft = new ProofOfClawINFT(address(0xF1));
+    }
+
+    function _mintAs(address who, bytes32 agentId, string memory ensName) internal returns (uint256) {
+        vm.prank(who);
+        return inft.mint(agentId, POLICY, IMAGE_ID_INFT, "0g://enc", META_HASH, SOUL_HASH, "0g://soul", ensName);
+    }
+
+    function test_tokenOfOwnerByIndex_singleToken() public {
+        uint256 tokenId = _mintAs(alice, keccak256("enum-1"), "enum1.proofofclaw.eth");
+        assertEq(inft.tokenOfOwnerByIndex(alice, 0), tokenId);
+    }
+
+    function test_tokenOfOwnerByIndex_multipleTokens() public {
+        uint256 t1 = _mintAs(alice, keccak256("enum-2a"), "enum2a.proofofclaw.eth");
+        uint256 t2 = _mintAs(alice, keccak256("enum-2b"), "enum2b.proofofclaw.eth");
+        uint256 t3 = _mintAs(alice, keccak256("enum-2c"), "enum2c.proofofclaw.eth");
+
+        assertEq(inft.tokenOfOwnerByIndex(alice, 0), t1);
+        assertEq(inft.tokenOfOwnerByIndex(alice, 1), t2);
+        assertEq(inft.tokenOfOwnerByIndex(alice, 2), t3);
+    }
+
+    function test_tokenOfOwnerByIndex_outOfBoundsReverts() public {
+        _mintAs(alice, keccak256("enum-3"), "enum3.proofofclaw.eth");
+        vm.expectRevert(ProofOfClawINFT.TokenDoesNotExist.selector);
+        inft.tokenOfOwnerByIndex(alice, 1);
+    }
+
+    function test_tokensOfOwner() public {
+        uint256 t1 = _mintAs(alice, keccak256("enum-4a"), "enum4a.proofofclaw.eth");
+        uint256 t2 = _mintAs(alice, keccak256("enum-4b"), "enum4b.proofofclaw.eth");
+
+        uint256[] memory tokens = inft.tokensOfOwner(alice);
+        assertEq(tokens.length, 2);
+        assertEq(tokens[0], t1);
+        assertEq(tokens[1], t2);
+    }
+
+    function test_enumeration_updatesOnTransfer() public {
+        uint256 t1 = _mintAs(alice, keccak256("enum-5a"), "enum5a.proofofclaw.eth");
+        uint256 t2 = _mintAs(alice, keccak256("enum-5b"), "enum5b.proofofclaw.eth");
+        uint256 t3 = _mintAs(alice, keccak256("enum-5c"), "enum5c.proofofclaw.eth");
+
+        // Transfer middle token to bob
+        vm.prank(alice);
+        inft.transferFrom(alice, bob, t2);
+
+        // Alice should have t1 and t3 (swap-and-pop: t3 moved to index 1)
+        uint256[] memory aliceTokens = inft.tokensOfOwner(alice);
+        assertEq(aliceTokens.length, 2);
+        assertEq(aliceTokens[0], t1);
+        assertEq(aliceTokens[1], t3);
+
+        // Bob should have t2
+        uint256[] memory bobTokens = inft.tokensOfOwner(bob);
+        assertEq(bobTokens.length, 1);
+        assertEq(bobTokens[0], t2);
+    }
+
+    function test_supportsInterface_enumerable() public view {
+        assertTrue(inft.supportsInterface(0x780e9d63)); // ERC-721Enumerable
+    }
+}
+
+// ===========================================================================
+// End-to-End Integration: Agent → 0G → RISC Zero → On-Chain Verification
+// ===========================================================================
+
+contract EndToEndIntegrationTest is Test {
+    // --- Contracts ---
+    ProofOfClawVerifier verifierContract;
+    ProofOfClawINFT inft;
+    EIP8004Integration eip8004;
+    MockRiscZeroVerifier mockZkVerifier;
+    MockIdentityRegistry identityReg;
+    MockReputationRegistry reputationReg;
+    MockValidationRegistry validationReg;
+    DummyTarget target;
+
+    // --- Actors ---
+    uint256 ownerPk = 0xA11CE;
+    address owner;
+    address agentWallet = address(0xABCD);
+
+    // --- Constants ---
+    bytes32 constant AGENT_ID = keccak256("e2e-agent");
+    bytes32 constant POLICY_HASH = keccak256("e2e-policy");
+    bytes32 constant IMAGE_ID = bytes32(uint256(0xCAFE));
+    bytes32 constant META_HASH = keccak256("e2e-metadata");
+    bytes32 constant SOUL_HASH = keccak256("e2e-soul");
+
+    function setUp() public {
+        owner = vm.addr(ownerPk);
+
+        // Deploy ZK verifier (mock)
+        mockZkVerifier = new MockRiscZeroVerifier();
+
+        // Deploy verifier contract
+        vm.startPrank(owner);
+        verifierContract = new ProofOfClawVerifier(IRiscZeroVerifier(address(mockZkVerifier)), IMAGE_ID);
+
+        // Deploy iNFT contract with verifier as the proof recorder
+        inft = new ProofOfClawINFT(address(verifierContract));
+
+        // Deploy EIP-8004 registries
+        identityReg = new MockIdentityRegistry();
+        reputationReg = new MockReputationRegistry();
+        validationReg = new MockValidationRegistry();
+        eip8004 = new EIP8004Integration(
+            address(identityReg),
+            address(reputationReg),
+            address(validationReg),
+            address(verifierContract)
+        );
+
+        // Configure verifier with EIP-8004 integration
+        verifierContract.setEIP8004Integration(address(eip8004));
+
+        // Deploy and whitelist execution target
+        target = new DummyTarget();
+        verifierContract.setAllowedTarget(address(target), true);
+        vm.stopPrank();
+    }
+
+    /// @notice Full autonomous execution flow:
+    ///   1. Register agent identity (EIP-8004)
+    ///   2. Mint agent iNFT (ERC-7857)
+    ///   3. Register agent policy on-chain
+    ///   4. Submit ZK-verified execution (autonomous path)
+    ///   5. Verify proof recording on iNFT
+    ///   6. Submit reputation feedback
+    function test_e2e_autonomousExecution() public {
+        // ── Step 1: Register agent in EIP-8004 Identity Registry ─────────
+        vm.prank(owner);
+        uint256 eip8004TokenId = eip8004.registerAgentIdentity(
+            AGENT_ID,
+            "0g://agent-registration.json",
+            POLICY_HASH,
+            IMAGE_ID
+        );
+        assertEq(eip8004TokenId, 1);
+        assertEq(eip8004.agentRegistrant(AGENT_ID), owner);
+
+        // ── Step 2: Mint iNFT into agent wallet ─────────────────────────
+        vm.prank(owner);
+        uint256 inftTokenId = inft.mintTo(
+            agentWallet,
+            AGENT_ID,
+            POLICY_HASH,
+            IMAGE_ID,
+            "0g://encrypted-metadata",
+            keccak256("plaintext-metadata"),
+            SOUL_HASH,
+            "0g://soul-backup.yaml",
+            "e2e-agent.proofofclaw.eth"
+        );
+        assertEq(inft.ownerOf(inftTokenId), agentWallet);
+        assertEq(inft.balanceOf(agentWallet), 1);
+        assertEq(inft.tokenOfOwnerByIndex(agentWallet, 0), inftTokenId);
+
+        // ── Step 3: Register agent policy on verifier ───────────────────
+        vm.prank(owner);
+        verifierContract.registerAgent(AGENT_ID, POLICY_HASH, 10 ether, agentWallet);
+
+        // ── Step 4: Simulate ZK-verified autonomous execution ───────────
+        //   In production: agent runs inference via 0G Compute, builds
+        //   ExecutionTrace, uploads to 0G Storage, generates RISC Zero
+        //   proof via Boundless, and submits on-chain.
+        bytes memory action = abi.encode(
+            address(target),
+            uint256(0),
+            abi.encodeCall(DummyTarget.ping, ())
+        );
+
+        ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
+            agentId: "e2e-agent",
+            policyHash: POLICY_HASH,
+            outputCommitment: keccak256(action),
+            allChecksPassed: true,
+            requiresLedgerApproval: false,
+            actionValue: 0
+        });
+
+        bytes memory journalData = abi.encode(output);
+        vm.prank(agentWallet);
+        verifierContract.verifyAndExecute(hex"00", journalData, action);
+
+        // Verify action was executed
+        assertTrue(target.pinged());
+
+        // Verify EIP-8004 validation was recorded
+        assertEq(validationReg.responseCount(), 1);
+
+        // ── Step 5: Record proof on iNFT ────────────────────────────────
+        //   In production the verifier contract would call this automatically.
+        //   Here we simulate since the verifier address is the contract itself.
+        vm.prank(address(verifierContract));
+        inft.recordProof(inftTokenId);
+
+        ProofOfClawINFT.AgentINFT memory agent = inft.getAgent(inftTokenId);
+        assertEq(agent.totalProofs, 1);
+
+        // ── Step 6: Submit reputation feedback ──────────────────────────
+        address reviewer = address(0xBEEF);
+        vm.prank(reviewer);
+        eip8004.submitReputation(
+            AGENT_ID,
+            95,
+            0,
+            "policyCompliance",
+            "swap",
+            "/v1/chat/completions",
+            "0g://feedback",
+            keccak256("feedback-data")
+        );
+        assertEq(reputationReg.feedbackCount(), 1);
+
+        // ── Step 7: Verify reputation query works ───────────────────────
+        address[] memory reviewers = new address[](0);
+        (uint64 count, int128 value,) = eip8004.getAgentReputation(AGENT_ID, reviewers, "", "");
+        assertEq(count, 5); // From mock
+        assertEq(value, 85); // From mock
+    }
+
+    /// @notice Full Ledger-gated execution flow:
+    ///   1. Register agent + submit high-value action requiring approval
+    ///   2. Owner signs EIP-712 approval via Ledger
+    ///   3. Action executes after approval
+    function test_e2e_ledgerGatedExecution() public {
+        // Register agent
+        vm.prank(owner);
+        verifierContract.registerAgent(AGENT_ID, POLICY_HASH, 1 ether, agentWallet);
+
+        // Submit high-value action requiring Ledger approval
+        bytes memory action = abi.encode(
+            address(target),
+            uint256(0),
+            abi.encodeCall(DummyTarget.ping, ())
+        );
+        bytes32 outputCommitment = keccak256("high-value-output");
+
+        ProofOfClawVerifier.VerifiedOutput memory output = ProofOfClawVerifier.VerifiedOutput({
+            agentId: "e2e-agent",
+            policyHash: POLICY_HASH,
+            outputCommitment: outputCommitment,
+            allChecksPassed: true,
+            requiresLedgerApproval: true,
+            actionValue: 5 ether
+        });
+
+        verifierContract.verifyAndExecute(hex"00", abi.encode(output), action);
+        assertFalse(target.pinged()); // Not yet executed
+
+        // Owner approves via EIP-712 signature (simulates Ledger signing)
+        bytes32 domainSeparator = keccak256(abi.encode(
+            verifierContract.DOMAIN_TYPEHASH(),
+            keccak256("ProofOfClaw"),
+            keccak256("1"),
+            block.chainid,
+            address(verifierContract)
+        ));
+        bytes32 structHash = keccak256(abi.encode(
+            verifierContract.APPROVAL_TYPEHASH(),
+            AGENT_ID,
+            outputCommitment,
+            5 ether
+        ));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPk, digest);
+
+        vm.prank(owner);
+        verifierContract.approveAction(AGENT_ID, outputCommitment, action, v, r, s);
+
+        assertTrue(target.pinged()); // Now executed after Ledger approval
+    }
+
+    /// @notice Test iNFT lifecycle: mint → update metadata → update soul → transfer → enumerate
+    function test_e2e_inftLifecycle() public {
+        // Mint
+        vm.prank(owner);
+        uint256 tokenId = inft.mintTo(
+            agentWallet,
+            AGENT_ID,
+            POLICY_HASH,
+            IMAGE_ID,
+            "0g://v1-metadata",
+            keccak256("v1-meta"),
+            SOUL_HASH,
+            "0g://v1-soul",
+            "lifecycle.proofofclaw.eth"
+        );
+
+        // Agent evolves — update metadata
+        vm.prank(agentWallet);
+        inft.updateMetadata(tokenId, "0g://v2-metadata", keccak256("v2-meta"));
+        assertEq(inft.tokenURI(tokenId), "0g://v2-metadata");
+
+        // Agent undergoes reassembly — update soul backup
+        vm.prank(agentWallet);
+        inft.updateSoulBackup(tokenId, keccak256("evolved-soul"), "0g://v2-soul");
+        (bytes32 soulHash, string memory soulURI) = inft.getSoulBackup(tokenId);
+        assertEq(soulHash, keccak256("evolved-soul"));
+        assertEq(keccak256(bytes(soulURI)), keccak256(bytes("0g://v2-soul")));
+
+        // Authorize an executor
+        vm.prank(agentWallet);
+        inft.authorizeUsage(tokenId, address(0xE1EC), "inference,delegation");
+        assertTrue(inft.isAuthorized(tokenId, address(0xE1EC)));
+
+        // Transfer ownership to a new wallet
+        vm.prank(agentWallet);
+        inft.transferFrom(agentWallet, owner, tokenId);
+        assertEq(inft.ownerOf(tokenId), owner);
+
+        // Enumeration updated correctly
+        assertEq(inft.tokensOfOwner(agentWallet).length, 0);
+        assertEq(inft.tokensOfOwner(owner).length, 1);
+        assertEq(inft.tokenOfOwnerByIndex(owner, 0), tokenId);
+
+        // Approval cleared on transfer
+        assertEq(inft.getApproved(tokenId), address(0));
+    }
+
+    /// @notice Test that the full proof pipeline records correctly:
+    ///   multiple proofs → reputation update → iNFT state reflects all
+    function test_e2e_multipleProofsAndReputation() public {
+        // Setup: mint iNFT
+        vm.prank(owner);
+        uint256 tokenId = inft.mintTo(
+            agentWallet,
+            AGENT_ID,
+            POLICY_HASH,
+            IMAGE_ID,
+            "0g://enc",
+            META_HASH,
+            SOUL_HASH,
+            "0g://soul",
+            "multi.proofofclaw.eth"
+        );
+
+        // Record 5 proofs
+        for (uint256 i = 0; i < 5; i++) {
+            vm.prank(address(verifierContract));
+            inft.recordProof(tokenId);
+        }
+
+        ProofOfClawINFT.AgentINFT memory agent = inft.getAgent(tokenId);
+        assertEq(agent.totalProofs, 5);
+
+        // Update reputation via admin
+        inft.updateReputation(tokenId, 98);
+        assertEq(inft.getAgent(tokenId).reputationScore, 98);
+    }
+}
+
+// ===========================================================================
 // Helpers
 // ===========================================================================
 
