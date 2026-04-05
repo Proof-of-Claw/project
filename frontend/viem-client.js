@@ -14,7 +14,7 @@ import { mainnet, sepolia } from 'https://esm.sh/viem@2.21.44/chains';
 const CONTRACT_ABIS = {
   // ProofOfClawINFT - ERC-7857 Agent iNFT Contract
   inft: parseAbi([
-    'function mint(bytes32 agentId, bytes32 policyHash, bytes32 riscZeroImageId, string calldata encryptedURI, bytes32 metadataHash, string calldata ensName) external returns (uint256 tokenId)',
+    'function mint(bytes32 agentId, bytes32 policyHash, bytes32 riscZeroImageId, string calldata encryptedURI, bytes32 metadataHash, bytes32 soulBackupHash, string calldata soulBackupURI, string calldata ensName) external returns (uint256 tokenId)',
     'function agentToToken(bytes32 agentId) external view returns (uint256)',
     'function agents(uint256 tokenId) external view returns (address owner, bytes32 agentId, bytes32 policyHash, bytes32 riscZeroImageId, string memory encryptedURI, bytes32 metadataHash, string memory ensName, uint256 reputationScore, uint256 totalProofs, uint256 mintedAt, bool active)',
     'function ownerOf(uint256 tokenId) external view returns (address)',
@@ -182,7 +182,7 @@ export async function registerAgentOnchain(agentConfig) {
   }
 
   const { name, ens, network, allowedTools, valueLimit, endpoints, description,
-          storageURI, storageRootHash } = agentConfig;
+          storageURI, storageRootHash, soulBackupHash, soulBackupURI } = agentConfig;
 
   // Generate deterministic agent ID from name
   const agentId = keccak256(stringToBytes(name.toLowerCase().trim()));
@@ -194,16 +194,18 @@ export async function registerAgentOnchain(agentConfig) {
   );
   const policyHash = keccak256(policyData);
 
-  // RISC Zero image ID derived from policy commitment
-  const riscZeroImageId = keccak256(stringToBytes(`risc-zero-policy-${policyHash}`));
+  // RISC Zero image ID — must be set from deployment config, not derived
+  const riscZeroImageId = agentConfig.riscZeroImageId;
+  if (!riscZeroImageId || riscZeroImageId === '0x' + '0'.repeat(64)) {
+    throw new Error('RISC Zero image ID is required. Build the guest program and configure riscZeroImageId.');
+  }
 
-  // Use real 0G Storage URI and hash from upload, or derive from metadata
-  const encryptedURI = storageURI || `0g://${storageRootHash || agentId.slice(2, 18)}`;
-  const metadataHash = storageRootHash
-    ? storageRootHash
-    : keccak256(stringToBytes(JSON.stringify({
-        name, description, tools: allowedTools, limit: valueLimit
-      })));
+  // 0G Storage URI and hash — must come from real upload
+  if (!storageURI || !storageRootHash) {
+    throw new Error('Storage URI and root hash are required. Upload metadata to 0G Storage first.');
+  }
+  const encryptedURI = storageURI;
+  const metadataHash = storageRootHash;
 
   // Get contract addresses for network
   const addresses = CONTRACT_ADDRESSES[network] || CONTRACT_ADDRESSES.sepolia;
@@ -214,7 +216,7 @@ export async function registerAgentOnchain(agentConfig) {
       address: addresses.inft,
       abi: CONTRACT_ABIS.inft,
       functionName: 'mint',
-      args: [agentId, policyHash, riscZeroImageId, encryptedURI, metadataHash, ens],
+      args: [agentId, policyHash, riscZeroImageId, encryptedURI, metadataHash, soulBackupHash || metadataHash, soulBackupURI || encryptedURI, ens],
       account: walletAddress,
     });
 

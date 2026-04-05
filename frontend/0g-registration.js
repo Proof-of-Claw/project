@@ -5,76 +5,9 @@
  */
 
 import { configValidator, Networks } from './config-validator.js';
+import { ZERO_G_CONFIG, DM3_CONFIG } from './env-config.js';
 import { Indexer as ZgIndexer } from 'https://esm.sh/@0glabs/0g-ts-sdk@0.3.3';
 import { BrowserProvider } from 'https://esm.sh/ethers@6.13.4';
-
-// 0G Chain Configuration
-const ZERO_G_CONFIG = {
-  sepolia: {
-    chainId: 11155111,
-    name: 'Sepolia Testnet',
-    rpcUrl: 'https://eth-sepolia.g.alchemy.com/v2/scR1Fc9-4XIVgYevigWXy',
-    explorer: 'https://sepolia.etherscan.io',
-    storage: {
-      indexer: 'https://indexer-storage-testnet-turbo.0g.ai',
-      evmRpc: 'https://evmrpc-testnet.0g.ai',
-      flowContract: '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296'
-    },
-    compute: {
-      endpoint: 'https://broker-testnet.0g.ai'
-    },
-    contracts: {
-      agentRegistry: '0xe311a113684F5Fd2F983fD7dE59c0D4e6C630C10', // ProofOfClawVerifier (with soul backup)
-      iNFT: '0x6afF6B0fb940FFB20B7D8104A1C7c42b9d167f29', // ProofOfClawINFT (OCMB v0.1)
-      policyEngine: '0xe311a113684F5Fd2F983fD7dE59c0D4e6C630C10'
-    }
-  },
-  testnet: {
-    chainId: 16602,
-    name: '0G Testnet',
-    rpcUrl: 'https://evmrpc-testnet.0g.ai',
-    explorer: 'https://chainscan-galileo.0g.ai',
-    storage: {
-      indexer: 'https://indexer-storage-testnet-turbo.0g.ai',
-      evmRpc: 'https://evmrpc-testnet.0g.ai',
-      flowContract: '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296'
-    },
-    compute: {
-      endpoint: 'https://broker-testnet.0g.ai'
-    },
-    contracts: {
-      agentRegistry: '0xe34dab193105f3d7ec6ee4e6172cbe6213108d8b', // ProofOfClawVerifier
-      iNFT: '0x45c69b7be9dc9a4126053a17a43e664b4ae031a1', // ProofOfClawINFT (old - no soul backup)
-      policyEngine: '0xe34dab193105f3d7ec6ee4e6172cbe6213108d8b'
-    }
-  },
-  mainnet: {
-    chainId: 16661,
-    name: '0G Mainnet',
-    rpcUrl: 'https://evmrpc.0g.ai',
-    explorer: 'https://chainscan.0g.ai',
-    storage: {
-      indexer: 'https://indexer-storage.0g.ai',
-      evmRpc: 'https://evmrpc.0g.ai',
-      flowContract: '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296'
-    },
-    compute: {
-      endpoint: 'https://broker.0g.ai'
-    },
-    contracts: {
-      agentRegistry: '0x0000000000000000000000000000000000000000',
-      iNFT: '0x0000000000000000000000000000000000000000',
-      policyEngine: '0x0000000000000000000000000000000000000000'
-    }
-  }
-};
-
-// DM3 Configuration
-const DM3_CONFIG = {
-  defaultDeliveryService: 'https://dm3-delivery-service.vercel.app',
-  ensTextRecord: 'network.dm3.profile',
-  profileVersion: '1.0'
-};
 
 /**
  * Agent Registration Manager
@@ -215,7 +148,7 @@ export class AgentRegistrationManager {
       // Generate policy hash
       const policyHash = this.generatePolicyHash(config);
       
-      // Generate RISC Zero image ID (placeholder for actual proof system)
+      // Get RISC Zero image ID from network config
       const riscZeroImageId = this.generateImageId(config);
 
       this.updateStatus(sessionId, 'registering', { registration: 40 });
@@ -583,7 +516,9 @@ export class AgentRegistrationManager {
       description: data.soulPersona || '',
       // Pass real 0G Storage URIs from upload results
       storageURI: data.encryptedURI || '',
-      storageRootHash: data.metadataHash || ''
+      storageRootHash: data.metadataHash || '',
+      soulBackupHash: data.soulBackupHash || '',
+      soulBackupURI: data.soulBackupURI || ''
     };
 
     // Call the actual on-chain registration via viem
@@ -600,16 +535,31 @@ export class AgentRegistrationManager {
   }
 
   async generateDM3Profile(config, walletClient) {
-    // Generate DM3 profile data
     const ensName = config.ensName || config.ens;
-    
+
+    // Generate real X25519 encryption key pair via Web Crypto
+    const encKeyPair = await crypto.subtle.generateKey(
+      { name: 'X25519' },
+      true,
+      ['deriveBits']
+    );
+    const encPubRaw = await crypto.subtle.exportKey('raw', encKeyPair.publicKey);
+    const publicEncryptionKey = '0x' + Array.from(new Uint8Array(encPubRaw))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+
+    // Generate real Ed25519 signing key pair via Web Crypto
+    const sigKeyPair = await crypto.subtle.generateKey(
+      { name: 'Ed25519' },
+      true,
+      ['sign', 'verify']
+    );
+    const sigPubRaw = await crypto.subtle.exportKey('raw', sigKeyPair.publicKey);
+    const publicSigningKey = '0x' + Array.from(new Uint8Array(sigPubRaw))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+
     return {
-      publicEncryptionKey: '0x' + Array(64).fill(0).map(() => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join(''),
-      publicSigningKey: '0x' + Array(64).fill(0).map(() => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join(''),
+      publicEncryptionKey,
+      publicSigningKey,
       deliveryServiceUrl: DM3_CONFIG.defaultDeliveryService,
       ensName
     };
@@ -646,10 +596,15 @@ export class AgentRegistrationManager {
   }
 
   generateImageId(config) {
-    // Placeholder for RISC Zero image ID
-    return '0x' + Array(64).fill(0).map(() => 
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('');
+    // Use the deployed RISC Zero image ID from network config
+    const network = config.network?.includes('sepolia') ? 'sepolia' : 'testnet';
+    const networkConfig = ZERO_G_CONFIG[network];
+    if (networkConfig?.riscZeroImageId) {
+      return networkConfig.riscZeroImageId;
+    }
+    throw new Error(
+      'RISC Zero image ID not configured. Build the guest program and set riscZeroImageId in ZERO_G_CONFIG.'
+    );
   }
 }
 
