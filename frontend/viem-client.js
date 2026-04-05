@@ -337,6 +337,19 @@ export async function getWalletINFTs(ownerAddress, network = 'sepolia') {
 
   const addresses = CONTRACT_ADDRESSES[network] || CONTRACT_ADDRESSES.sepolia;
 
+  // drpc.org free tier rejects queries spanning >10 000 blocks.
+  // The contract is newly deployed so all mints are in recent blocks;
+  // a 9 000-block window (~30 h on Sepolia, ~18 h on mainnet) is safe
+  // and covers the entire useful history.
+  const BLOCK_WINDOW = 9000n;
+  let fromBlock;
+  try {
+    const latest = await publicClient.getBlockNumber();
+    fromBlock = latest > BLOCK_WINDOW ? latest - BLOCK_WINDOW : 0n;
+  } catch {
+    fromBlock = 0n;
+  }
+
   // Fetch AgentMinted events where owner matches
   const logs = await publicClient.getLogs({
     address: addresses.inft,
@@ -351,7 +364,7 @@ export async function getWalletINFTs(ownerAddress, network = 'sepolia') {
       ],
     },
     args: { owner: ownerAddress },
-    fromBlock: 0n,
+    fromBlock,
     toBlock: 'latest',
   });
 

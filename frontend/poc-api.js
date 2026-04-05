@@ -220,8 +220,8 @@ const PocAPI = (() => {
           <p class="poc-modal-desc">Enter the API endpoint of your running Proof of Claw agent runtime.</p>
           <div class="poc-form-group">
             <label for="poc-connect-url">Agent API URL</label>
-            <input type="text" id="poc-connect-url" placeholder="http://localhost:8420" value="" autocomplete="url">
-            <div class="poc-form-hint">Default port is 8420. Set API_PORT env var to change.</div>
+            <input type="text" id="poc-connect-url" placeholder="http://localhost:8082" value="" autocomplete="url">
+            <div class="poc-form-hint">Default port is 8082 (set via API_PORT in ironclaw/.env).</div>
           </div>
           <div id="poc-connect-error" class="poc-error" style="display:none;"></div>
           <div id="poc-connect-success" class="poc-success" style="display:none;"></div>
@@ -254,7 +254,7 @@ const PocAPI = (() => {
     if (!urlInput.value) {
       const host = window.location.hostname;
       if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
-        urlInput.value = 'http://localhost:8420';
+        urlInput.value = 'http://localhost:8082';
       }
     }
 
