@@ -976,7 +976,7 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
       <div class="pending-title">Pending Ledger Approvals</div>
       <div style="display:flex;align-items:center;gap:10px;">
         <span class="pending-count" id="pending-count">0</span>
-        <a href="approve.html" style="font-size:0.75rem;color:var(--cyan);text-decoration:none;font-family:var(--font-mono);opacity:0.8;" title="Open full Ledger approval page">Full page &#x2192;</a>
+        <a href="approve.html" style="font-size:0.75rem;color:var(--cyan);text-decoration:none;font-family:var(--font-mono);letter-spacing:0.03em;opacity:0.8;" title="Open Ledger approval page">Go to Approve &#x2192;</a>
       </div>
     </div>
     <div id="pending-list"></div>
@@ -1683,6 +1683,7 @@ function seedActivity() {
   // when a live agent is connected. Show the empty state placeholder instead.
   const empty = document.getElementById('activity-empty');
   if (empty) empty.style.display = '';
+<<<<<<< HEAD
 }
 
 // scheduleSimulations — Ledger card is always visible (state machine drives it)
@@ -1985,7 +1986,16 @@ function _dashOnLedgerConnected(deviceName, address, isSimulated) {
   addActivity('approval', 'Ledger Connected',
     (isSimulated ? 'Simulated mode' : deviceName) + ' \u2022 ' +
     address.slice(0, 8) + '\u2026' + address.slice(-4));
+=======
 }
+
+// scheduleSimulations — removed fake timers, all data must come from live API
+function scheduleSimulations() {
+  // No mock simulations. Connect a live agent to see real activity.
+  // The seed script (scripts/seed_activity.py) can inject test data into the API.
+>>>>>>> feat/dashboard-ux-demock
+}
+
 
 function showPendingApproval() {
   var section = document.getElementById('pending-section');
