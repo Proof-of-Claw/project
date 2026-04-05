@@ -26,6 +26,11 @@ async function connectWalletUI() {
     updateWalletUI(address);
     // Store connection in localStorage for cross-page persistence
     localStorage.setItem('poc_wallet_connected', 'true');
+    // Set wallet for Neon DB sync and pull user data from server
+    if (typeof PocPersist !== 'undefined') {
+      PocPersist.setWallet(address);
+      PocPersist.fullSync().catch(() => {});
+    }
   } catch (e) {
     alert('Wallet connection failed: ' + e.message);
     if (btn) {
@@ -58,6 +63,7 @@ function updateWalletUI(address) {
 function disconnectWalletUI() {
   walletState = { connected: false, address: null };
   localStorage.removeItem('poc_wallet_connected');
+  if (typeof PocPersist !== 'undefined') PocPersist.setWallet(null);
 
   if (window.PocViem) window.PocViem.disconnectWallet();
 
@@ -88,6 +94,9 @@ async function checkWalletConnection() {
       const state = window.PocViem.getWalletState();
       if (state.connected) {
         updateWalletUI(state.address);
+        if (typeof PocPersist !== 'undefined') {
+          PocPersist.setWallet(state.address);
+        }
       }
     } catch (e) {
       // Silent fail - wallet might not be available

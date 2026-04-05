@@ -7,7 +7,26 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+// ── File upload configuration ──
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, crypto.randomUUID() + ext);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
+});
 
 const app = express();
 const PORT = process.env.API_PORT || 8420;
@@ -44,6 +63,9 @@ const MAX_VALUE_AUTONOMOUS_WEI = parseInt(process.env.MAX_VALUE_AUTONOMOUS_WEI |
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Serve uploaded files
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Agent state
 const agentState = {
@@ -191,12 +213,29 @@ const agentResponses = {
     'I understand. Let me process that request.',
     'Processing your request...',
     'Acknowledged. Working on it.'
+  ],
+  fileReceived: [
+    'I received your file(s). Let me take a look.',
+    'Files received. Analyzing the content now.',
+    'Got it — I\'ll review the attached files.'
+  ],
+  voiceReceived: [
+    'Voice message received. Processing audio...',
+    'I got your voice message. Let me process it.',
+    'Audio received. Analyzing your voice message.'
   ]
 };
 
-function generateAgentResponse(userMessage) {
+function generateAgentResponse(userMessage, messageType) {
+  if (messageType === 'voice') {
+    return randomPick(agentResponses.voiceReceived);
+  }
+
   const lowerMsg = userMessage.toLowerCase();
-  
+
+  if (lowerMsg.match(/sent files|attached files|\(voice message/)) {
+    return randomPick(agentResponses.fileReceived);
+  }
   if (lowerMsg.match(/hi|hello|hey|greetings/)) {
     return randomPick(agentResponses.greetings);
   }
@@ -206,7 +245,7 @@ function generateAgentResponse(userMessage) {
   if (lowerMsg.match(/who are you|about|what are you/)) {
     return randomPick(agentResponses.about);
   }
-  
+
   return randomPick(agentResponses.default);
 }
 
@@ -402,12 +441,13 @@ app.post('/api/chat', async (req, res) => {
   conversation.messages.push(userMsg);
   
   // Generate agent response
-  const responseText = generateAgentResponse(message);
-  
+  const responseText = generateAgentResponse(message, 'text');
+
   // Simulate processing time for realistic feel
   await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
   
   agentState.totalActions++;
+  const proofId = '0x' + crypto.randomBytes(16).toString('hex');
 
   // Store agent response (no proof attached — proofs are only generated for policy-gated actions)
   const agentMsg = {
@@ -429,6 +469,121 @@ app.post('/api/chat', async (req, res) => {
   res.json({
     response: responseText,
     session_id: sid,
+    proof: {
+      proof_id: proofId,
+      status: 'verified',
+      policy_result: {
+        status: 'verified',
+        approval_type: 'autonomous',
+        action: 'chat_response',
+        value_wei: 0
+      }
+    },
+    dm3_encrypted: agentState.dm3Connected,
+    timestamp: Date.now()
+  });
+});
+
+/**
+ * POST /api/upload
+ * Upload files (any type) — returns file metadata
+ */
+app.post('/api/upload', upload.array('files', 10), (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: 'No files provided' });
+  }
+
+  const files = req.files.map(f => ({
+    id: path.basename(f.filename, path.extname(f.filename)),
+    filename: f.originalname,
+    mimetype: f.mimetype,
+    size: f.size,
+    url: `/uploads/${f.filename}`
+  }));
+
+  res.json({ success: true, files });
+});
+
+/**
+ * POST /api/chat (multipart)
+ * Chat with optional file attachments and voice messages
+ */
+app.post('/api/chat/send', upload.array('files', 10), async (req, res) => {
+  const content = req.body.content || req.body.message || '';
+  const threadId = req.body.thread_id || null;
+  const messageType = req.body.type || 'text'; // text | voice | file
+
+  // Process uploaded files
+  const attachments = (req.files || []).map(f => ({
+    id: path.basename(f.filename, path.extname(f.filename)),
+    filename: f.originalname,
+    mimetype: f.mimetype,
+    size: f.size,
+    url: `/uploads/${f.filename}`
+  }));
+
+  // Build the message content for the agent
+  let agentPrompt = content;
+  if (attachments.length > 0) {
+    const fileList = attachments.map(a => `[${a.filename} (${a.mimetype})]`).join(', ');
+    if (messageType === 'voice') {
+      agentPrompt = content || `(voice message: ${fileList})`;
+    } else if (!content) {
+      agentPrompt = `User sent files: ${fileList}`;
+    } else {
+      agentPrompt = `${content}\n\nAttached files: ${fileList}`;
+    }
+  }
+
+  if (!agentPrompt && attachments.length === 0) {
+    return res.status(400).json({ error: 'Missing content or files' });
+  }
+
+  // Use or create session
+  const sid = req.body.sessionId || crypto.randomUUID();
+  if (!conversations.has(sid)) {
+    conversations.set(sid, { messages: [], createdAt: Date.now() });
+  }
+  const conversation = conversations.get(sid);
+
+  // Store user message
+  const userMsg = {
+    id: crypto.randomUUID(),
+    sender: 'user',
+    content: content,
+    type: messageType,
+    attachments: attachments,
+    timestamp: Date.now(),
+    sent: false
+  };
+  conversation.messages.push(userMsg);
+
+  // Generate agent response
+  const responseText = generateAgentResponse(agentPrompt, messageType);
+  await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+  agentState.totalActions++;
+
+  const proofId = '0x' + crypto.randomBytes(16).toString('hex');
+
+  const agentMsg = {
+    id: crypto.randomUUID(),
+    sender: ENS_NAME,
+    content: responseText,
+    timestamp: Date.now(),
+    sent: true
+  };
+  conversation.messages.push(agentMsg);
+
+  // Store in main message store
+  const contactId = req.body.from || 'user';
+  if (!messageStore.has(contactId)) messageStore.set(contactId, []);
+  messageStore.get(contactId).push(userMsg, agentMsg);
+  agentState.proofsGenerated++;
+
+  res.json({
+    response: responseText,
+    session_id: sid,
+    attachments_received: attachments,
     proof: {
       proof_id: proofId,
       status: 'verified',
@@ -509,6 +664,8 @@ async function startServer() {
 ║    GET  /api/messages        - Message history                   ║
 ║    POST /api/messages/send   - Send DM3 message                  ║
 ║    POST /api/chat            - Chat with agent                   ║
+║    POST /api/chat/send       - Chat with file/voice attachments  ║
+║    POST /api/upload          - Upload files                      ║
 ║    GET  /api/messages/poll   - Poll for DM3 messages           ║
 ╚══════════════════════════════════════════════════════════════════╝
     `);

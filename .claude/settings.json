@@ -4,7 +4,16 @@
       "Bash(npm ls:*)",
       "Bash(git commit -m ':*)",
       "Bash(node scripts/build-env.js)",
-      "Bash(grep -r \"boundless\\\\|Boundless\" /home/god/ProofOfClaw/ProofOfClaw/*.md)"
+      "Bash(grep -r \"boundless\\\\|Boundless\" /home/god/ProofOfClaw/ProofOfClaw/*.md)",
+      "Bash(grep -r \"localStorage\\\\|sessionStorage\\\\|state\\\\|preference\" /home/god/ProofOfClaw/ProofOfClaw/frontend/*.js /home/god/ProofOfClaw/ProofOfClaw/frontend/*.html)",
+      "Bash(grep -n \"^function connectWalletUI\\\\|^const connectWalletUI\" /home/god/ProofOfClaw/ProofOfClaw/frontend/*.js)",
+      "Bash(node -c server.js)",
+      "Bash(node -c /home/god/ProofOfClaw/ProofOfClaw/dm3Daemon/server.js)",
+      "Bash(grep -r \"mock\\\\|Mock\" /home/god/ProofOfClaw/ProofOfClaw/proof_of_claw/src/*.rs -n)",
+      "Bash(xargs cat:*)",
+      "Bash(ls -la /home/god/ProofOfClaw/ProofOfClaw/contracts/broadcast/*/)",
+      "Bash(ls -la /home/god/ProofOfClaw/ProofOfClaw/frontend/*.html)",
+      "Bash(git fetch:*)"
     ]
   }
 }

@@ -164,10 +164,9 @@ const PocAuthModules = (function() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
       showToast('Google credentials stored in 1claw vault!', 'success');
-      localStorage.setItem('gcal_oneclaw_reference', JSON.stringify({
-        secretName: 'google-calendar-credentials',
-        storedAt: Date.now()
-      }));
+      const gcalRef = { secretName: 'google-calendar-credentials', storedAt: Date.now() };
+      localStorage.setItem('gcal_oneclaw_reference', JSON.stringify(gcalRef));
+      if (typeof PocPersist !== 'undefined') PocPersist.savePref('gcal_oneclaw_reference', gcalRef);
       
       return { success: true };
       
@@ -307,7 +306,9 @@ const PocAuthModules = (function() {
       title: e.summary,
       start: e.start?.dateTime
     }));
-    localStorage.setItem('poc_agent_tasks', JSON.stringify({ synced: Date.now(), tasks }));
+    const taskData = { synced: Date.now(), tasks };
+    localStorage.setItem('poc_agent_tasks', JSON.stringify(taskData));
+    if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agent_tasks', taskData);
     showToast(`Synced ${tasks.length} tasks`, 'success');
   }
 
@@ -459,7 +460,9 @@ const PocAuthModules = (function() {
     });
 
     if (result.success) {
-      localStorage.setItem('poc_agent_tasks', JSON.stringify({ synced: Date.now(), tasks, storageKey: result.storageKey }));
+      const taskData2 = { synced: Date.now(), tasks, storageKey: result.storageKey };
+      localStorage.setItem('poc_agent_tasks', JSON.stringify(taskData2));
+      if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agent_tasks', taskData2);
       showToast(`Synced ${tasks.length} tasks to 1claw!`, 'success');
     } else {
       showToast('Sync failed', 'error');
@@ -515,6 +518,7 @@ const PocAuthModules = (function() {
 
   function setStoredConnections(connections) {
     localStorage.setItem('poc_auth_connections', JSON.stringify(connections));
+    if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_auth_connections', connections);
   }
 
   function toggleConnection(id) {
@@ -837,6 +841,7 @@ const PocAuthModules = (function() {
     const customSecrets = JSON.parse(localStorage.getItem('poc_custom_secrets') || '{}');
     customSecrets[name] = { value, tag, createdAt: Date.now() };
     localStorage.setItem('poc_custom_secrets', JSON.stringify(customSecrets));
+    if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_custom_secrets', customSecrets);
     
     // Try to store on 1claw if connected
     if (config.storageEnabled && oneClawToken) {

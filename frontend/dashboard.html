@@ -1083,6 +1083,7 @@ function loadAgents() {
   // Use defaults
   agents = DEFAULT_AGENTS;
   localStorage.setItem('poc_agents', JSON.stringify(agents));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agents', agents);
 }
 
 function populateSelector() {

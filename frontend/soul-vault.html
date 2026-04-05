@@ -795,7 +795,9 @@ function esc(s) {
 }
 
 function saveAgentConfig(agentId, config) {
-  localStorage.setItem('poc_agent_config_' + agentId, JSON.stringify(config));
+  const key = 'poc_agent_config_' + agentId;
+  localStorage.setItem(key, JSON.stringify(config));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref(key, config);
 }
 
 function loadAgentConfig(agentId) {
@@ -1174,11 +1176,12 @@ function deployComplete() {
     stats: { actions: 0, proofs: 0, uptime: '0m' }
   };
 
-  // Save to shared localStorage
+  // Save to shared localStorage + Neon DB
   let agents = [];
   try { agents = JSON.parse(localStorage.getItem('poc_agents')) || []; } catch(e) { agents = []; }
   agents.push(newAgent);
   localStorage.setItem('poc_agents', JSON.stringify(agents));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agents', agents);
 
   document.getElementById('success-message').textContent =
     `${newAgent.name} (${newAgent.ens}) registered. Start your agent to connect.`;
@@ -1427,11 +1430,12 @@ function completeRegistration(result, config) {
     stats: { actions: 0, proofs: 0, uptime: '-' }
   };
 
-  // Save to localStorage
+  // Save to localStorage + Neon DB
   let agents = [];
   try { agents = JSON.parse(localStorage.getItem('poc_agents')) || []; } catch(e) { agents = []; }
   agents.push(newAgent);
   localStorage.setItem('poc_agents', JSON.stringify(agents));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agents', agents);
 
   // Update UI
   const successEl = document.getElementById('deploy-success');
@@ -1592,13 +1596,11 @@ window.getNetworkDisplayName = getNetworkDisplayName;
 </script>
 <script src="poc-api.js"></script>
 <script>
-// Sidebar collapse
-function toggleSidebar() {
-  document.body.classList.toggle('sidebar-collapsed');
-  localStorage.setItem('poc-sidebar-collapsed', document.body.classList.contains('sidebar-collapsed'));
-}
-if (localStorage.getItem('poc-sidebar-collapsed') === 'true') {
-  document.body.classList.add('sidebar-collapsed');
+// Sidebar state — uses shared.js toggleSidebar() + PocPersist
+// Migrate old hyphenated key if present
+if (localStorage.getItem('poc-sidebar-collapsed') !== null) {
+  localStorage.setItem('poc_sidebar_collapsed', localStorage.getItem('poc-sidebar-collapsed'));
+  localStorage.removeItem('poc-sidebar-collapsed');
 }
 </script>
 </body>

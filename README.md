@@ -27,6 +27,20 @@ The core agent runtime is adapted from [IronClaw](https://github.com/nearai/iron
 - **Soul Backup** — Encrypted SOUL.md backup with AES-GCM, stored on 0G, hash anchored on-chain at mint
 - **Inline Permissions** — Edit agent tools, value limits, and endpoints from the profile modal
 
+## Sponsor Prizes
+
+### 0G — Best OpenClaw Agent on 0G ($6,000)
+
+Proof of Claw runs every agent inference through 0G Compute's Sealed Inference pipeline — prompts enter encrypted, operators can't inspect them, and every response carries a cryptographic attestation. Execution traces and agent memory persist on 0G Storage as content-addressed Merkle roots, giving the RISC Zero prover a tamper-proof audit trail. The result is a fully decentralized agent stack where privacy, storage, and verifiability are handled by a single network.
+
+### ENS — Best ENS Integration for AI Agents ($5,000)
+
+Every Proof of Claw agent lives at an ENS subname (`alice.proofofclaw.eth`) with on-chain text records publishing its DM3 profile, RISC Zero image ID, policy hash, and EIP-8004 agent ID. Agents discover each other by resolving ENS names, then communicate over end-to-end encrypted DM3 channels — no centralized directory, no cleartext. ENS becomes the agent's passport: one name that resolves to identity, messaging, trust metadata, and on-chain proof history.
+
+### Ledger — AI Agents x Ledger ($6,000)
+
+When an agent action exceeds its autonomous value limit, execution pauses and the owner's Ledger device lights up with a human-readable Clear Signing prompt (ERC-7730). The Rust runtime talks real APDU to the Nano via `coins-ledger`, signing EIP-712 typed data that names the exact action and parameters. The frontend mirrors this flow over WebHID so browser-based approvals hit the same hardware gate. No mock signatures, no software bypass — the agent literally cannot spend above threshold without a physical button press.
+
 ## User Flow
 
 ### 1. Register an Agent
@@ -295,48 +309,35 @@ cd frontend && python3 -m http.server 8080
 
 Open `http://localhost:8080/agents.html` → Connect OpenClaw → Chat.
 
-## Deployed Contracts (0G Testnet)
+## Deployed Contracts
 
-| Contract | Address | Explorer |
-|----------|---------|----------|
-| ProofOfClawVerifier | `0xe34dab193105f3d7ec6ee4e6172cbe6213108d8b` | [View on 0G ChainScan](https://chainscan-dev.0g.ai/address/0xe34dab193105f3d7ec6ee4e6172cbe6213108d8b) |
-| ProofOfClawINFT | `0x45c69b7be9dc9a4126053a17a43e664b4ae031a1` | [View on 0G ChainScan](https://chainscan-dev.0g.ai/address/0x45c69b7be9dc9a4126053a17a43e664b4ae031a1) |
-
-**Network Details:**
-- Chain ID: 16602
-- RPC: https://evmrpc-testnet.0g.ai
-- Explorer: https://chainscan-dev.0g.ai
-
-## Deployed Contracts (Sepolia)
-
-| Contract | Address |
-|----------|---------|
-| RiscZeroGroth16Verifier | `0x14a750E841fa7e3F40e11b9492dcE9157DC51D8a` |
-| ProofOfClawVerifier | `0xEa9ce963B9082cD13A7057ed1A9EdB040c7932a0` |
-| ProofOfClawINFT | `0xf20aE18D72A7C811873D5ce24D9D24214123f48F` |
-| SoulVaultSwarm | `0x11938021169a5094B5c67389286A1FAe72bdE561` |
-| ERC8004RegistryAdapter | `0x56B19562c7d6cB3bCCD0FA78214EFC3928F6eE6a` |
-| EIP8004Integration | `0x6254651F29e7afEE1c52a1D6Fd4b7B211d2dBed2` |
-
-**Network Details:**
-- Chain ID: 11155111
-- Explorer: https://sepolia.etherscan.io
-
-### Deploy Contracts
-
-All contracts are deployed and verified on **0G Galileo Testnet** (chain ID 16602).
-
-#### Deployed Addresses
+### 0G Galileo Testnet (Chain ID 16602)
 
 | Contract | Address | Role |
 |----------|---------|------|
-| **SoulVaultSwarm** | `0xa70EB0DF1563708F28285C2DeA2BF31aadFB544D` | Epoch-based swarm coordination |
-| **ERC8004RegistryAdapter** | `0x9De4F1b14660B5f8145a78Cfc0312B1BFb812C46` | Self-sovereign agent identity |
-| **RiscZeroGroth16Verifier** | `0x93e985aCA4112771c0B05114Ad99677DB85a6A9e` | Groth16 proof verifier |
-| **ProofOfClawVerifier** | `0xa2Df3F3998FdF9Fb7E11e43d10d6B3C62264e3A4` | RISC Zero proof verification + routing |
-| **ProofOfClawINFT** | `0xDe61e80Cdc7ba0000d9eB9040e59f98A3C9991a3` | ERC-7857 agent identity NFT |
+| **RiscZeroGroth16Verifier** | [`0x93e985aCA4112771c0B05114Ad99677DB85a6A9e`](https://chainscan-galileo.0g.ai/address/0x93e985aCA4112771c0B05114Ad99677DB85a6A9e) | Groth16 proof verifier (BN254 pairing) |
+| **ProofOfClawVerifier** | [`0xa2Df3F3998FdF9Fb7E11e43d10d6B3C62264e3A4`](https://chainscan-galileo.0g.ai/address/0xa2Df3F3998FdF9Fb7E11e43d10d6B3C62264e3A4) | RISC Zero proof verification + routing |
+| **ProofOfClawINFT** | [`0xDe61e80Cdc7ba0000d9eB9040e59f98A3C9991a3`](https://chainscan-galileo.0g.ai/address/0xDe61e80Cdc7ba0000d9eB9040e59f98A3C9991a3) | ERC-7857 agent identity NFT |
+| **SoulVaultSwarm** | [`0xa70EB0DF1563708F28285C2DeA2BF31aadFB544D`](https://chainscan-galileo.0g.ai/address/0xa70EB0DF1563708F28285C2DeA2BF31aadFB544D) | Epoch-based swarm coordination |
+| **ERC8004RegistryAdapter** | [`0x9De4F1b14660B5f8145a78Cfc0312B1BFb812C46`](https://chainscan-galileo.0g.ai/address/0x9De4F1b14660B5f8145a78Cfc0312B1BFb812C46) | Self-sovereign agent identity (EIP-8004) |
 
-View on explorer: [chainscan-galileo.0g.ai](https://chainscan-galileo.0g.ai/)
+- RPC: `https://evmrpc-testnet.0g.ai`
+- Explorer: [chainscan-galileo.0g.ai](https://chainscan-galileo.0g.ai/)
+
+### Sepolia (Chain ID 11155111)
+
+| Contract | Address | Role |
+|----------|---------|------|
+| **RiscZeroGroth16Verifier** | [`0x14a750E841fa7e3F40e11b9492dcE9157DC51D8a`](https://sepolia.etherscan.io/address/0x14a750E841fa7e3F40e11b9492dcE9157DC51D8a) | Groth16 proof verifier |
+| **ProofOfClawVerifier** | [`0xEa9ce963B9082cD13A7057ed1A9EdB040c7932a0`](https://sepolia.etherscan.io/address/0xEa9ce963B9082cD13A7057ed1A9EdB040c7932a0) | RISC Zero proof verification + routing |
+| **ProofOfClawINFT** | [`0xf20aE18D72A7C811873D5ce24D9D24214123f48F`](https://sepolia.etherscan.io/address/0xf20aE18D72A7C811873D5ce24D9D24214123f48F) | ERC-7857 agent identity NFT |
+| **SoulVaultSwarm** | [`0x11938021169a5094B5c67389286A1FAe72bdE561`](https://sepolia.etherscan.io/address/0x11938021169a5094B5c67389286A1FAe72bdE561) | Epoch-based swarm coordination |
+| **ERC8004RegistryAdapter** | [`0x56B19562c7d6cB3bCCD0FA78214EFC3928F6eE6a`](https://sepolia.etherscan.io/address/0x56B19562c7d6cB3bCCD0FA78214EFC3928F6eE6a) | Self-sovereign agent identity (EIP-8004) |
+| **EIP8004Integration** | [`0x6254651F29e7afEE1c52a1D6Fd4b7B211d2dBed2`](https://sepolia.etherscan.io/address/0x6254651F29e7afEE1c52a1D6Fd4b7B211d2dBed2) | Identity/reputation/validation bridge |
+
+- Explorer: [sepolia.etherscan.io](https://sepolia.etherscan.io)
+
+### Deploy / Redeploy
 
 #### Redeploy (if needed)
 
@@ -368,6 +369,21 @@ PRIVATE_KEY=$PRIVATE_KEY forge script script/Deploy.s.sol \
 | **Ledger** | Hardware-gated human approval | Working — real APDU communication via coins-ledger; EIP-712 signing; requires physical device |
 | **EIP-8004** | Trustless agent discovery & reputation | Working — identity, reputation, validation queries (contracts unaudited) |
 | **iNFT (ERC-7857)** | Agent identity NFT on 0G Chain | Working — minting with soul backup (AES-GCM encrypted SOUL.md on 0G, hash anchored on-chain) |
+
+### Live vs. Mocked
+
+| Component | Layer | Status | Notes |
+|-----------|-------|--------|-------|
+| **0G Compute** | Rust agent | **Live** | Real HTTP to 0G Compute broker; attestation extracted from response headers |
+| **0G Storage** | Rust agent | **Live** | Real 0G SDK upload/retrieve; local file fallback when offline |
+| **ENS** | Frontend + Rust | **Live** | On-chain namehash resolution; text record read/write via viem |
+| **DM3** | Node.js daemon | **Live** | Real DM3 delivery service (Express + WebSocket); 3-tier resolution |
+| **RISC Zero** | Rust prover | **Live** | Real Groth16 proofs via local prover or Boundless marketplace; guest ELF required |
+| **Ledger (Rust)** | Rust agent | **Live** | Real APDU via `coins-ledger` crate; EIP-712 typed data signing; physical Nano required |
+| **Ledger (Frontend)** | Browser UI | **Live with fallback** | Real WebHID transport (`@ledgerhq/hw-transport-webhid`); falls back to simulated mode if browser lacks WebHID support — labeled "(sim)" in UI |
+| **ERC-7730 Clear Signing** | Metadata | **Live** | `contracts/clear-signing/proofofclaw.json` defines human-readable Ledger display for all contract methods |
+| **EIP-8004** | Contracts | **Live** | Identity, reputation, and validation registries deployed on Sepolia + 0G; contracts unaudited |
+| **iNFT (ERC-7857)** | Full stack | **Live** | Mint with soul backup hash; AES-GCM encrypted SOUL.md uploaded to 0G Storage |
 
 ## Supporting Services
 

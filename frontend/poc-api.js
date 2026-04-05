@@ -14,9 +14,11 @@ const PocAPI = (() => {
   }
   function setConnection(conn) {
     localStorage.setItem('poc_connection', JSON.stringify(conn));
+    if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_connection', conn);
   }
   function clearConnection() {
     localStorage.removeItem('poc_connection');
+    if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_connection', null);
   }
   function isConnected() {
     return !!getConnection();
@@ -129,6 +131,7 @@ const PocAPI = (() => {
         agents[idx].live = false;
         agents[idx].status = 'offline';
         localStorage.setItem('poc_agents', JSON.stringify(agents));
+        if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agents', agents);
       }
     }
     clearConnection();
@@ -165,6 +168,7 @@ const PocAPI = (() => {
       agents.unshift(agentObj);
     }
     localStorage.setItem('poc_agents', JSON.stringify(agents));
+    if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agents', agents);
   }
 
   function getAgents() {

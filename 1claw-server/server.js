@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const fs = require('fs').promises;
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.ONECLAW_PORT || 3456;
@@ -600,13 +601,190 @@ app.post('/v1/soul-backup/verify', authenticateApiKey, async (req, res) => {
   }
 });
 
+// ==================== USER PREFERENCES (Neon DB) ====================
+
+/**
+ * Middleware: extract wallet address from header
+ */
+function requireWallet(req, res, next) {
+  const wallet = req.headers['x-wallet-address'];
+  if (!wallet || !/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+    return res.status(400).json({ error: 'Missing or invalid x-wallet-address header' });
+  }
+  req.wallet = wallet.toLowerCase();
+  next();
+}
+
+/**
+ * GET /v1/preferences
+ * Get all preferences for a wallet
+ */
+app.get('/v1/preferences', requireWallet, async (req, res) => {
+  try {
+    const prefs = await db.getAllPreferences(req.wallet);
+    res.json({ success: true, preferences: prefs });
+  } catch (error) {
+    console.error('Get preferences error:', error);
+    res.status(500).json({ error: 'Failed to retrieve preferences' });
+  }
+});
+
+/**
+ * GET /v1/preferences/:key
+ * Get a single preference
+ */
+app.get('/v1/preferences/:key', requireWallet, async (req, res) => {
+  try {
+    const value = await db.getPreference(req.wallet, req.params.key);
+    if (value === null) {
+      return res.status(404).json({ error: 'Preference not found' });
+    }
+    res.json({ success: true, key: req.params.key, value });
+  } catch (error) {
+    console.error('Get preference error:', error);
+    res.status(500).json({ error: 'Failed to retrieve preference' });
+  }
+});
+
+/**
+ * PUT /v1/preferences/:key
+ * Set a single preference
+ */
+app.put('/v1/preferences/:key', requireWallet, async (req, res) => {
+  try {
+    const { value } = req.body;
+    if (value === undefined) {
+      return res.status(400).json({ error: 'Missing value in request body' });
+    }
+    await db.setPreference(req.wallet, req.params.key, value);
+    res.json({ success: true, key: req.params.key });
+  } catch (error) {
+    console.error('Set preference error:', error);
+    res.status(500).json({ error: 'Failed to save preference' });
+  }
+});
+
+/**
+ * PUT /v1/preferences
+ * Bulk set preferences { preferences: { key: value, ... } }
+ */
+app.put('/v1/preferences', requireWallet, async (req, res) => {
+  try {
+    const { preferences } = req.body;
+    if (!preferences || typeof preferences !== 'object') {
+      return res.status(400).json({ error: 'Missing preferences object in body' });
+    }
+    await db.bulkSetPreferences(req.wallet, preferences);
+    res.json({ success: true, count: Object.keys(preferences).length });
+  } catch (error) {
+    console.error('Bulk set preferences error:', error);
+    res.status(500).json({ error: 'Failed to save preferences' });
+  }
+});
+
+/**
+ * DELETE /v1/preferences/:key
+ * Delete a single preference
+ */
+app.delete('/v1/preferences/:key', requireWallet, async (req, res) => {
+  try {
+    await db.deletePreference(req.wallet, req.params.key);
+    res.json({ success: true, deleted: req.params.key });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete preference' });
+  }
+});
+
+// ── Organization endpoints ──
+
+/**
+ * GET /v1/org
+ * Get user's organization
+ */
+app.get('/v1/org', requireWallet, async (req, res) => {
+  try {
+    const org = await db.getOrg(req.wallet);
+    if (!org) return res.status(404).json({ error: 'No organization found' });
+    res.json({ success: true, org });
+  } catch (error) {
+    console.error('Get org error:', error);
+    res.status(500).json({ error: 'Failed to retrieve organization' });
+  }
+});
+
+/**
+ * PUT /v1/org
+ * Create or update organization
+ */
+app.put('/v1/org', requireWallet, async (req, res) => {
+  try {
+    const { org } = req.body;
+    if (!org || !org.id || !org.name || !org.slug) {
+      return res.status(400).json({ error: 'Missing org data (id, name, slug required)' });
+    }
+    await db.upsertOrg(req.wallet, org);
+    res.json({ success: true, org });
+  } catch (error) {
+    console.error('Upsert org error:', error);
+    res.status(500).json({ error: 'Failed to save organization' });
+  }
+});
+
+// ── Swarm endpoints ──
+
+/**
+ * GET /v1/swarms
+ * Get all swarms for user
+ */
+app.get('/v1/swarms', requireWallet, async (req, res) => {
+  try {
+    const swarms = await db.getSwarms(req.wallet);
+    res.json({ success: true, swarms });
+  } catch (error) {
+    console.error('Get swarms error:', error);
+    res.status(500).json({ error: 'Failed to retrieve swarms' });
+  }
+});
+
+/**
+ * PUT /v1/swarms
+ * Create or update a swarm
+ */
+app.put('/v1/swarms', requireWallet, async (req, res) => {
+  try {
+    const { swarm } = req.body;
+    if (!swarm || !swarm.id || !swarm.name || !swarm.slug || !swarm.orgId) {
+      return res.status(400).json({ error: 'Missing swarm data (id, name, slug, orgId required)' });
+    }
+    await db.upsertSwarm(req.wallet, swarm);
+    res.json({ success: true, swarm });
+  } catch (error) {
+    console.error('Upsert swarm error:', error);
+    res.status(500).json({ error: 'Failed to save swarm' });
+  }
+});
+
+/**
+ * DELETE /v1/swarms/:id
+ * Delete a swarm
+ */
+app.delete('/v1/swarms/:id', requireWallet, async (req, res) => {
+  try {
+    await db.deleteSwarm(req.wallet, req.params.id);
+    res.json({ success: true, deleted: req.params.id });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete swarm' });
+  }
+});
+
 // ==================== HEALTH & INFO ====================
 
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: Date.now(),
-    version: '1.0.0',
+    version: '1.1.0',
+    database: !!process.env.DATABASE_URL,
     endpoints: [
       'POST /v1/store',
       'GET /v1/retrieve/:key',
@@ -619,7 +797,17 @@ app.get('/health', (req, res) => {
       'POST /v1/license/validate',
       'POST /v1/payment/checkout',
       'POST /v1/agents/tasks',
-      'GET /v1/agents/:agentId/tasks'
+      'GET /v1/agents/:agentId/tasks',
+      'GET /v1/preferences',
+      'GET /v1/preferences/:key',
+      'PUT /v1/preferences/:key',
+      'PUT /v1/preferences',
+      'DELETE /v1/preferences/:key',
+      'GET /v1/org',
+      'PUT /v1/org',
+      'GET /v1/swarms',
+      'PUT /v1/swarms',
+      'DELETE /v1/swarms/:id'
     ]
   });
 });
@@ -634,23 +822,30 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-ensureDataDir().then(() => {
+Promise.all([ensureDataDir(), db.initDB()]).then(([, dbReady]) => {
   app.listen(PORT, () => {
     console.log(`
 ╔════════════════════════════════════════════════════════╗
-║           1clawAI API Server v1.0.0                    ║
+║           1clawAI API Server v1.1.0                    ║
 ╠════════════════════════════════════════════════════════╣
 ║  Running on: http://localhost:${PORT}                   ║
+║  Database:   ${dbReady ? 'Neon Postgres ✓' : 'Not configured (localStorage-only)'}${' '.repeat(Math.max(0, 25 - (dbReady ? 16 : 38)))}║
 ║  Data directory: ${DATA_DIR}            ║
 ╚════════════════════════════════════════════════════════╝
 
 Endpoints:
-  POST /v1/store          - Store data
-  GET  /v1/retrieve/:key  - Retrieve data
-  POST /v1/license/verify - Verify license
+  POST /v1/store            - Store data
+  GET  /v1/retrieve/:key    - Retrieve data
+  POST /v1/license/verify   - Verify license
   POST /v1/payment/checkout - Create checkout
-  POST /v1/agents/tasks - Store agent tasks
-  GET  /health          - Health check
+  POST /v1/agents/tasks     - Store agent tasks
+  GET  /v1/preferences      - Get all user preferences
+  PUT  /v1/preferences/:key - Set a preference
+  GET  /v1/org              - Get organization
+  PUT  /v1/org              - Save organization
+  GET  /v1/swarms           - Get swarms
+  PUT  /v1/swarms           - Save swarm
+  GET  /health              - Health check
     `);
   });
 });

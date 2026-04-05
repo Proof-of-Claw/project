@@ -387,10 +387,11 @@ function loadSavedSecrets() {
 }
 
 async function saveSecret(name, value, type, service) {
-  // Save to localStorage
+  // Save to localStorage + Neon DB
   const secrets = JSON.parse(localStorage.getItem('poc_custom_secrets') || '{}');
   secrets[name] = { value, type, service, createdAt: Date.now() };
   localStorage.setItem('poc_custom_secrets', JSON.stringify(secrets));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_custom_secrets', secrets);
   
   // Try to sync to 1claw if connected (skip on localhost due to CORS)
   if (!isLocalhost && oneClawToken) {
@@ -422,6 +423,7 @@ function deleteSecret(name) {
   const secrets = JSON.parse(localStorage.getItem('poc_custom_secrets') || '{}');
   delete secrets[name];
   localStorage.setItem('poc_custom_secrets', JSON.stringify(secrets));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_custom_secrets', secrets);
   loadSavedSecrets();
 }
 

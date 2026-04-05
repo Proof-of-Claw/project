@@ -277,6 +277,7 @@ async function storeEncryptedSecret(storageKey, plaintext, password) {
   };
 
   localStorage.setItem(storageKey, JSON.stringify(payload));
+  if (typeof PocPersist !== 'undefined') PocPersist.savePref(storageKey, payload);
 }
 
 /**
