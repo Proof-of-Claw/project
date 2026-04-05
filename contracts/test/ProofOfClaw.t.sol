@@ -496,7 +496,7 @@ contract RiscZeroGroth16VerifierTest is Test {
 contract ProofOfClawINFTTest is Test {
     ProofOfClawINFT inft;
     address admin = address(this);
-    address verifierAddr = address(0xV1);
+    address verifierAddr = address(0xF1);
     address alice = address(0xA1);
     address bob = address(0xB0B);
 
@@ -824,7 +824,7 @@ contract EIP8004IntegrationTest is Test {
     MockIdentityRegistry identityReg;
     MockReputationRegistry reputationReg;
     MockValidationRegistry validationReg;
-    address verifierAddr = address(0xV1);
+    address verifierAddr = address(0xF1);
     address alice = address(0xA1);
     address bob = address(0xB0B);
 

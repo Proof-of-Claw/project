@@ -244,20 +244,6 @@ contract ProofOfClawINFT {
 
     // ─── Policy Management ──────────────────────────────────────────────
 
-    /// @notice Update the soul backup (OCMB continuity data)
-    function updateSoulBackup(
-        uint256 tokenId,
-        bytes32 newSoulBackupHash,
-        string calldata newSoulBackupURI
-    ) external {
-        AgentINFT storage agent = agents[tokenId];
-        if (agent.owner != msg.sender) revert NotOwner();
-        if (newSoulBackupHash == bytes32(0)) revert SoulBackupRequired();
-
-        agent.soulBackupHash = newSoulBackupHash;
-        agent.soulBackupURI = newSoulBackupURI;
-    }
-
     /// @notice Update agent's policy hash (after policy change)
     function updatePolicy(uint256 tokenId, bytes32 newPolicyHash) external {
         AgentINFT storage agent = agents[tokenId];
