@@ -769,8 +769,8 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 
   <div class="sidebar-bottom">
     <div id="poc-connection-slot"></div>
-    <a href="soul-vault.html" class="btn-new-agent">+ New Agent</a>
-    <a href="index.html" class="btn-home">&larr; Back to Home</a>
+    <a href="agents.html" class="btn-new-agent">+ New Agent</a>
+    <a href="index.html" class="btn-home">&#x2190; Back to Home</a>
   </div>
 </aside>
 
@@ -788,9 +788,9 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
     </div>
   </div>
   <div class="topbar-right">
-    <button id="wallet-connect-btn" class="eth-badge" style="background:transparent;cursor:pointer;" onclick="connectWalletUI()">Connect Wallet</button>
+    <button id="wallet-connect-btn" style="background:transparent;border:1px solid var(--border-cyan);color:var(--cyan);padding:5px 14px;border-radius:6px;font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:0.04em;cursor:pointer;transition:all 0.2s;" onclick="connectWalletUI()">Connect Wallet</button>
     <div id="wallet-display" style="display:none;align-items:center;gap:8px;">
-      <span id="wallet-address" style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);"></span>
+      <span id="wallet-address" style="font-family:var(--font-mono);font-size:12px;color:var(--cyan);"></span>
       <span class="status-dot" style="background:var(--green);display:inline-block;width:8px;height:8px;border-radius:50%;"></span>
     </div>
     <div class="status-badge live-badge" id="live-badge" style="display:none;">
@@ -811,10 +811,14 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 <main class="main-content" id="main-content" role="main">
 
   <!-- Setup Checklist (hidden once complete) -->
-  <div id="setup-checklist" class="card" style="display:none; margin-bottom:1.75rem; border:1px solid rgba(0,229,255,0.2); background:linear-gradient(135deg, rgba(0,229,255,0.04), rgba(179,136,255,0.04));">
+  <div id="setup-checklist" class="card" style="margin-bottom:1.75rem; border:1px solid rgba(0,229,255,0.2); background:linear-gradient(135deg, rgba(0,229,255,0.04), rgba(179,136,255,0.04));">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-      <div class="card-title" style="color:var(--cyan); margin-bottom:0;">Setup Checklist</div>
-      <span id="setup-progress" style="font-size:0.7rem; color:var(--text-dim);">0 / 5</span>
+      <div class="card-title" style="color:var(--cyan); margin-bottom:0;">&#9881; Setup Checklist</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span id="setup-progress" style="font-size:0.7rem; color:var(--text-dim);">0 / 5</span>
+        <button id="checklist-dismiss" onclick="dismissChecklist()" aria-label="Dismiss checklist"
+          style="background:transparent;border:none;color:var(--text-dim);font-size:14px;cursor:pointer;line-height:1;padding:2px 4px;" title="Dismiss">&#x2715;</button>
+      </div>
     </div>
     <div id="setup-items" style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.82rem;"></div>
   </div>
@@ -822,7 +826,7 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
   <!-- Agent Header -->
   <div class="agent-header" id="agent-header">
     <div class="agent-header-left">
-      <div class="agent-avatar" id="agent-avatar"><img src="public/icons/coordinator.svg" alt="" style="width:100%;height:100%;object-fit:contain;"></div>
+      <div class="agent-avatar" id="agent-avatar" aria-label="Agent avatar"></div>
       <div class="agent-header-info">
         <h2 id="agent-name">---</h2>
         <div class="agent-header-meta">
@@ -862,6 +866,14 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
         <span class="metric-label">Policy Hash</span>
         <span class="metric-value hash" id="metric-policy-hash">---</span>
       </div>
+      <div class="metric">
+        <span class="metric-label">Wallet Balance</span>
+        <span class="metric-value" id="metric-balance" style="color:var(--text-dim);">---</span>
+      </div>
+      <div class="metric" id="metric-live-row" style="display:none;">
+        <span class="metric-label">Connection</span>
+        <span class="metric-value" id="metric-live-label" style="color:var(--green);font-size:0.75rem;">&#11044; Live API</span>
+      </div>
       <div id="agent-url-metric" style="display:none;margin-top:12px;padding:10px;background:rgba(0,229,255,0.04);border:1px solid var(--border-cyan);border-radius:6px;">
         <div style="font-size:9px;color:var(--cyan-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Messaging URL</div>
         <div style="display:flex;gap:6px;">
@@ -876,19 +888,19 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
       <div class="card-title">Execution Stats</div>
       <div class="metric">
         <span class="metric-label">Total Actions</span>
-        <span class="metric-value" id="stat-total">0</span>
+        <span class="metric-value" id="stat-total" data-live="false">&#x2014;</span>
       </div>
       <div class="metric">
         <span class="metric-label">Autonomous</span>
-        <span class="metric-value success" id="stat-autonomous">0</span>
+        <span class="metric-value success" id="stat-autonomous" data-live="false">&#x2014;</span>
       </div>
       <div class="metric">
         <span class="metric-label">Ledger Approved</span>
-        <span class="metric-value warning" id="stat-approved">0</span>
+        <span class="metric-value warning" id="stat-approved" data-live="false">&#x2014;</span>
       </div>
       <div class="metric">
         <span class="metric-label">Policy Violations</span>
-        <span class="metric-value error" id="stat-violations">0</span>
+        <span class="metric-value error" id="stat-violations" data-live="false">&#x2014;</span>
       </div>
     </div>
 
@@ -897,15 +909,15 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
       <div class="card-title">Proof Generation</div>
       <div class="metric">
         <span class="metric-label">Proofs Generated</span>
-        <span class="metric-value" id="stat-proofs">0</span>
+        <span class="metric-value" id="stat-proofs" data-live="false">&#x2014;</span>
       </div>
       <div class="metric">
         <span class="metric-label">Verified On-Chain</span>
-        <span class="metric-value success" id="stat-verified">0</span>
+        <span class="metric-value success" id="stat-verified" data-live="false">&#x2014;</span>
       </div>
       <div class="metric">
         <span class="metric-label">Avg. Proof Time</span>
-        <span class="metric-value">~45s</span>
+        <span class="metric-value" id="stat-proof-time">&#x2014;</span>
       </div>
       <div class="metric">
         <span class="metric-label">Provider</span>
@@ -997,7 +1009,30 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
   <!-- Recent Activity -->
   <div class="activity-section">
     <div class="section-title">Recent Activity</div>
-    <ul class="activity-list" id="activity-list" aria-live="polite"></ul>
+    <ul class="activity-list" id="activity-list" aria-live="polite">
+      <li id="activity-empty" class="activity-item" style="justify-content:center;color:var(--text-dim);font-size:0.8rem;padding:1.5rem 0;cursor:default;">
+        No activity yet &mdash; connect an agent to start
+      </li>
+    </ul>
+  </div>
+
+  <!-- Bridge Modal -->
+  <div id="bridge-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;" role="dialog" aria-modal="true" aria-labelledby="bridge-modal-title">
+    <div style="background:var(--bg-card);border:1px solid var(--border-cyan);border-radius:12px;padding:1.5rem;max-width:440px;width:90%;box-shadow:0 0 40px rgba(0,229,255,0.08);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div id="bridge-modal-title" style="font-size:0.9rem;font-weight:600;color:var(--cyan);">Start Swarm Bridge</div>
+        <button onclick="closeBridgeModal()" style="background:transparent;border:none;color:var(--text-dim);font-size:1.1rem;cursor:pointer;">&times;</button>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.75rem;">Run this command in your project directory:</div>
+      <div style="display:flex;align-items:center;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 12px;">
+        <code id="bridge-cmd" style="flex:1;font-family:var(--font-mono);font-size:0.82rem;color:var(--cyan);user-select:all;">make run-swarm-bridge</code>
+        <button onclick="copyBridgeCmd()" aria-label="Copy command"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:0.75rem;color:var(--text-secondary);cursor:pointer;font-family:var(--font-mono);white-space:nowrap;">
+          Copy
+        </button>
+      </div>
+      <div style="margin-top:1rem;font-size:0.75rem;color:var(--text-dim);">The bridge enables cross-agent communication via the Swarm protocol. Health check: <code style="font-family:var(--font-mono);color:var(--cyan);">localhost:3002/health</code></div>
+    </div>
   </div>
 
   <!-- Quick Actions -->
@@ -1012,110 +1047,35 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 <script type="module" src="viem-client.js"></script>
 <script src="ledger-sdk.js?v=20260404f"></script>
 <script src="wallet.js"></script>
+<script src="nav.js"></script>
 <script src="shared.js"></script>
 <script src="poc-api.js"></script>
 <script>
-// =====================================================
-// DEFAULT MOCK AGENTS (same as agents page)
-// =====================================================
-const DEFAULT_AGENTS = [
-  {
-    id: 'alpha-sentinel',
-    name: 'alpha-sentinel',
-    type: 'coordinator',
-    icon: 'public/icons/coordinator.svg',
-    status: 'online',
-    ens: 'alpha.proofclaw.eth',
-    endpoints: 'http://localhost:4443',
-    policyHash: '0x9f3a...c4e1',
-    desc: 'Primary fleet coordinator for multi-agent orchestration',
-    skills: ['multi-agent','delegation','task-routing','typescript'],
-    spendLimit: 500,
-    tasks: 156,
-    trust: 72,
-    uptime: '99.2%'
-  },
-  {
-    id: 'defi-scout',
-    name: 'defi-scout',
-    type: 'defi-strategist',
-    icon: 'public/icons/defi-strategist.svg',
-    status: 'online',
-    ens: 'defi-scout.proofclaw.eth',
-    endpoints: 'http://localhost:4443',
-    policyHash: '0x7b2e...a8d3',
-    desc: 'DeFi market scanner and yield optimizer',
-    skills: ['defi-protocols','uniswap','aave','data-analysis'],
-    spendLimit: 100,
-    tasks: 89,
-    trust: 65,
-    uptime: '97.8%'
-  },
-  {
-    id: 'sec-auditor',
-    name: 'sec-auditor',
-    type: 'security-auditor',
-    icon: 'public/icons/security-auditor.svg',
-    status: 'busy',
-    ens: 'sec-auditor.proofclaw.eth',
-    endpoints: 'http://localhost:4443',
-    policyHash: '0x3d71...f5b9',
-    desc: 'Smart contract security auditor',
-    skills: ['solidity','security-audit','smart-contracts','slither'],
-    spendLimit: 50,
-    tasks: 42,
-    trust: 58,
-    uptime: '95.4%'
-  },
-  {
-    id: 'gov-delegate',
-    name: 'gov-delegate',
-    type: 'governance-agent',
-    icon: 'public/icons/governance-agent.svg',
-    status: 'online',
-    ens: 'gov-delegate.proofclaw.eth',
-    endpoints: 'http://localhost:4443',
-    policyHash: '0xa4f8...2c67',
-    desc: 'DAO governance participation agent',
-    skills: ['governance','dao-voting','proposals','snapshot'],
-    spendLimit: 100,
-    tasks: 31,
-    trust: 54,
-    uptime: '98.1%'
-  },
-  {
-    id: 'yield-hunter',
-    name: 'yield-hunter',
-    type: 'defi-strategist',
-    icon: 'public/icons/defi-strategist.svg',
-    status: 'offline',
-    ens: 'yield-hunter.proofclaw.eth',
-    endpoints: 'http://localhost:4443',
-    policyHash: '0x61c3...9ae4',
-    desc: 'Cross-chain yield farming specialist',
-    skills: ['yield-farming','liquidity','cross-chain','bridges'],
-    spendLimit: 200,
-    tasks: 67,
-    trust: 48,
-    uptime: '88.3%'
-  },
-  {
-    id: 'data-oracle',
-    name: 'data-oracle',
-    type: 'data-analyst',
-    icon: 'public/icons/data-analyst.svg',
-    status: 'online',
-    ens: 'data-oracle.proofclaw.eth',
-    endpoints: 'http://localhost:4443',
-    policyHash: '0x2e89...b7f0',
-    desc: 'On-chain data aggregation and analytics',
-    skills: ['data-analysis','chainlink','the-graph','sql'],
-    spendLimit: 50,
-    tasks: 203,
-    trust: 69,
-    uptime: '99.6%'
-  }
-];
+// No default mock agents — dashboard shows only real registered agents.
+// Use agents.html to create and register agents with your org.
+const DEFAULT_AGENTS = [];
+
+// One-time migration: purge stale mock alpha-sentinel data that may have been
+// saved to localStorage from a previous version of this page.
+(function purgeMockAgents() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('poc_agents'));
+    if (Array.isArray(stored)) {
+      // Known mock agent IDs from the previous DEFAULT_AGENTS list
+      const MOCK_IDS = ['alpha-sentinel','defi-scout','sec-auditor','gov-delegate','yield-hunter','data-oracle','proof-agent'];
+      const real = stored.filter(a => !MOCK_IDS.includes(a.id));
+      if (real.length !== stored.length) {
+        // Some mocks were present — purge them
+        if (real.length > 0) {
+          localStorage.setItem('poc_agents', JSON.stringify(real));
+        } else {
+          localStorage.removeItem('poc_agents');
+        }
+      }
+    }
+  } catch (_) {}
+})();
+
 
 // =====================================================
 // STATE
@@ -1137,6 +1097,14 @@ let activityTimers = [];
 // INIT
 // =====================================================
 function init() {
+  // Restore checklist visibility (respect dismiss)
+  try {
+    if (localStorage.getItem('poc_checklist_dismissed') === '1') {
+      var cl = document.getElementById('setup-checklist');
+      if (cl) cl.style.display = 'none';
+    }
+  } catch(_) {}
+
   loadAgents();
   const urlParams = new URLSearchParams(window.location.search);
   const agentId = urlParams.get('agent');
@@ -1399,12 +1367,22 @@ function updateFromStatus(status) {
   // Execution stats
   if (status.stats) {
     var st = status.stats;
+    // Mark as live so em-dash placeholders get replaced
+    ['stat-total','stat-autonomous','stat-approved','stat-violations','stat-proofs','stat-verified'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.setAttribute('data-live', 'true');
+    });
     document.getElementById('stat-total').textContent = st.total_actions || 0;
     document.getElementById('stat-autonomous').textContent = st.autonomous_actions || 0;
     document.getElementById('stat-approved').textContent = st.approved_actions || 0;
     document.getElementById('stat-violations').textContent = st.violations || 0;
     document.getElementById('stat-proofs').textContent = st.proofs_generated || 0;
     document.getElementById('stat-verified').textContent = st.proofs_verified || 0;
+    // Proof time if available
+    if (st.avg_proof_time_secs) {
+      var ptEl = document.getElementById('stat-proof-time');
+      if (ptEl) ptEl.textContent = '~' + st.avg_proof_time_secs + 's';
+    }
   }
 
   // Wallet balance
@@ -1431,6 +1409,10 @@ function updateFromActivity(actData) {
   var list = document.getElementById('activity-list');
   if (!list) return;
   list.innerHTML = '';
+
+  // Remove empty state placeholder
+  var empty = document.getElementById('activity-empty');
+  if (empty) empty.style.display = 'none';
 
   var icons = { proof: '\u27C1', message: '\u2709', approval: '\u2713' };
   var shown = items.slice(0, 12);
@@ -1497,10 +1479,10 @@ function loadAgents() {
     }
   } catch (e) {}
 
-  // Use defaults
-  agents = DEFAULT_AGENTS;
-  localStorage.setItem('poc_agents', JSON.stringify(agents));
-  if (typeof PocPersist !== 'undefined') PocPersist.savePref('poc_agents', agents);
+  // No real agents found — stay empty, show the empty state
+  agents = [];
+  // Do NOT write DEFAULT_AGENTS to localStorage.
+  // Real agents are added via poc-api.js syncLiveAgent() when you connect.
 }
 
 function populateSelector() {
@@ -1578,8 +1560,8 @@ function renderAgent() {
   const statusClass = a.status === 'online' ? '' : a.status === 'busy' ? 'busy' : 'offline';
   const statusLabel = a.status === 'online' ? 'Online' : a.status === 'busy' ? 'Busy' : 'Offline';
 
-  // Header
-  document.getElementById('agent-avatar').innerHTML = '<img src="' + (a.icon || 'public/icons/coordinator.svg') + '" alt="" style="width:100%;height:100%;object-fit:contain;">';
+  // Header — use SVG avatar generator
+  document.getElementById('agent-avatar').innerHTML = generateAvatar(a);
   document.getElementById('agent-name').textContent = a.name;
   document.getElementById('agent-ens').textContent = a.ens || a.name + '.proofofclaw.eth';
   document.getElementById('agent-type-badge').textContent = a.type || 'agent';
@@ -1632,12 +1614,16 @@ function renderAgent() {
 }
 
 function updateStats() {
-  document.getElementById('stat-total').textContent = stats.total;
-  document.getElementById('stat-autonomous').textContent = stats.autonomous;
-  document.getElementById('stat-approved').textContent = stats.approved;
-  document.getElementById('stat-violations').textContent = stats.violations;
-  document.getElementById('stat-proofs').textContent = stats.proofs;
-  document.getElementById('stat-verified').textContent = stats.verified;
+  // Only update elements that have been confirmed live (data-live=true)
+  // Elements start with data-live="false" and em-dash — don't overwrite with mock
+  var ids = ['stat-total','stat-autonomous','stat-approved','stat-violations','stat-proofs','stat-verified'];
+  var vals = [stats.total, stats.autonomous, stats.approved, stats.violations, stats.proofs, stats.verified];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el && el.getAttribute('data-live') === 'true') {
+      el.textContent = vals[i];
+    }
+  }
 }
 
 function copyDashUrl() {
@@ -1691,44 +1677,167 @@ function addActivity(type, title, description) {
   }
 }
 
+// seedActivity — no-op when not live; real data comes from /api/activity poll
 function seedActivity() {
-  const a = currentAgent;
-  const ens = a.ens || a.name + '.proofofclaw.eth';
-  addActivity('proof', 'Proof Generated', 'Swap 100 USDC \u2192 ETH \u2022 Autonomous \u2022 2 min ago');
-  addActivity('message', 'DM3 Message Received', 'From bob.proofofclaw.eth \u2022 5 min ago');
-  addActivity('approval', 'Ledger Approval Granted', 'Transfer 500 USDC \u2022 10 min ago');
-  addActivity('proof', 'Proof Verified On-Chain', 'Query balance \u2022 Autonomous \u2022 18 min ago');
-  addActivity('message', 'DM3 Message Sent', 'To ' + ens + ' \u2022 25 min ago');
+  // Intentionally empty — activity is populated by startLivePolling() / updateFromActivity()
+  // when a live agent is connected. Show the empty state placeholder instead.
+  const empty = document.getElementById('activity-empty');
+  if (empty) empty.style.display = '';
 }
 
 // scheduleSimulations — Ledger card is always visible (state machine drives it)
 // No mock timers for pending approval; proof/message activity timers below remain.
 function scheduleSimulations() {
+  // No mock timers. Ledger card is the default prompt.
+  // Pending block appears only after connect + pending action arrives.
+}
 
-  // Add proof activity after 8 seconds
-  activityTimers.push(setTimeout(function() {
-    addActivity('proof', 'Proof Generated', 'Query token balance \u2022 Autonomous \u2022 Just now');
-    stats.proofs++;
-    stats.verified++;
-    stats.autonomous++;
-    stats.total++;
-    updateStats();
-  }, 8000));
 
-  // Add message activity after 15 seconds
-  activityTimers.push(setTimeout(function() {
-    addActivity('message', 'DM3 Message Received', 'From alpha.proofofclaw.eth \u2022 Just now');
-  }, 15000));
+// =====================================================
+// LEDGER STATE (dashboard inline signing)
+// =====================================================
+var _dashEthApp      = null;   // hw-app-eth instance
+var _dashLedgerAddr  = null;   // checksummed address from device
+var _dashTransport   = null;   // kept alive across retries
+var _dashLedgerSim   = false;  // true when WebHID unavailable
+var _dashSignAction  = null;   // action object being signed
 
-  // Add another proof after 22 seconds
-  activityTimers.push(setTimeout(function() {
-    addActivity('proof', 'Proof Verified On-Chain', 'Swap 50 USDC \u2192 DAI \u2022 Autonomous \u2022 Just now');
-    stats.proofs++;
-    stats.verified++;
-    stats.autonomous++;
-    stats.total++;
-    updateStats();
-  }, 22000));
+const DASH_DERIVE_PATH = "44'/60'/0'/0/0";
+const DASH_EIP712_DOMAIN = { name: 'ProofOfClaw', version: '1', chainId: 11155111 };
+const DASH_EIP712_TYPES = {
+  ApprovalAction: [
+    { name: 'description', type: 'string' },
+    { name: 'value_wei',   type: 'uint64' },
+    { name: 'nonce',       type: 'uint64' },
+    { name: 'timestamp',   type: 'uint64' },
+  ],
+};
+
+// ─── State machine ──────────────────────────────────────────────────────────
+// 'card'    → Ledger not connected: full-width upgrade CTA (default)
+// 'idle'    → Ledger connected, no pending: compact green status bar
+// 'pending' → Ledger connected, has pending: amber approval block
+function dashLedgerSetState(state) {
+  var card    = document.getElementById('dash-ledger-card');
+  var idleBar = document.getElementById('dash-ledger-idle');
+  var pending = document.getElementById('pending-section');
+
+  // Hide all, then show the right one
+  if (card)    card.style.display    = 'none';
+  if (idleBar) idleBar.style.display = 'none';
+  if (pending) pending.style.display = 'none';
+
+  if (state === 'card') {
+    if (card) card.style.display = 'flex';
+  } else if (state === 'idle') {
+    if (idleBar) idleBar.style.display = 'flex';
+    // Populate address in idle bar
+    var addrEl = document.getElementById('dash-lmeta-idle-addr');
+    if (addrEl && _dashLedgerAddr) {
+      addrEl.textContent = _dashLedgerAddr.slice(0, 8) + '\u2026' + _dashLedgerAddr.slice(-4);
+    }
+  } else if (state === 'pending') {
+    if (pending) pending.style.display = 'block';
+  }
+}
+
+// ─── Ledger connection ───────────────────────────────────────────────────────
+async function dashConnectLedger() {
+  var btn = document.getElementById('dash-ledger-connect-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
+
+  var SDK  = window.LedgerSDK;
+  var THID = SDK && SDK.TransportWebHID;
+  var Eth  = SDK && SDK.Eth;
+
+  // Card: update icon to show connecting
+  var icon = document.getElementById('dash-ledger-icon');
+  if (icon) icon.textContent = '\u23F3';
+
+  if (!navigator.hid || !THID) {
+    // No WebHID — simulated
+    await new Promise(function(r) { setTimeout(r, 900); });
+    _dashEthApp = null;
+    _dashLedgerAddr = '0xSimulated000000000000000000000000000deadbeef';
+    _dashLedgerSim = true;
+    _dashOnLedgerConnected('Ledger (Simulated)', _dashLedgerAddr, true);
+    return;
+  }
+
+  try {
+    var transport = _dashTransport;
+    if (!transport) {
+      var permitted = await THID.list();
+      transport = permitted.length > 0
+        ? await THID.open(permitted[0])
+        : await THID.request();
+      _dashTransport = transport;
+    }
+    var eth = new Eth(transport);
+    var res = await eth.getAddress(DASH_DERIVE_PATH, false, false);
+    _dashEthApp = eth;
+    _dashLedgerAddr = res.address;
+    _dashLedgerSim = false;
+    var dev = (transport.device && transport.device.productName) || 'Ledger Device';
+    _dashOnLedgerConnected(dev, res.address, false);
+
+  } catch(err) {
+    var emsg = (err && err.message) || String(err);
+    if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDD17 Connect Ledger'; }
+    if (icon) icon.textContent = '\uD83D\uDD12';
+
+    var descEl = document.getElementById('dash-ledger-desc');
+    if (emsg.toLowerCase().includes('cancel') || emsg.toLowerCase().includes('no device')) {
+      _dashTransport = null;
+      if (descEl) descEl.textContent = 'Connection cancelled. Click Connect Ledger to try again.';
+      return;
+    }
+    if (emsg.includes('0x5515') || emsg.toLowerCase().includes('locked')) {
+      if (descEl) descEl.textContent = '\u26A0\uFE0F Device locked. Unlock with PIN, then click Connect Ledger again.';
+    } else if (emsg.includes('0x6d00') || emsg.includes('0x6e00') || emsg.toLowerCase().includes('ethereum app')) {
+      if (descEl) descEl.textContent = '\u26A0\uFE0F Open the Ethereum app on your Ledger, then click Connect Ledger again.';
+    } else {
+      if (descEl) descEl.textContent = '\u26A0\uFE0F Error: ' + emsg.slice(0, 100);
+    }
+    console.error('Dash Ledger connect:', err);
+    _dashTransport = null;
+  }
+}
+
+function _dashOnLedgerConnected(deviceName, address, isSimulated) {
+  // Update the card to connected state (briefly shown, then transitions to idle)
+  var card   = document.getElementById('dash-ledger-card');
+  var icon   = document.getElementById('dash-ledger-icon');
+  var title  = document.getElementById('dash-ledger-title');
+  var desc   = document.getElementById('dash-ledger-desc');
+  var meta   = document.getElementById('dash-ledger-meta');
+  var btn    = document.getElementById('dash-ledger-connect-btn');
+
+  if (card)  card.classList.add('connected');
+  if (icon)  icon.textContent = '\uD83D\uDD13';
+  if (title) title.textContent = 'Ledger Connected' + (isSimulated ? ' (Simulated)' : '');
+  if (desc)  desc.textContent  = 'Hardware wallet active. High-value actions will require your signature.';
+  if (meta)  meta.style.display = 'flex';
+  var devEl = document.getElementById('dash-lmeta-device');
+  var addrEl = document.getElementById('dash-lmeta-address');
+  if (devEl)  devEl.textContent  = deviceName;
+  if (addrEl) addrEl.textContent = address;
+  if (btn) {
+    btn.textContent = '\u2714 Connected';
+    btn.className   = 'btn-ledger disconnect';
+    btn.style.cursor = 'default';
+    btn.disabled = true;
+  }
+
+  // Transition to idle state after 1.5 s (card fades out, compact bar appears)
+  setTimeout(function() {
+    dashLedgerSetState('idle');
+  }, 1500);
+
+  // Log to activity feed
+  addActivity('approval', 'Ledger Connected',
+    (isSimulated ? 'Simulated mode' : deviceName) + ' \u2022 ' +
+    address.slice(0, 8) + '\u2026' + address.slice(-4));
 }
 
 // =====================================================
@@ -2050,13 +2159,134 @@ function rejectAction() {
 // =====================================================
 // EMPTY STATE
 // =====================================================
+// =====================================================
+// AVATAR GENERATOR
+// =====================================================
+function generateAvatar(agent) {
+  // If agent has a valid SVG icon path, use it
+  if (agent.icon && agent.icon.endsWith('.svg')) {
+    return '<img src="' + agent.icon + '" alt="" style="width:100%;height:100%;object-fit:contain;" ' +
+           'onerror="this.parentNode.innerHTML=generateAvatarSVG(\'' + (agent.id || 'a') + '\')">';
+  }
+  return generateAvatarSVG(agent.id || agent.name || 'agent');
+}
+
+function generateAvatarSVG(id) {
+  // Deterministic color from id hash
+  var hash = 0;
+  for (var i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  var hue = Math.abs(hash) % 360;
+  var letters = id.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || id.slice(0, 2).toUpperCase();
+  var bg = 'hsl(' + hue + ',55%,18%)';
+  var fg = 'hsl(' + hue + ',80%,65%)';
+  var border = 'hsl(' + hue + ',60%,35%)';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 48 48">' +
+    '<rect width="48" height="48" rx="10" fill="' + bg + '" stroke="' + border + '" stroke-width="1.5"/>' +
+    '<text x="24" y="31" text-anchor="middle" font-family="monospace" font-size="16" font-weight="700" fill="' + fg + '">' + letters + '</text>' +
+    '</svg>';
+}
+
+// =====================================================
+// CHECKLIST & MODAL HELPERS
+// =====================================================
+function dismissChecklist() {
+  var wrapper = document.getElementById('setup-checklist');
+  if (wrapper) {
+    wrapper.style.transition = 'opacity 0.3s';
+    wrapper.style.opacity = '0';
+    setTimeout(function() { wrapper.style.display = 'none'; }, 300);
+  }
+  try { localStorage.setItem('poc_checklist_dismissed', '1'); } catch(_) {}
+}
+
+function openBridgeModal() {
+  var m = document.getElementById('bridge-modal');
+  if (m) { m.style.display = 'flex'; }
+}
+
+function closeBridgeModal() {
+  var m = document.getElementById('bridge-modal');
+  if (m) { m.style.display = 'none'; }
+}
+
+function openDM3Modal() {
+  var m = document.getElementById('bridge-modal');
+  var title = document.getElementById('bridge-modal-title');
+  var cmd = document.getElementById('bridge-cmd');
+  if (title) title.textContent = 'Start DM3 Delivery Service';
+  if (cmd) cmd.textContent = 'make run-delivery-service';
+  if (m) m.style.display = 'flex';
+}
+
+function copyBridgeCmd() {
+  var cmd = document.getElementById('bridge-cmd');
+  if (cmd) {
+    navigator.clipboard.writeText(cmd.textContent).then(function() {
+      var btn = cmd.nextElementSibling;
+      if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 1500); }
+    }).catch(function() {
+      // Fallback: select text
+      var range = document.createRange();
+      range.selectNode(cmd);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+    });
+  }
+}
+
+function updateBalance(weiStr) {
+  var el = document.getElementById('metric-balance');
+  if (!el) return;
+  if (!weiStr || weiStr === '0' || weiStr === '') {
+    el.textContent = '0.000 ETH';
+    el.style.color = 'var(--error)';
+    return;
+  }
+  try {
+    var eth = parseFloat(weiStr) / 1e18;
+    var display = eth.toFixed(4) + ' ETH';
+    el.textContent = display;
+    el.style.color = eth < 0.01 ? 'var(--error)' : eth < 0.1 ? 'var(--amber)' : 'var(--green)';
+  } catch(_) {
+    el.textContent = '---';
+    el.style.color = 'var(--text-dim)';
+  }
+}
+
+// =====================================================
+// SHOW EMPTY STATE
+// =====================================================
 function showEmptyState() {
-  document.getElementById('main-content').innerHTML =
-    '<div class="empty-state">' +
-      '<div class="icon">\u27C1</div>' +
-      '<p>No agents found. Deploy an agent first.</p>' +
-      '<a href="agents.html" class="btn btn-primary" style="margin-top: 1rem;">Go to Agents</a>' +
-    '</div>';
+  const main = document.getElementById('main-content');
+  if (!main) return;
+  main.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:1.5rem;padding:2rem;">
+      <div style="font-size:3rem;opacity:0.3;">⟁</div>
+      <div>
+        <h2 style="font-family:var(--font-display,Syne,sans-serif);font-size:1.4rem;font-weight:700;color:var(--text-primary,#e8ecf4);margin:0 0 0.5rem;">No agents connected</h2>
+        <p style="color:var(--text-secondary,#8892a4);font-size:0.9rem;line-height:1.6;max-width:420px;margin:0 auto;">
+          The dashboard shows live data from your registered agents.<br>
+          Connect a running agent to see its status, activity, and proofs here.
+        </p>
+      </div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;">
+        <button
+          onclick="typeof PocAPI !== 'undefined' && PocAPI.showConnectModal()"
+          style="padding:10px 22px;background:var(--cyan,#00e5ff);color:#06080d;border:none;border-radius:8px;font-family:var(--font-mono,'JetBrains Mono',monospace);font-weight:700;font-size:13px;cursor:pointer;letter-spacing:0.04em;transition:all 0.2s;"
+          onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          ⚡ Connect Live Agent
+        </button>
+        <a href="agents.html"
+          style="padding:10px 22px;background:transparent;color:var(--text-secondary,#8892a4);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:13px;cursor:pointer;text-decoration:none;transition:all 0.2s;"
+          onmouseover="this.style.borderColor='rgba(255,255,255,0.2)';this.style.color='var(--text-primary,#e8ecf4)'"
+          onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='var(--text-secondary,#8892a4)'">
+          Manage Agents →
+        </a>
+      </div>
+      <p style="color:var(--text-dim,#4a5568);font-size:0.75rem;font-family:var(--font-mono,'JetBrains Mono',monospace);">
+        Start your agent: <code style="color:var(--cyan,#00e5ff);background:rgba(0,229,255,0.06);padding:2px 6px;border-radius:3px;">cargo run -- --port 8420</code>
+      </p>
+    </div>`;
 }
 
 // =====================================================
@@ -2110,7 +2340,7 @@ function runSetupChecklist() {
           .catch(function() { return false; });
       },
       actionLabel: 'Start Bridge',
-      action: 'alert("Run: make run-swarm-bridge")'
+      action: 'openBridgeModal()'
     },
     {
       id: 'dm3',
@@ -2122,7 +2352,7 @@ function runSetupChecklist() {
           .catch(function() { return false; });
       },
       actionLabel: 'Start DM3',
-      action: 'alert("Run: make run-delivery-service")'
+      action: 'openDM3Modal()'
     }
   ];
 

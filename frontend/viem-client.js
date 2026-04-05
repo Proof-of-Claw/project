@@ -5,7 +5,7 @@
 
 // Import viem from CDN (ES modules)
 import { createPublicClient, createWalletClient, custom, http, parseAbi, encodePacked, keccak256, stringToBytes } from 'https://esm.sh/viem@2.21.44';
-import { privateKeyToAccount } from 'https://esm.sh/viem@2.21.44/accounts';
+import { privateKeyToAccount } from 'https://esm.sh/viem@2.21.44/_esm/accounts/privateKeyToAccount.js';
 import { mainnet, sepolia } from 'https://esm.sh/viem@2.21.44/chains';
 import { CONTRACT_ADDRESSES, ZERO_G_CONFIG } from './env-config.js';
 
