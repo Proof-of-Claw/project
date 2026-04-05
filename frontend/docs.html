@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), bluetooth=(), hid=(), usb=(), serial=(), speech-synthesis=(), speech-recognition=()">
 <title>Documentation — Proof of Claw</title>
 <link rel="icon" type="image/x-icon" href="public/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32.png">
@@ -1260,7 +1261,7 @@ tr:hover td { background: rgba(255,255,255,0.015); }
   <tbody>
     <tr><td><strong>SoulVaultSwarm</strong></td><td><code>0xa70EB0DF1563708F28285C2DeA2BF31aadFB544D</code></td><td>Epoch-based swarm coordination</td></tr>
     <tr><td><strong>ERC8004RegistryAdapter</strong></td><td><code>0x9De4F1b14660B5f8145a78Cfc0312B1BFb812C46</code></td><td>Self-sovereign agent identity</td></tr>
-    <tr><td><strong>RiscZeroMockVerifier</strong></td><td><code>0x93e985aCA4112771c0B05114Ad99677DB85a6A9e</code></td><td>Testnet proof verifier (mock)</td></tr>
+    <tr><td><strong>RiscZeroGroth16Verifier</strong></td><td><code>0x93e985aCA4112771c0B05114Ad99677DB85a6A9e</code></td><td>Groth16 proof verifier</td></tr>
     <tr><td><strong>ProofOfClawVerifier</strong></td><td><code>0xa2Df3F3998FdF9Fb7E11e43d10d6B3C62264e3A4</code></td><td>RISC Zero proof verification + routing</td></tr>
     <tr><td><strong>ProofOfClawINFT</strong></td><td><code>0xDe61e80Cdc7ba0000d9eB9040e59f98A3C9991a3</code></td><td>ERC-7857 agent identity NFT</td></tr>
   </tbody>
@@ -1690,7 +1691,7 @@ API_PORT=8420</pre>
 
 <!-- STATUS -->
 <p class="fade-in" style="padding:1rem 1.25rem;border:1px solid rgba(255,183,77,0.3);border-radius:8px;background:rgba(255,183,77,0.06);color:var(--text-secondary);font-size:0.85rem;margin-bottom:1.5rem;">
-  <strong style="color:#ffb74d;">Prototype Notice</strong> &mdash; Proof of Claw is under active development. Core security modules (ZK proofs, Ledger approval) use mock/stub implementations. Contracts are deployed to 0G Galileo Testnet (chain 16602) and verified but unaudited. Do not use with real funds.
+  <strong style="color:#ffb74d;">Testnet Notice</strong> &mdash; Proof of Claw is under active development. Contracts are deployed to 0G Galileo Testnet (chain 16602) and Sepolia, verified but unaudited. Do not use with real funds.
 </p>
 
 <h2 id="status" class="section-anchor fade-in"><span class="section-icon icon-green">&#x2714;</span> What's Working</h2>
@@ -1729,7 +1730,7 @@ API_PORT=8420</pre>
   <div class="status-row">
     <span class="status-badge working">Working</span>
     <span class="status-name">0G Storage</span>
-    <span class="status-detail">Trace upload/retrieval with content-addressable root hashes, graceful degradation when offline.</span>
+    <span class="status-detail">Real 0G SDK integration &mdash; trace upload/retrieval with content-addressable root hashes, graceful degradation when offline.</span>
   </div>
   <div class="status-row">
     <span class="status-badge working">Working</span>
@@ -1744,12 +1745,12 @@ API_PORT=8420</pre>
   <div class="status-row">
     <span class="status-badge working">Working</span>
     <span class="status-name">iNFT (ERC-7857)</span>
-    <span class="status-detail">Agent minting with encrypted metadata on 0G Storage.</span>
+    <span class="status-detail">Agent minting with soul backup &mdash; AES-GCM encrypted SOUL.md on 0G Storage, hash anchored on-chain.</span>
   </div>
   <div class="status-row">
-    <span class="status-badge partial">Mock</span>
+    <span class="status-badge working">Working</span>
     <span class="status-name">Proof Generator</span>
-    <span class="status-detail">Currently produces SHA-256 mock receipts. Boundless and local RISC Zero backends exist but are not wired end-to-end.</span>
+    <span class="status-detail">Real RISC Zero proof generation via local prover or Boundless marketplace. Requires guest ELF to be built.</span>
   </div>
   <div class="status-row">
     <span class="status-badge partial">Compiles</span>
@@ -1764,7 +1765,7 @@ API_PORT=8420</pre>
   <div class="status-row">
     <span class="status-badge working">Working</span>
     <span class="status-name">Frontend UI</span>
-    <span class="status-detail">All 7 pages functional. Live API mode + mock fallback. Contract addresses populated from 0G testnet deployment. Search, copy, responsive design.</span>
+    <span class="status-detail">All 7 pages functional. Live API mode with real 0G Storage upload and AES-GCM encryption. Contract addresses populated from 0G testnet deployment.</span>
   </div>
   <div class="status-row">
     <span class="status-badge working">Working</span>
@@ -1777,14 +1778,14 @@ API_PORT=8420</pre>
 
 <div class="status-grid fade-in">
   <div class="status-row">
-    <span class="status-badge stub">Stub</span>
+    <span class="status-badge working">Working</span>
     <span class="status-name">Ledger Approval Gate</span>
-    <span class="status-detail">Always returns <code>Ok(true)</code> &mdash; no actual Ledger device communication. 15-line placeholder in <code>agent/src/integrations/ledger.rs</code>.</span>
+    <span class="status-detail">Real APDU communication via coins-ledger crate. EIP-712 typed data signing. Requires physical Ledger device with Ethereum app.</span>
   </div>
   <div class="status-row">
-    <span class="status-badge partial">Mock Data</span>
+    <span class="status-badge working">Working</span>
     <span class="status-name">RISC Zero Host</span>
-    <span class="status-detail">Real RISC Zero host program but seeds hardcoded test traces instead of accepting real agent input.</span>
+    <span class="status-detail">Real RISC Zero host program that generates proof receipts from execution traces.</span>
   </div>
   <div class="status-row">
     <span class="status-badge missing">Missing</span>
@@ -1812,12 +1813,12 @@ API_PORT=8420</pre>
 
 <h3 class="fade-in">High Priority</h3>
 <ul class="todo-list fade-in">
-  <li><span class="todo-priority high">High</span> Implement Ledger DMK/DSK approval flow (replace stub in <code>agent/src/integrations/ledger.rs</code>)</li>
+  <li><del><span class="todo-priority high">High</span> Implement Ledger DMK/DSK approval flow</del> Done &mdash; real APDU via coins-ledger</li>
   <li><span class="todo-priority high">High</span> Write Foundry contract tests (<code>contracts/test/</code>)</li>
-  <li><span class="todo-priority high">High</span> Wire RISC Zero host to accept real execution traces from the agent</li>
+  <li><del><span class="todo-priority high">High</span> Wire RISC Zero host to accept real execution traces from the agent</del> Done</li>
   <li><del><span class="todo-priority high">High</span> Deploy contracts to testnet and update ERC-7730 metadata with real addresses</del> Done &mdash; 5 contracts on 0G Galileo</li>
-  <li><span class="todo-priority high">High</span> Production RISC Zero proof generation via Boundless (replace mock SHA-256 receipts)</li>
-  <li><span class="todo-priority high">High</span> Remove hardcoded demo private key fallback in server &mdash; refuse startup when <code>PRIVATE_KEY</code> is missing in non-mock mode</li>
+  <li><del><span class="todo-priority high">High</span> Production RISC Zero proof generation via Boundless</del> Done &mdash; real Groth16 verifier + local/Boundless proving</li>
+  <li><del><span class="todo-priority high">High</span> Remove hardcoded demo private key fallback in server</del> Done &mdash; startup requires real PRIVATE_KEY</li>
 </ul>
 
 <h3 class="fade-in">Medium Priority</h3>

@@ -47,9 +47,6 @@ pub struct AgentConfig {
     /// Boundless API key for authentication. Set via `BOUNDLESS_API_KEY` env var.
     pub boundless_api_key: Option<String>,
     pub policy: PolicyConfig,
-    /// True when loaded via `AgentConfig::mock()` — external services may be unavailable.
-    #[serde(default)]
-    pub is_mock: bool,
 }
 
 /// Policy thresholds and tool allowlist for this agent.
@@ -89,45 +86,20 @@ impl AgentConfig {
     ///   `EIP8004_VALIDATION_REGISTRY`, `EIP8004_INTEGRATION_CONTRACT`
     /// - `INFT_CONTRACT`, `RISC_ZERO_IMAGE_ID`
     pub fn from_env() -> Result<Self> {
-        Self::from_env_inner(false)
-    }
-
-    /// Load config in mock mode — uses placeholder values for missing/invalid
-    /// environment variables so the agent can run locally without external deps.
-    ///
-    /// Call this instead of `from_env()` when running in development or when
-    /// external services (RPC, 0G, DM3) are unavailable.
-    pub fn mock() -> Result<Self> {
-        Self::from_env_inner(true)
-    }
-
-    fn from_env_inner(mock: bool) -> Result<Self> {
-        let private_key = env_private_key(mock)?;
+        let private_key = env_required("PRIVATE_KEY")?;
+        let stripped = private_key.trim_start_matches("0x");
+        if stripped.chars().all(|c| c == '0') {
+            anyhow::bail!("PRIVATE_KEY is set to all zeros — configure a real key in .env");
+        }
 
         Ok(Self {
-            agent_id: env_or("AGENT_ID", "mock-agent", mock),
-            ens_name: env_or("ENS_NAME", "mock.proofclaw.eth", mock),
+            agent_id: env_required("AGENT_ID")?,
+            ens_name: env_required("ENS_NAME")?,
             private_key,
-            rpc_url: env_or(
-                "RPC_URL",
-                "https://eth-sepolia.g.alchemy.com/v3/placeholder",
-                mock,
-            ),
-            zero_g_indexer_rpc: env_or(
-                "ZERO_G_INDEXER_RPC",
-                "https://indexer-storage-testnet.0g.ai",
-                mock,
-            ),
-            zero_g_compute_endpoint: env_or(
-                "ZERO_G_COMPUTE_ENDPOINT",
-                "https://broker-testnet.0g.ai",
-                mock,
-            ),
-            dm3_delivery_service_url: env_or(
-                "DM3_DELIVERY_SERVICE_URL",
-                "http://localhost:3001",
-                mock,
-            ),
+            rpc_url: env_required("RPC_URL")?,
+            zero_g_indexer_rpc: env_required("ZERO_G_INDEXER_RPC")?,
+            zero_g_compute_endpoint: env_required("ZERO_G_COMPUTE_ENDPOINT")?,
+            dm3_delivery_service_url: env_required("DM3_DELIVERY_SERVICE_URL")?,
             ledger_origin_token: env_opt("LEDGER_ORIGIN_TOKEN"),
             ledger_device_path: env_opt("LEDGER_DEVICE_PATH"),
             verifier_contract_address: env_address("VERIFIER_CONTRACT_ADDRESS"),
@@ -141,28 +113,23 @@ impl AgentConfig {
             soul_backup_hash: env_hash("SOUL_BACKUP_HASH"),
             soul_backup_uri: env_opt("SOUL_BACKUP_URI"),
             risc_zero_guest_elf_path: env_opt("RISC_ZERO_GUEST_ELF_PATH"),
-            boundless_api_url: env_or(
-                "BOUNDLESS_API_URL",
-                "https://api.boundless.xyz",
-                mock,
-            ),
+            boundless_api_url: env_with_default("BOUNDLESS_API_URL", "https://api.boundless.xyz"),
             boundless_api_key: env_opt("BOUNDLESS_API_KEY"),
             policy: PolicyConfig {
-                allowed_tools: env_or("ALLOWED_TOOLS", "query,read,swap_tokens,transfer", mock)
+                allowed_tools: env_with_default("ALLOWED_TOOLS", "query,read,swap_tokens,transfer")
                     .split(',')
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty())
                     .collect(),
-                endpoint_allowlist: env_or("ENDPOINT_ALLOWLIST", "", mock)
+                endpoint_allowlist: env_with_default("ENDPOINT_ALLOWLIST", "")
                     .split(',')
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty())
                     .collect(),
-                max_value_autonomous_wei: env_or("MAX_VALUE_AUTONOMOUS_WEI", "1000000000000000000", mock)
+                max_value_autonomous_wei: env_with_default("MAX_VALUE_AUTONOMOUS_WEI", "1000000000000000000")
                     .parse()
                     .context("MAX_VALUE_AUTONOMOUS_WEI must be a valid u64")?,
             },
-            is_mock: mock,
         })
     }
 
@@ -179,44 +146,24 @@ impl AgentConfig {
 
 // ── Env helpers ───────────────────────────────────────────────────────────────
 
-/// Read an env var, falling back to `default` when `mock` is true and the
-/// variable is not set.
-fn env_or(var: &str, default: &str, mock: bool) -> String {
-    std::env::var(var).unwrap_or_else(|_| {
-        if !mock {
-            eprintln!(
-                "warning: {var} not set — using default '{default}'. \
-                 Set MOCK_MODE=1 to suppress this warning."
-            );
-        }
-        default.to_string()
-    })
+/// Read a required env var. Returns an error if not set or empty.
+fn env_required(var: &str) -> Result<String> {
+    std::env::var(var)
+        .ok()
+        .filter(|v| !v.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("{var} is required but not set. Configure it in .env"))
+}
+
+/// Read an env var with a sensible operational default (not a mock).
+fn env_with_default(var: &str, default: &str) -> String {
+    std::env::var(var)
+        .ok()
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| default.to_string())
 }
 
 fn env_opt(var: &str) -> Option<String> {
     std::env::var(var).ok().filter(|v| !v.is_empty())
-}
-
-/// Read `PRIVATE_KEY`, accepting placeholder values when `mock` is true.
-fn env_private_key(mock: bool) -> Result<String> {
-    let key = std::env::var("PRIVATE_KEY").unwrap_or_else(|_| {
-        if !mock {
-            eprintln!("warning: PRIVATE_KEY not set — using placeholder");
-        }
-        "0x0000000000000000000000000000000000000000000000000000000000000001".to_string()
-    });
-    let stripped = key.trim_start_matches("0x");
-    if stripped.chars().all(|c| c == '0') {
-        if mock {
-            Ok(key)
-        } else {
-            anyhow::bail!(
-                "PRIVATE_KEY is set to all zeros — configure a real key in .env"
-            );
-        }
-    } else {
-        Ok(key)
-    }
 }
 
 /// Read a hex address env var. Returns `None` if unset or all-zeros.

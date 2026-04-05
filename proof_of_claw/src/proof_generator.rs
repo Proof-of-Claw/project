@@ -12,7 +12,6 @@ use crate::types::{ExecutionTrace, ProofReceipt, VerifiedOutput};
 use anyhow::{Context, Result};
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 // ── ZkVM-compatible types ──────────────────────────────────────────────────
 // These mirror the types in zkvm/guest/src/main.rs which use [u8; 32] arrays
@@ -215,17 +214,13 @@ impl ProofGenerator {
         } else {
             let default_path =
                 "zkvm/target/riscv32im-risc0-zkvm-elf/release/proof-of-claw-guest";
-            match std::fs::read(default_path) {
-                Ok(elf) => Ok(elf),
-                Err(_) => {
-                    tracing::warn!(
-                        "Guest ELF not found at default path ({default_path}). \
-                         Local proving will fall back to mock. \
-                         Set RISC_ZERO_GUEST_ELF_PATH or build the guest first."
-                    );
-                    Ok(Vec::new())
-                }
-            }
+            std::fs::read(default_path).with_context(|| {
+                format!(
+                    "Guest ELF not found at default path ({default_path}). \
+                     Build the guest first: cd zkvm && cargo risczero build --release, \
+                     or set RISC_ZERO_GUEST_ELF_PATH."
+                )
+            })
         }
     }
 
@@ -243,8 +238,10 @@ impl ProofGenerator {
         tracing::info!("Generating proof via local RISC Zero prover");
 
         if self.guest_elf.is_empty() {
-            tracing::warn!("No guest ELF loaded — falling back to mock proof");
-            return self.generate_mock_proof(trace);
+            anyhow::bail!(
+                "Guest ELF not loaded — cannot generate proof. \
+                 Build the guest program first or set RISC_ZERO_GUEST_ELF_PATH."
+            );
         }
 
         let zk_trace = convert_trace(trace);
@@ -397,79 +394,26 @@ impl ProofGenerator {
         self.generate_proof_local(trace).await
     }
 
-    /// Mock proof generation using SHA-256 (fallback when guest ELF is unavailable).
-    fn generate_mock_proof(&self, trace: &ExecutionTrace) -> Result<ProofReceipt> {
-        let verified_output = self.compute_verified_output(trace)?;
-        let journal = serde_json::to_vec(&verified_output)?;
-
-        let mut h = Sha256::new();
-        h.update(&journal);
-        let seal = h.finalize().to_vec();
-
-        Ok(ProofReceipt {
-            journal,
-            seal,
-            image_id: self.image_id.clone(),
-        })
-    }
-
-    /// Compute the verified outputs that go into the proof journal (mock path).
-    fn compute_verified_output(&self, trace: &ExecutionTrace) -> Result<VerifiedOutput> {
-        let all_checks_passed = trace
-            .policy_check_results
-            .iter()
-            .all(|r| !matches!(r.severity, crate::types::PolicySeverity::Block));
-
-        let action_value: u64 = trace
-            .tool_invocations
-            .iter()
-            .filter(|inv| inv.tool_name.contains("swap") || inv.tool_name.contains("transfer"))
-            .map(|_| 1_000_000_000_000_000_000u64)
-            .sum();
-
-        let requires_ledger_approval = action_value > 1_000_000_000_000_000_000;
-
-        let mut h = Sha256::new();
-        h.update(trace.agent_id.as_bytes());
-        let policy_hash = format!("0x{}", hex::encode(h.finalize()));
-
-        Ok(VerifiedOutput {
-            agent_id: trace.agent_id.clone(),
-            policy_hash,
-            output_commitment: trace.output_commitment.clone(),
-            all_checks_passed,
-            requires_ledger_approval,
-            action_value,
-        })
-    }
-
-    /// Verify a proof receipt.
-    ///
-    /// When a real receipt is available, deserializes and verifies it via RISC Zero.
-    /// Falls back to JSON journal decoding for mock receipts.
+    /// Verify a proof receipt by deserializing and verifying via RISC Zero.
     pub fn verify_receipt(&self, receipt: &ProofReceipt) -> Result<VerifiedOutput> {
-        // Try to deserialize as a real RISC Zero receipt first
-        if let Ok(real_receipt) = bincode::deserialize::<risc0_zkvm::Receipt>(&receipt.seal) {
-            // Verify the receipt cryptographically if we have an image ID
-            if !self.image_id.is_empty() {
-                let image_id_bytes = hex_to_bytes32(&self.image_id);
-                let digest = risc0_zkvm::sha::Digest::from(image_id_bytes);
-                real_receipt
-                    .verify(digest)
-                    .context("RISC Zero receipt verification failed")?;
-            }
+        let real_receipt: risc0_zkvm::Receipt = bincode::deserialize(&receipt.seal)
+            .context("failed to deserialize proof receipt — not a valid RISC Zero receipt")?;
 
-            // Decode the journal as ZkVerifiedOutput
-            let zk_output: ZkVerifiedOutput = real_receipt
-                .journal
-                .decode()
-                .context("failed to decode journal")?;
-            return Ok(convert_verified_output(&zk_output));
+        // Verify the receipt cryptographically if we have an image ID
+        if !self.image_id.is_empty() {
+            let image_id_bytes = hex_to_bytes32(&self.image_id);
+            let digest = risc0_zkvm::sha::Digest::from(image_id_bytes);
+            real_receipt
+                .verify(digest)
+                .context("RISC Zero receipt verification failed")?;
         }
 
-        // Fall back to mock journal format (JSON-encoded VerifiedOutput)
-        let output: VerifiedOutput = serde_json::from_slice(&receipt.journal)?;
-        Ok(output)
+        // Decode the journal as ZkVerifiedOutput
+        let zk_output: ZkVerifiedOutput = real_receipt
+            .journal
+            .decode()
+            .context("failed to decode journal")?;
+        Ok(convert_verified_output(&zk_output))
     }
 }
 
@@ -507,47 +451,27 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_proof_generation() {
-        let gen = ProofGenerator::new(true, test_image_id());
-        let receipt = gen.generate_proof(&test_trace()).await.unwrap();
-        assert!(!receipt.journal.is_empty());
-        assert!(!receipt.seal.is_empty());
-        assert_eq!(receipt.image_id, test_image_id());
-    }
-
-    #[tokio::test]
-    async fn test_verify_receipt() {
-        let gen = ProofGenerator::new(true, test_image_id());
-        let receipt = gen.generate_proof(&test_trace()).await.unwrap();
-        let verified = gen.verify_receipt(&receipt).unwrap();
-        assert_eq!(verified.agent_id, "test-agent");
-        assert!(verified.all_checks_passed);
-    }
-
-    #[tokio::test]
-    async fn test_ledger_approval_required() {
-        let gen = ProofGenerator::new(true, test_image_id());
-        let mut trace = test_trace();
-        trace.tool_invocations.push(ToolInvocation {
-            tool_name: "transfer".to_string(),
-            input_hash: "0x4444".to_string(),
-            output_hash: "0x5555".to_string(),
-            capability_hash: "0x6666".to_string(),
-            timestamp: 1234567890,
-            within_policy: true,
-        });
-        let receipt = gen.generate_proof(&trace).await.unwrap();
-        let verified = gen.verify_receipt(&receipt).unwrap();
-        assert!(verified.requires_ledger_approval);
-    }
-
-    #[tokio::test]
-    async fn test_local_proof_mock_fallback() {
-        // With no guest ELF loaded, local proving falls back to mock
+    async fn test_proof_generation_requires_guest_elf() {
+        // Without a guest ELF, proof generation must fail — no mock fallback
         let gen = ProofGenerator::new(false, test_image_id());
-        let receipt = gen.generate_proof(&test_trace()).await.unwrap();
-        assert!(!receipt.journal.is_empty());
-        assert!(!receipt.seal.is_empty());
+        let result = gen.generate_proof(&test_trace()).await;
+        assert!(result.is_err());
+        assert!(
+            result.unwrap_err().to_string().contains("Guest ELF not loaded"),
+            "Expected error about missing guest ELF"
+        );
+    }
+
+    #[test]
+    fn test_verify_receipt_rejects_invalid_data() {
+        let gen = ProofGenerator::new(false, test_image_id());
+        let bad_receipt = ProofReceipt {
+            journal: b"not a real journal".to_vec(),
+            seal: b"not a real seal".to_vec(),
+            image_id: test_image_id(),
+        };
+        let result = gen.verify_receipt(&bad_receipt);
+        assert!(result.is_err(), "Should reject non-RISC-Zero receipt data");
     }
 
     #[test]

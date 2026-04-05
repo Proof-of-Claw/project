@@ -18,8 +18,9 @@ if [ -z "$RISC_ZERO_IMAGE_ID" ]; then
     if [ -f "proof_output.json" ]; then
         export RISC_ZERO_IMAGE_ID=$(cat proof_output.json | grep -o '"image_id": "[^"]*"' | cut -d'"' -f4)
     else
-        echo "Using default image ID"
-        export RISC_ZERO_IMAGE_ID="0x6356d10d377b75c568fe9041a6da3ef55a6134c301fcc334ea245dc843435d58"
+        echo "Error: RISC_ZERO_IMAGE_ID not set and proof_output.json not found"
+        echo "Build the guest program first: cd zkvm && cargo risczero build --release"
+        exit 1
     fi
 fi
 
@@ -32,7 +33,7 @@ echo ""
 
 cd contracts
 
-# Deploy mock verifier + ProofOfClawVerifier
+# Deploy Groth16 verifier + ProofOfClawVerifier
 forge script script/Deploy0GTestnet.s.sol:Deploy0GTestnet \
     --rpc-url $OG_TESTNET_RPC_URL \
     --broadcast \

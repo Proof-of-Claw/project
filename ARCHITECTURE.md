@@ -33,14 +33,14 @@ The core agent is written in Rust and consists of:
 
 #### Integrations
 - **0G Compute** (`agent/src/integrations/zero_g.rs`) — HTTP POST to 0G endpoint with real attestation extraction (falls back to SHA256 content hash)
-- **0G Storage** (`agent/src/integrations/zero_g.rs`) — Trace upload/retrieval with content-addressable root hashes
+- **0G Storage** (`agent/src/integrations/zero_g.rs`) — Real 0G SDK integration; trace upload/retrieval with content-addressable root hashes
 - **ENS + DM3** (`agent/src/integrations/ens_dm3.rs`) — On-chain ENS namehash computation, text record resolution (3-tier: ENS → HTTP → fallback), DM3 encrypted messaging
-- **Ledger** (`agent/src/integrations/ledger.rs`) — Hardware approval gate (currently stub — returns Ok(true))
+- **Ledger** (`proof_of_claw/src/ledger.rs`) — Hardware approval gate (real APDU via coins-ledger, requires physical device)
 - **EIP-8004** (`agent/src/integrations/eip8004.rs`) — Identity registration, reputation queries, validation history via eth_call/send_transaction
-- **iNFT** (`agent/src/integrations/inft.rs`) — ERC-7857 agent identity minting with encrypted metadata on 0G Storage
+- **iNFT** (`agent/src/integrations/inft.rs`) — ERC-7857 agent identity minting with soul backup (AES-GCM encrypted SOUL.md on 0G, hash on-chain)
 
 #### Proof Generation
-- **Proof Generator** (`agent/src/proof_generator.rs`) — Supports Boundless (remote), local RISC Zero, and mock (dev) backends
+- **Proof Generator** (`proof_of_claw/src/proof_generator.rs`) — Supports Boundless (remote) and local RISC Zero backends; requires guest ELF
 - **IronClaw Adapter** (`agent/src/ironclaw_adapter.rs`) — Converts IronClaw execution traces into Proof of Claw format
 
 ### 2. RISC Zero zkVM
@@ -92,11 +92,11 @@ All contracts are deployed and verified on **0G Galileo Testnet** (chain 16602).
 - Reverse lookup: wallet to owned agents
 - **Deployed:** `0x9De4F1b14660B5f8145a78Cfc0312B1BFb812C46`
 
-#### RiscZeroMockVerifier (`contracts/src/RiscZeroMockVerifier.sol`)
-- Testnet-only mock that accepts all proofs
+#### RiscZeroGroth16Verifier (`contracts/src/RiscZeroGroth16Verifier.sol`)
+- Real Groth16 proof verifier using BN254 pairing (EIP-197)
+- Hardcoded VK from risc0-groth16 v1.2.6 trusted setup
 - Implements `IRiscZeroVerifier` interface
 - **Deployed:** `0x93e985aCA4112771c0B05114Ad99677DB85a6A9e`
-- **Warning:** Replace with real RISC Zero verifier for mainnet
 
 #### Clear Signing Metadata (`contracts/clear-signing/proofofclaw.json`)
 ERC-7730 metadata for human-readable Ledger display
@@ -124,7 +124,7 @@ ERC-7730 metadata for human-readable Ledger display
 4. `PolicyEngine` checks tool allowlist and value thresholds
 5. Handler generates contextual response text based on intent + policy result
 6. `ExecutionTrace` built from the interaction
-7. `ProofGenerator` generates ZK proof (mock in dev, Boundless in prod)
+7. `ProofGenerator` generates ZK proof (local RISC Zero or Boundless)
 8. User message, agent response, and proof recorded in `AgentState`
 9. Response returned with intent info, policy result, and proof metadata
 
@@ -202,6 +202,6 @@ ERC-7730 metadata for human-readable Ledger display
 - **Chat Processing**: ~50-100ms (intent routing + policy check + proof generation)
 - **0G Inference**: ~1-5s per LLM call (depending on model)
 - **0G Storage**: ~100-500ms per trace upload
-- **RISC Zero Proof**: ~30s-2min via Boundless (mock is instant)
+- **RISC Zero Proof**: ~30s-2min via Boundless; ~5-30min local STARK proving
 - **On-chain Verification**: ~50-100k gas per proof verification
 - **Frontend Polling**: Dashboard polls every 3 seconds when connected

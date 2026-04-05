@@ -9,8 +9,7 @@ import "../src/ProofOfClawVerifier.sol";
 /// @notice Deploys the ProofOfClawVerifier and demonstrates on-chain proof verification
 /// @dev This script deploys to 0G testnet
 contract DeployAndVerifyScript is Script {
-    // RISC Zero verifier contract address - set via environment variable
-    // For 0G testnet, deploy MockRiscZeroVerifier first if needed
+    // RISC Zero verifier contract address - set via RISC_ZERO_VERIFIER environment variable
     address riscZeroVerifier;
 
     function run() external {

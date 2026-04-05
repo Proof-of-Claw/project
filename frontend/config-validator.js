@@ -3,6 +3,9 @@
  * Provides robust validation for agent registration configuration
  */
 
+import { Networks } from './env-config.js';
+export { Networks };
+
 export const ValidationRules = {
   agentName: {
     required: true,
@@ -38,47 +41,7 @@ export const ValidationRules = {
   }
 };
 
-export const Networks = {
-  sepolia: {
-    id: 'sepolia',
-    name: 'Sepolia',
-    chainId: 11155111,
-    rpcUrl: 'https://eth-sepolia.g.alchemy.com/v2/',
-    currency: 'ETH',
-    explorer: 'https://sepolia.etherscan.io',
-    isTestnet: true,
-    contracts: {
-      inft: '0x0000000000000000000000000000000000000000',
-      registry: '0x0000000000000000000000000000000000000000'
-    }
-  },
-  og_testnet: {
-    id: 'og_testnet',
-    name: '0G Testnet',
-    chainId: 16602,
-    rpcUrl: 'https://evmrpc-testnet.0g.ai',
-    currency: 'OG',
-    explorer: 'https://chainscan-dev.0g.ai',
-    isTestnet: true,
-    contracts: {
-      inft: '0x0000000000000000000000000000000000000000',
-      registry: '0x0000000000000000000000000000000000000000'
-    }
-  },
-  og_mainnet: {
-    id: 'og_mainnet',
-    name: '0G Mainnet',
-    chainId: 16661,
-    rpcUrl: 'https://evmrpc.0g.ai',
-    currency: 'OG',
-    explorer: 'https://chainscan.0g.ai',
-    isTestnet: false,
-    contracts: {
-      inft: '0x0000000000000000000000000000000000000000',
-      registry: '0x0000000000000000000000000000000000000000'
-    }
-  }
-};
+// Networks is imported from env-config.js and re-exported above
 
 export class ConfigValidator {
   constructor() {

@@ -28,12 +28,12 @@ export function registerAgentCommands(program: Command): void {
         try {
           signerAddress = getAddress(config);
         } catch {
-          signerAddress = "0x" + crypto.randomBytes(20).toString("hex");
-          console.log(
-            chalk.yellow(
-              "No signer configured. Using generated placeholder address."
+          console.error(
+            chalk.red(
+              "No signer configured. Set PRIVATE_KEY in .env or configure a wallet."
             )
           );
+          process.exit(1);
         }
 
         const agentProfile: AgentProfile = {
@@ -77,8 +77,7 @@ export function registerAgentCommands(program: Command): void {
     .option("--agent-id <id>", "Specific agent ID to register")
     .option(
       "--uri <uri>",
-      "Metadata URI for the agent",
-      "ipfs://placeholder"
+      "Metadata URI for the agent (upload to 0G/IPFS first)"
     )
     .action(async (opts: { agentId?: string; uri: string }) => {
       try {

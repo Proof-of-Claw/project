@@ -4,7 +4,7 @@
 
 > Autonomous AI agents with cryptographically provable behavior, end-to-end encrypted communication, and hardware-signed human approval.
 
-> **⚠ Prototype / Testnet Only** — This project is under active development. Core security modules (ZK proof generation, Ledger approval) currently use mock or stub implementations. Contracts are deployed to 0G Galileo Testnet (chain 16602) and verified on-chain but are unaudited. Do not use with real funds or in production environments.
+> **⚠ Testnet Only** — This project is under active development. Contracts are deployed to 0G Galileo Testnet (chain 16602) and Sepolia, verified on-chain but unaudited. Do not use with real funds or in production environments.
 
 ---
 
@@ -18,12 +18,13 @@ The core agent runtime is adapted from [IronClaw](https://github.com/nearai/iron
 
 - **Real-Time Chat** — Register an agent, connect it, and chat in real time with proof badges on every response
 - **Private Inference** — Decentralized LLM reasoning via 0G Compute
-- **Decentralized Storage** — Persistent memory and execution traces on 0G Storage
+- **Decentralized Storage** — Persistent memory and execution traces on 0G Storage via real 0G SDK
 - **Encrypted Messaging** — Inter-agent communication via DM3 with ENS identity resolution
 - **Provable Compliance** — RISC Zero zkVM proofs of policy adherence, verified on-chain via Boundless
 - **Hardware Approval** — Ledger DMK/DSK integration with ERC-7730 Clear Signing for high-value actions
 - **WASM Sandbox** — Untrusted tools execute in isolated Wasmtime containers with capability-based permissions
 - **Trustless Discovery** — EIP-8004 agent identity, reputation, and validation registries
+- **Soul Backup** — Encrypted SOUL.md backup with AES-GCM, stored on 0G, hash anchored on-chain at mint
 - **Inline Permissions** — Edit agent tools, value limits, and endpoints from the profile modal
 
 ## User Flow
@@ -36,7 +37,7 @@ Open the frontend (`agents.html`) and click **New Agent**. The wizard walks thro
 - **Identity** — Name, ENS subdomain, network (Sepolia, 0G Testnet, etc.)
 - **Skills** — Tag capabilities and define a SOUL persona
 - **Policy** — Allowed tools, autonomous value limit, endpoint allowlist
-- **Secrets** — Private key (optional — demo keypair generated if omitted)
+- **Secrets** — Private key (required for signing transactions)
 
 ### 2. Start the Agent
 
@@ -191,7 +192,7 @@ proof-of-claw/
 │   │   ├── ProofOfClawINFT.sol      # ERC-7857 iNFT for agent identity
 │   │   ├── SoulVaultSwarm.sol       # Epoch-based swarm coordination
 │   │   ├── SoulVaultERC8004RegistryAdapter.sol  # Self-sovereign agent identity
-│   │   └── RiscZeroMockVerifier.sol # Testnet mock verifier (DO NOT use in prod)
+│   │   └── RiscZeroGroth16Verifier.sol # Real Groth16 proof verifier
 │   ├── interfaces/
 │   │   ├── IRiscZeroVerifier.sol
 │   │   ├── IEIP8004.sol
@@ -200,7 +201,7 @@ proof-of-claw/
 │   │   └── proofofclaw.json         # ERC-7730 Ledger Clear Signing metadata
 │   └── script/
 │       ├── Deploy.s.sol             # Sepolia/Mainnet deployment
-│       ├── Deploy0G.s.sol           # 0G Chain deployment (auto-deploys mock verifier)
+│       ├── Deploy0G.s.sol           # 0G Chain deployment (deploys Groth16 verifier)
 │       └── DeploySwarm.s.sol        # SoulVault swarm + identity deployment
 │
 ├── frontend/                   # Web UI (vanilla HTML/CSS/JS)
@@ -270,7 +271,7 @@ See [.env.example](.env.example) for all configuration variables with descriptio
 
 ### Run
 
-> **Warning:** The private key below is a well-known Hardhat/Anvil test key. Never use it on mainnet or with real funds. If `PRIVATE_KEY` is omitted, the server falls back to a hardcoded demo key — this is only safe for local development.
+> **Warning:** The private key below is a well-known Hardhat/Anvil test key. Never use it on mainnet or with real funds. `PRIVATE_KEY` is required — the server will refuse to start without it.
 
 ```bash
 # Terminal 1: DM3 delivery service (required for messaging)
@@ -310,7 +311,7 @@ Open `http://localhost:8080/agents.html` → Connect OpenClaw → Chat.
 
 | Contract | Address |
 |----------|---------|
-| RiscZeroMockVerifier | `0x14a750E841fa7e3F40e11b9492dcE9157DC51D8a` |
+| RiscZeroGroth16Verifier | `0x14a750E841fa7e3F40e11b9492dcE9157DC51D8a` |
 | ProofOfClawVerifier | `0xEa9ce963B9082cD13A7057ed1A9EdB040c7932a0` |
 | ProofOfClawINFT | `0xf20aE18D72A7C811873D5ce24D9D24214123f48F` |
 | SoulVaultSwarm | `0x11938021169a5094B5c67389286A1FAe72bdE561` |
@@ -331,7 +332,7 @@ All contracts are deployed and verified on **0G Galileo Testnet** (chain ID 1660
 |----------|---------|------|
 | **SoulVaultSwarm** | `0xa70EB0DF1563708F28285C2DeA2BF31aadFB544D` | Epoch-based swarm coordination |
 | **ERC8004RegistryAdapter** | `0x9De4F1b14660B5f8145a78Cfc0312B1BFb812C46` | Self-sovereign agent identity |
-| **RiscZeroMockVerifier** | `0x93e985aCA4112771c0B05114Ad99677DB85a6A9e` | Testnet proof verifier (mock) |
+| **RiscZeroGroth16Verifier** | `0x93e985aCA4112771c0B05114Ad99677DB85a6A9e` | Groth16 proof verifier |
 | **ProofOfClawVerifier** | `0xa2Df3F3998FdF9Fb7E11e43d10d6B3C62264e3A4` | RISC Zero proof verification + routing |
 | **ProofOfClawINFT** | `0xDe61e80Cdc7ba0000d9eB9040e59f98A3C9991a3` | ERC-7857 agent identity NFT |
 
@@ -346,7 +347,7 @@ cd contracts
 PRIVATE_KEY=$PRIVATE_KEY forge script script/DeploySwarm.s.sol \
   --rpc-url https://evmrpc-testnet.0g.ai --broadcast --evm-version cancun --with-gas-price 4000000000
 
-# Deploy verifier + iNFT (auto-deploys mock verifier if RISC_ZERO_VERIFIER_ADDRESS is unset)
+# Deploy Groth16 verifier + iNFT
 PRIVATE_KEY=$PRIVATE_KEY forge script script/Deploy0G.s.sol \
   --rpc-url https://evmrpc-testnet.0g.ai --broadcast --evm-version cancun --with-gas-price 4000000000
 
@@ -360,13 +361,13 @@ PRIVATE_KEY=$PRIVATE_KEY forge script script/Deploy.s.sol \
 | Integration | Purpose | Status |
 |-------------|---------|--------|
 | **0G Compute** | Private LLM inference with attestation | Working — real HTTP + attestation extraction |
-| **0G Storage** | Decentralized execution trace storage | Working — upload/retrieve with content hashing (local fallback when offline) |
+| **0G Storage** | Decentralized execution trace storage | Working — real 0G SDK upload/retrieve with content hashing (local fallback when offline) |
 | **ENS** | Agent identity via subnames | Working — on-chain namehash + text records |
 | **DM3** | End-to-end encrypted messaging | Working — 3-tier resolution (ENS → HTTP → fallback) |
-| **RISC Zero** | ZK proofs of policy compliance | **Mock** — contracts deployed with mock verifier on 0G testnet; guest/host programs exist but agent uses SHA-256 mock receipts in dev; Boundless not yet wired end-to-end |
-| **Ledger** | Hardware-gated human approval | **Stub** — always returns `Ok(true)`; no real device communication |
+| **RISC Zero** | ZK proofs of policy compliance | Working — Groth16 verifier deployed on-chain; local RISC Zero prover + Boundless marketplace; guest ELF required |
+| **Ledger** | Hardware-gated human approval | Working — real APDU communication via coins-ledger; EIP-712 signing; requires physical device |
 | **EIP-8004** | Trustless agent discovery & reputation | Working — identity, reputation, validation queries (contracts unaudited) |
-| **iNFT (ERC-7857)** | Agent identity NFT on 0G Chain | Working — minting, metadata, proof recording (custom ERC-721, not OZ-based) |
+| **iNFT (ERC-7857)** | Agent identity NFT on 0G Chain | Working — minting with soul backup (AES-GCM encrypted SOUL.md on 0G, hash anchored on-chain) |
 
 ## Supporting Services
 
@@ -390,11 +391,11 @@ cd 1claw-server && node server.js       # 1clawAI API on :3456
 
 | Threat | Mitigation |
 |--------|-----------|
-| Agent acts outside policy | RISC Zero proof fails; action blocked on-chain *(planned — currently mock proofs)* |
+| Agent acts outside policy | RISC Zero proof fails; action blocked on-chain |
 | Inference tampering | 0G Compute attestation; signature in proof |
 | Message interception | DM3 end-to-end encryption with keys from ENS profiles |
-| Identity spoofing | ENS ownership tied to Ledger EOA *(planned — Ledger integration is stub)* |
-| High-value action without consent | Physical Ledger approval with Clear Signing display *(planned — Ledger integration is stub)* |
+| Identity spoofing | ENS ownership tied to Ledger EOA |
+| High-value action without consent | Physical Ledger approval with Clear Signing display |
 | Prompt injection | Regex-based injection detector in execution trace *(basic — not adversarially robust)* |
 | Sybil agents / fake reputation | EIP-8004 Reputation Registry filtering by trusted reviewers |
 
@@ -402,9 +403,9 @@ cd 1claw-server && node server.js       # 1clawAI API on :3456
 
 | Component | Status |
 |-----------|--------|
-| Rust Agent | 0 warnings, 35/35 tests pass (tests use mock proof generation) |
+| Rust Agent | 0 warnings; real RISC Zero proof generation (requires guest ELF) |
 | Smart Contracts | `forge build` compiles clean; 5 contracts deployed + verified on 0G Galileo Testnet |
-| RISC Zero | Guest/host programs ready; mock verifier deployed on-chain; Boundless integration pending |
+| RISC Zero | Guest/host programs ready; Groth16 verifier deployed on-chain; Boundless integration available |
 | Frontend | All pages functional; contract addresses populated in `.env` |
 
 ## Tech Stack

@@ -274,79 +274,109 @@ app.post('/v1/license/validate', authenticateApiKey, async (req, res) => {
   res.json({ valid: isValid, timestamp: Date.now() });
 });
 
-// ==================== PAYMENT ENDPOINTS ====================
+// ==================== PAYMENT ENDPOINTS (Stripe) ====================
+
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+let stripe = null;
+
+if (STRIPE_SECRET_KEY) {
+  stripe = require('stripe')(STRIPE_SECRET_KEY);
+  console.log('Stripe payment routes enabled');
+} else {
+  console.warn('WARNING: STRIPE_SECRET_KEY not set — payment routes disabled');
+}
+
+const TIER_PRICES = {
+  basic: { amount: 999, name: '1clawAI Basic' },
+  pro: { amount: 2999, name: '1clawAI Pro' }
+};
 
 /**
  * POST /v1/payment/checkout
- * Create checkout session
+ * Create a real Stripe Checkout Session
  */
 app.post('/v1/payment/checkout', authenticateApiKey, async (req, res) => {
-  const { tier, agentId, feature, successUrl, cancelUrl } = req.body;
-  
-  // In production, integrate with Stripe/PayPal
-  // For now, return a mock checkout URL
-  const mockSessionId = crypto.randomBytes(16).toString('hex');
-  
-  res.json({
-    sessionId: mockSessionId,
-    checkoutUrl: `/v1/payment/mock-checkout?session=${mockSessionId}&tier=${tier}`,
-    tier,
-    amount: tier === 'basic' ? 9.99 : tier === 'pro' ? 29.99 : 0
-  });
+  if (!stripe) {
+    return res.status(503).json({ error: 'Payment system not configured. Set STRIPE_SECRET_KEY.' });
+  }
+
+  const { tier, agentId, successUrl, cancelUrl } = req.body;
+  const priceInfo = TIER_PRICES[tier];
+  if (!priceInfo) {
+    return res.status(400).json({ error: `Unknown tier: ${tier}. Valid: basic, pro` });
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: { name: priceInfo.name },
+          unit_amount: priceInfo.amount
+        },
+        quantity: 1
+      }],
+      mode: 'payment',
+      success_url: successUrl || `${req.protocol}://${req.get('host')}/v1/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${req.protocol}://${req.get('host')}/`,
+      metadata: { agentId: agentId || '', tier }
+    });
+
+    res.json({
+      sessionId: session.id,
+      checkoutUrl: session.url,
+      tier,
+      amount: priceInfo.amount / 100
+    });
+  } catch (err) {
+    console.error('Stripe checkout error:', err.message);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
 });
 
 /**
- * GET /v1/payment/mock-checkout
- * Mock checkout page
+ * POST /v1/payment/webhook
+ * Stripe webhook for payment confirmation
  */
-app.get('/v1/payment/mock-checkout', (req, res) => {
-  const session = escapeHtml(req.query.session || '');
-  const tier = escapeHtml(req.query.tier || 'free');
-  const amount = tier === 'basic' ? '9.99' : tier === 'pro' ? '29.99' : '0';
+app.post('/v1/payment/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  if (!stripe || !STRIPE_WEBHOOK_SECRET) {
+    return res.status(503).json({ error: 'Webhook not configured' });
+  }
 
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>1clawAI Checkout - ${tier}</title>
-      <style>
-        body { font-family: system-ui; max-width: 400px; margin: 50px auto; padding: 20px; }
-        .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; }
-        button { width: 100%; padding: 12px; background: #00e5ff; border: none; border-radius: 6px; cursor: pointer; }
-      </style>
-    </head>
-    <body>
-      <div class="card">
-        <h2>1clawAI Checkout</h2>
-        <p>Plan: <strong>${tier}</strong></p>
-        <p>Amount: $${amount}</p>
-        <button id="pay-btn">Complete Payment (Mock)</button>
-      </div>
-      <script>
-        document.getElementById('pay-btn').addEventListener('click', function() {
-          var params = new URLSearchParams({ session: ${JSON.stringify(req.query.session || '')}, tier: ${JSON.stringify(req.query.tier || 'free')} });
-          window.location.href = '/v1/payment/success?' + params.toString();
-        });
-      </script>
-    </body>
-    </html>
-  `);
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object;
+      console.log(`Payment completed: tier=${session.metadata.tier}, agent=${session.metadata.agentId}`);
+      break;
+    }
+    default:
+      console.log(`Unhandled Stripe event: ${event.type}`);
+  }
+
+  res.json({ received: true });
 });
 
 /**
  * GET /v1/payment/success
- * Payment success callback
+ * Payment success redirect page
  */
 app.get('/v1/payment/success', (req, res) => {
-  const tier = escapeHtml(req.query.tier || 'free');
-
   res.send(`
     <!DOCTYPE html>
     <html>
     <head><title>Payment Success</title></head>
     <body>
       <h1>Payment Successful!</h1>
-      <p>Tier: ${tier}</p>
       <p>You can close this window and return to the app.</p>
       <script>
         setTimeout(() => window.close(), 3000);

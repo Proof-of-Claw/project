@@ -3,7 +3,7 @@
  * Shared across all app pages. Manages connection to a live OpenClaw agent runtime.
  *
  * localStorage keys:
- *   poc_agents       — array of agent objects (mock or synced)
+ *   poc_agents       — array of agent objects (synced from live runtime)
  *   poc_connection    — { url, agentId, ens, connectedAt } when connected to live agent
  */
 

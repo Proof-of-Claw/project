@@ -114,12 +114,10 @@ impl LedgerApprovalGate {
                 Ok(false)
             }
             Err(e) => {
-                tracing::warn!("Ledger communication failed: {e:#}");
-                tracing::warn!(
-                    "No Ledger device available — falling back to software wallet confirmation"
-                );
-                self.software_wallet_fallback(action_description, value_wei)
-                    .await
+                Err(e).context(
+                    "Ledger device required for this action but communication failed. \
+                     Connect a Ledger device with the Ethereum app open and retry."
+                )
             }
         }
     }
@@ -279,25 +277,6 @@ impl LedgerApprovalGate {
         encoded.extend_from_slice(&approval.policy_hash);
 
         keccak256(&encoded)
-    }
-
-    /// Fallback when no Ledger device is available.
-    ///
-    /// Returns `Ok(false)` — the action is not approved without hardware
-    /// confirmation. The frontend can still call `approveAction()` on the
-    /// contract with the owner's EOA.
-    async fn software_wallet_fallback(
-        &self,
-        action_description: &str,
-        value_wei: u64,
-    ) -> Result<bool> {
-        tracing::warn!(
-            "SOFTWARE FALLBACK: Action '{}' (value={} wei) requires manual approval. \
-             Connect a Ledger device for hardware signing, or approve via the frontend.",
-            action_description,
-            value_wei,
-        );
-        Ok(false)
     }
 
     /// Returns the origin token (for ERC-7730 clear-signing).

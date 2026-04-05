@@ -95,16 +95,30 @@ export function registerEpochCommands(program: Command): void {
           // Generate bundle
           const bundle = generateEpochBundle(members, kEpoch, Date.now());
           const bundleJson = JSON.stringify(bundle, null, 2);
-          const bundleCid = `bafk${crypto.randomBytes(28).toString("hex")}`; // placeholder CID
-
-          console.log(chalk.dim(`  Bundle CID: ${bundleCid}`));
           console.log(
             chalk.dim(
               `  Bundle size: ${Buffer.byteLength(bundleJson)} bytes`
             )
           );
 
+          let bundleCid: string;
+
           if (!opts.dryRun) {
+            // Upload epoch bundle to 0G Storage
+            console.log(chalk.dim("  Uploading epoch bundle to 0G storage..."));
+            const { Indexer: ZgIndexer } = await import("@0glabs/0g-ts-sdk");
+            const { ogSigner: uploadSigner } = getSigners(config);
+            const zgIndexer = new ZgIndexer(config.zeroGIndexerRpc || "https://indexer-storage-testnet-turbo.0g.ai");
+            const uploadBlob = new Blob([bundleJson], { type: "application/json" });
+            const uploadFile = new File([uploadBlob], "epoch-bundle.json", { type: "application/json" });
+            const evmRpc = config.zeroGEvmRpc || "https://evmrpc-testnet.0g.ai";
+            const [uploadResult, uploadErr] = await zgIndexer.upload(uploadFile, evmRpc, uploadSigner);
+            if (uploadErr) {
+              console.error(chalk.red(`  0G upload failed: ${uploadErr.message || uploadErr}`));
+              process.exit(1);
+            }
+            bundleCid = uploadResult.rootHash || uploadResult.txHash;
+            console.log(chalk.green(`  Uploaded to 0G. Root hash: ${bundleCid}`));
             try {
               const { ogSigner } = getSigners(config);
               const contract = getSoulVaultSwarmContract(

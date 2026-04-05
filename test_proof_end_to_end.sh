@@ -6,52 +6,43 @@ echo "║     Proof of Claw - End-to-End Proof Generation Test          ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
-cd agent
+cd proof_of_claw
 
-echo "📋 Test 1: Mock Proof Generation"
+echo "Test 1: Proof Generation Requires Guest ELF"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-cargo test test_proof_generation_mock -- --nocapture
-echo "✅ Mock proof generation passed"
+cargo test test_proof_generation_requires_guest_elf -- --nocapture
+echo "Passed"
 echo ""
 
-echo "📋 Test 2: Proof Receipt Verification"
+echo "Test 2: Receipt Verification Rejects Invalid Data"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-cargo test test_verify_receipt -- --nocapture
-echo "✅ Receipt verification passed"
+cargo test test_verify_receipt_rejects_invalid_data -- --nocapture
+echo "Passed"
 echo ""
 
-echo "📋 Test 3: Ledger Approval Threshold Detection"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-cargo test test_ledger_approval_required -- --nocapture
-echo "✅ Ledger approval detection passed"
-echo ""
-
-echo "📋 Test 4: IronClaw Trace Conversion"
+echo "Test 3: IronClaw Trace Conversion"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 cargo test test_ironclaw_trace_conversion -- --nocapture
-echo "✅ IronClaw trace conversion passed"
+echo "Passed"
 echo ""
 
 echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║                    ✅ ALL TESTS PASSED                         ║"
+echo "║                    ALL TESTS PASSED                            ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
-echo "📝 Summary:"
-echo "  • Mock proof generation: Working"
-echo "  • Receipt verification: Working"
-echo "  • Ledger approval logic: Working"
-echo "  • IronClaw integration: Working"
+echo "Summary:"
+echo "  - Proof generation: Requires real guest ELF (no mock fallback)"
+echo "  - Receipt verification: Rejects non-RISC-Zero data"
+echo "  - IronClaw integration: Working"
 echo ""
-echo "🚀 Next Steps:"
-echo "  1. For production RISC Zero proofs:"
-echo "     curl -L https://risczero.com/install | bash"
-echo "     rzup install"
+echo "Next Steps:"
+echo "  1. Build the guest ELF:"
+echo "     cd zkvm && cargo risczero build --release"
 echo ""
 echo "  2. Or use Boundless (recommended):"
-echo "     - No local setup required"
+echo "     - No local proving setup required"
 echo "     - Decentralized proving network"
-echo "     - ~\$0.30-\$30 per proof"
 echo ""
 echo "  3. Deploy contracts:"
-echo "     cd ../contracts && forge script script/Deploy.s.sol --broadcast"
+echo "     cd contracts && forge script script/Deploy0GTestnet.s.sol --broadcast"
 echo ""

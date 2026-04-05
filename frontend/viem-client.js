@@ -6,6 +6,7 @@
 // Import viem from CDN (ES modules)
 import { createPublicClient, createWalletClient, custom, http, parseAbi, encodePacked, keccak256, stringToBytes } from 'https://esm.sh/viem@2.21.44';
 import { mainnet, sepolia } from 'https://esm.sh/viem@2.21.44/chains';
+import { CONTRACT_ADDRESSES, ZERO_G_CONFIG } from './env-config.js';
 
 // ═══════════════════════════════════════
 // CONTRACT CONFIGURATION
@@ -30,21 +31,7 @@ const CONTRACT_ABIS = {
   ]),
 };
 
-// Contract addresses by network
-const CONTRACT_ADDRESSES = {
-  sepolia: {
-    inft: '0xf20aE18D72A7C811873D5ce24D9D24214123f48F', // ProofOfClawINFT
-    registry: '0x6254651F29e7afEE1c52a1D6Fd4b7B211d2dBed2', // EIP8004Integration
-    swarm: '0x11938021169a5094B5c67389286A1FAe72bdE561', // SoulVaultSwarm
-    registryAdapter: '0x56B19562c7d6cB3bCCD0FA78214EFC3928F6eE6a', // ERC8004RegistryAdapter
-  },
-  og_testnet: {
-    inft: '0x45c69b7be9dc9a4126053a17a43e664b4ae031a1', // ProofOfClawINFT
-    registry: '0xe34dab193105f3d7ec6ee4e6172cbe6213108d8b', // ProofOfClawVerifier
-    swarm: '0xa70EB0DF1563708F28285C2DeA2BF31aadFB544D', // SoulVaultSwarm
-    registryAdapter: '0x9De4F1b14660B5f8145a78Cfc0312B1BFb812C46', // ERC8004RegistryAdapter
-  },
-};
+// Contract addresses imported from env-config.js
 
 // ═══════════════════════════════════════
 // CLIENT STATE
@@ -70,14 +57,15 @@ export function initViem(network = 'sepolia') {
   } else if (network === 'mainnet') {
     currentChain = mainnet;
   } else {
-    // 0G networks - use custom chain config
+    // 0G networks - use custom chain config from env
+    const netConfig = network === 'og_testnet' ? ZERO_G_CONFIG.testnet : ZERO_G_CONFIG.mainnet;
     currentChain = {
-      id: network === 'og_testnet' ? 16602 : 16661,
-      name: network === 'og_testnet' ? '0G Testnet' : '0G Mainnet',
+      id: netConfig.chainId,
+      name: netConfig.name,
       nativeCurrency: { name: '0G', symbol: 'OG', decimals: 18 },
       rpcUrls: {
         default: {
-          http: [network === 'og_testnet' ? 'https://evmrpc-testnet.0g.ai' : 'https://evmrpc.0g.ai'],
+          http: [netConfig.rpcUrl],
         },
       },
     };

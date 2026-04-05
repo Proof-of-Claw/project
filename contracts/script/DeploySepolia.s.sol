@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
-import "../src/RiscZeroMockVerifier.sol";
+import "../src/RiscZeroGroth16Verifier.sol";
 import "../src/ProofOfClawVerifier.sol";
 import "../src/ProofOfClawINFT.sol";
 import "../src/SoulVaultSwarm.sol";
@@ -11,7 +11,7 @@ import "../src/SoulVaultERC8004RegistryAdapter.sol";
 import "../src/EIP8004Integration.sol";
 
 /// @title DeploySepolia — Deploy all Proof of Claw contracts to Ethereum Sepolia
-/// @notice Deploys with a mock RISC Zero verifier suitable for testnet usage.
+/// @notice Deploys with real RISC Zero Groth16 verifier.
 ///
 /// Usage:
 ///   source .env && forge script script/DeploySepolia.s.sol \
@@ -28,13 +28,13 @@ contract DeploySepoliaScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // 1. Deploy mock RISC Zero verifier (testnet only)
-        RiscZeroMockVerifier mockVerifier = new RiscZeroMockVerifier();
-        console.log("RiscZeroMockVerifier deployed at:", address(mockVerifier));
+        // 1. Deploy real RISC Zero Groth16 verifier
+        RiscZeroGroth16Verifier groth16Verifier = new RiscZeroGroth16Verifier();
+        console.log("RiscZeroGroth16Verifier deployed at:", address(groth16Verifier));
 
-        // 2. Deploy ProofOfClawVerifier using the mock verifier
+        // 2. Deploy ProofOfClawVerifier using the real verifier
         ProofOfClawVerifier proofOfClaw = new ProofOfClawVerifier(
-            IRiscZeroVerifier(address(mockVerifier)),
+            IRiscZeroVerifier(address(groth16Verifier)),
             imageId
         );
         console.log("ProofOfClawVerifier deployed at:", address(proofOfClaw));
@@ -70,7 +70,7 @@ contract DeploySepoliaScript is Script {
         console.log("");
         console.log("=== Sepolia Deployment Summary ===");
         console.log("Chain:                   Sepolia (11155111)");
-        console.log("MockVerifier:           ", address(mockVerifier));
+        console.log("Groth16Verifier:        ", address(groth16Verifier));
         console.log("ProofOfClawVerifier:    ", address(proofOfClaw));
         console.log("ProofOfClawINFT:        ", address(inft));
         console.log("SoulVaultSwarm:         ", address(swarm));

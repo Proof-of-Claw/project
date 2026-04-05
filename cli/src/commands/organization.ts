@@ -27,12 +27,12 @@ export function registerOrgCommands(program: Command): void {
         try {
           signerAddress = getAddress(config);
         } catch {
-          signerAddress = "0x" + crypto.randomBytes(20).toString("hex");
-          console.log(
-            chalk.yellow(
-              "No signer configured. Using generated placeholder address."
+          console.error(
+            chalk.red(
+              "No signer configured. Set PRIVATE_KEY in .env or configure a wallet."
             )
           );
+          process.exit(1);
         }
 
         const sanitized = name.toLowerCase().replace(/[^a-z0-9-]/g, "-");
