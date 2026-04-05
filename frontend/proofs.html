@@ -846,7 +846,7 @@ function populateAgentFilters() {
     if (name) agentNames.add(name);
   });
 
-  const selects = [document.getElementById('filterAgent'), document.getElementById('topAgentFilter')];
+  const selects = [document.getElementById('filterAgent'), document.getElementById('topAgentFilter')].filter(Boolean);
   selects.forEach(sel => {
     const current = sel.value;
     // keep the "All" option
@@ -867,6 +867,7 @@ function applyUrlParams() {
   if (agentParam) {
     ['filterAgent', 'topAgentFilter'].forEach(id => {
       const sel = document.getElementById(id);
+      if (!sel) return;
       for (let i = 0; i < sel.options.length; i++) {
         if (sel.options[i].value === agentParam) {
           sel.value = agentParam;
@@ -876,22 +877,40 @@ function applyUrlParams() {
     });
     // Show back-to-dashboard link
     const backLink = document.getElementById('backToDashboard');
-    backLink.style.display = 'inline';
-    backLink.href = 'dashboard.html?agent=' + encodeURIComponent(agentParam);
+    if (backLink) {
+      backLink.style.display = 'inline';
+      backLink.href = 'dashboard.html?agent=' + encodeURIComponent(agentParam);
+    }
   }
 }
 
 // ===================== EVENTS =====================
-document.getElementById('filterAgent').addEventListener('change', function() {
-  document.getElementById('topAgentFilter').value = this.value;
-  renderProofs();
-});
-document.getElementById('topAgentFilter').addEventListener('change', function() {
-  document.getElementById('filterAgent').value = this.value;
-  renderProofs();
-});
-document.getElementById('filterStatus').addEventListener('change', renderProofs);
-document.getElementById('filterAction').addEventListener('change', renderProofs);
+const filterAgent = document.getElementById('filterAgent');
+const topAgentFilter = document.getElementById('topAgentFilter');
+const filterStatus = document.getElementById('filterStatus');
+const filterAction = document.getElementById('filterAction');
+
+if (filterAgent) {
+  filterAgent.addEventListener('change', function() {
+    if (topAgentFilter) topAgentFilter.value = this.value;
+    renderProofs();
+  });
+}
+
+if (topAgentFilter) {
+  topAgentFilter.addEventListener('change', function() {
+    if (filterAgent) filterAgent.value = this.value;
+    renderProofs();
+  });
+}
+
+if (filterStatus) {
+  filterStatus.addEventListener('change', renderProofs);
+}
+
+if (filterAction) {
+  filterAction.addEventListener('change', renderProofs);
+}
 
 // ===================== LOAD ON-CHAIN DATA =====================
 async function loadOnChainData() {
