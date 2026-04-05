@@ -21,6 +21,14 @@ function esc(str) {
 
 const PocPersist = (() => {
   const API_BASE = window.POC_API_URL || 'http://localhost:3456';
+  // Skip remote sync calls when the API base is a localhost address but the
+  // page is served from a non-localhost origin (e.g. poc.lady via Cloudflare).
+  // localStorage is always the source of truth; the server is optional.
+  const _isRemoteSession =
+    !window.location.hostname.includes('localhost') &&
+    !window.location.hostname.includes('127.0.0.1') &&
+    API_BASE.includes('localhost');
+
   let _wallet = null;
   let _syncQueue = [];
   let _syncing = false;
@@ -47,6 +55,8 @@ const PocPersist = (() => {
 
   /** Make an API call with wallet header */
   async function api(method, path, body) {
+    // Skip remote calls when the server is localhost but page is remote
+    if (_isRemoteSession) return null;
     const wallet = getWallet();
     if (!wallet) return null;
 

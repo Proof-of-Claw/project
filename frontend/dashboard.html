@@ -769,8 +769,6 @@ body.sidebar-collapsed .main-content { margin-left: var(--sidebar-w-collapsed); 
 
   <div class="sidebar-bottom">
     <div id="poc-connection-slot"></div>
-    <a href="agents.html" class="btn-new-agent">+ New Agent</a>
-    <a href="index.html" class="btn-home">&#x2190; Back to Home</a>
   </div>
 </aside>
 
@@ -1346,7 +1344,7 @@ function updateFromStatus(status) {
     document.getElementById('policy-hash-short').textContent = status.policy_hash;
   }
 
-  // Status indicator
+  // Status indicator — only update when status is explicitly provided
   var s = status.status || 'online';
   var dotClass = s === 'online' ? '' : s === 'busy' ? 'busy' : 'offline';
   var dotLabel = s === 'online' ? 'Online' : s === 'busy' ? 'Busy' : 'Offline';
@@ -1355,13 +1353,11 @@ function updateFromStatus(status) {
   document.getElementById('header-dot').className = 'status-dot' + (dotClass ? ' ' + dotClass : '');
   document.getElementById('header-status-text').textContent = dotLabel;
 
-  // Uptime
+  // Uptime — anchor the 1s local tick to the server-reported uptime_secs
   if (typeof status.uptime_secs === 'number') {
-    var h = Math.floor(status.uptime_secs / 3600);
-    var m = Math.floor((status.uptime_secs % 3600) / 60);
-    var sec = status.uptime_secs % 60;
-    document.getElementById('uptime').textContent = h + 'h ' + m + 'm ' + sec + 's';
-    document.getElementById('metric-uptime').textContent = h + 'h ' + m + 'm';
+    // Record when this reading was taken so the tick can extrapolate
+    _uptimeBase = status.uptime_secs;
+    _uptimeBaseTs = Date.now();
   }
 
   // Execution stats
@@ -1642,14 +1638,27 @@ function copyDashUrl() {
 // =====================================================
 // UPTIME COUNTER
 // =====================================================
+// _uptimeBase/Ts are set by syncLiveAgent() when a status poll succeeds.
+// The tick uses them to show the agent's actual uptime (not page-session time).
+var _uptimeBase = null;
+var _uptimeBaseTs = null;
+
 function startUptimeCounter() {
   function tick() {
-    const elapsed = Date.now() - startTime;
-    const h = Math.floor(elapsed / 3600000);
-    const m = Math.floor((elapsed % 3600000) / 60000);
-    const s = Math.floor((elapsed % 60000) / 1000);
-    const str = h + 'h ' + m + 'm ' + s + 's';
-    document.getElementById('uptime').textContent = str;
+    var secs;
+    if (_uptimeBase !== null && _uptimeBaseTs !== null) {
+      // Extrapolate from last known server value
+      secs = _uptimeBase + Math.round((Date.now() - _uptimeBaseTs) / 1000);
+    } else {
+      // Not yet connected — show dashes
+      document.getElementById('uptime').textContent = '---';
+      document.getElementById('metric-uptime').textContent = '---';
+      return;
+    }
+    var h = Math.floor(secs / 3600);
+    var m = Math.floor((secs % 3600) / 60);
+    var s = secs % 60;
+    document.getElementById('uptime').textContent = h + 'h ' + m + 'm ' + s + 's';
     document.getElementById('metric-uptime').textContent = h + 'h ' + m + 'm';
   }
   tick();
